@@ -1,0 +1,988 @@
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import {
+  AppDatabase,
+  BukuTamu,
+  CustomLink,
+  ELaporPerundungan,
+  KebunLuasBerseri,
+  PiketHarian,
+  SabtuBeliTehCeri,
+  SenandungSerasi,
+  SupabaseConfig,
+} from '../types';
+
+const STORAGE_KEY = 'PASS_TEMENAN_SPANJU_DB_V1';
+
+export const INITIAL_CUSTOM_LINKS: CustomLink[] = [
+  {
+    id: 'link-1',
+    title: 'Portal SMPN 7 Pasuruan',
+    url: 'https://smpn7pasuruan.sch.id',
+    description: 'Website resmi SMP Negeri 7 Pasuruan',
+    category: 'Sekolah',
+    iconName: 'Globe',
+    color: '#0d9488',
+    isCustom: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'link-2',
+    title: 'Dapodik Kemendikbud',
+    url: 'https://dapo.kemdikbud.go.id',
+    description: 'Data Pokok Pendidikan Indonesia',
+    category: 'Kedinasan',
+    iconName: 'Building2',
+    color: '#3b82f6',
+    isCustom: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'link-3',
+    title: 'PMM - Platform Merdeka Mengajar',
+    url: 'https://guru.kemdikbud.go.id',
+    description: 'Pengembangan guru & asesmen kurikulum merdeka',
+    category: 'Akademik',
+    iconName: 'GraduationCap',
+    color: '#8b5cf6',
+    isCustom: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'link-4',
+    title: 'Rapor Pendidikan Indonesia',
+    url: 'https://raporpendidikan.kemdikbud.go.id',
+    description: 'Evaluasi mutu layanan pendidikan SPANJU',
+    category: 'Evaluasi',
+    iconName: 'BarChart3',
+    color: '#ec4899',
+    isCustom: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'link-5',
+    title: 'Google Drive Dokumen Pass Temenan',
+    url: 'https://drive.google.com',
+    description: 'Penyimpanan arsip foto & bukti fisik program',
+    category: 'Arsip',
+    iconName: 'FolderArchive',
+    color: '#f59e0b',
+    isCustom: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+export const INITIAL_PIKET_HARIAN: PiketHarian[] = [
+  {
+    id: 'piket-1',
+    hariTanggal: 'Senin, 17 Agustus 2026',
+    waktu: '06.30 - 14.00 WIB',
+    namaAnggota: 'Ahmad Fauzi, Siti Nurhaliza, Budi Santoso',
+    kelas: 'Tim Pokja 7 & 8',
+    hasilTemuan: 'Seluruh area gerbang sekolah kondusif, penyambutan 5S (Senyum, Salam, Sapa, Sopan, Santun) berjalan tertib. Tidak ditemukan siswa terlambat.',
+    linkFoto: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80',
+    keterangan: 'Kegiatan piket pagi berjalan sesuai SOP Pass Temenan SPANJU.',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'piket-2',
+    hariTanggal: 'Selasa, 18 Agustus 2026',
+    waktu: '06.45 - 13.30 WIB',
+    namaAnggota: 'Rina Amelia, Dimas Prasetyo, Dewi Lestari',
+    kelas: 'Tim Sahabat Sebaya IX',
+    hasilTemuan: 'Area taman belakang dan kantin bersih, interaksi antar siswa saat istirahat terpantau sangat harmonis dan saling mendukung.',
+    linkFoto: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80',
+    keterangan: 'Semua sudut sekolah terbebas dari indikasi perundungan.',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+export const INITIAL_SABTU_TEH_CERI: SabtuBeliTehCeri[] = [
+  {
+    id: 'ceri-1',
+    hariTanggal: 'Sabtu, 15 Agustus 2026',
+    waktu: '08.00 - 10.30 WIB',
+    hasilTemuan1Minggu: 'Teridentifikasi peningkatan keaktifan pojok baca kelas dan penurunan konflik kecil saat jam istirahat berkat program Duta Temenan.',
+    evaluasiKegiatan: 'Forum diskusi mingguan dihadiri oleh seluruh perwakilan kelas VII-IX, komunikasi berjalan sangat terbuka dan konstruktif.',
+    rencanaInovasi: 'Meluncurkan kotak curhat digital dan pojok podcast mini "Cerita Temenan" untuk mengapresiasi siswa berprestasi.',
+    linkFoto: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80',
+    keterangan: 'Diskusi mingguan sukses menghasilkan 3 kesepakatan aksi kebersamaan.',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+export const INITIAL_KEBUN_BERSERI: KebunLuasBerseri[] = [
+  {
+    id: 'kebun-1',
+    hariTanggal: 'Kamis, 13 Agustus 2026',
+    waktu: '09.00 - 12.00 WIB',
+    evaluasiBerhasil: 'Program Duta Anti-Bullying telah terbentuk di 21 kelas. Seluruh siswa telah menandatangani komitmen anti kekerasan bersama.',
+    kendalaSolusi: 'Kendala: Sosialisasi daring belum maksimal. Solusi: Dibuatkan infografis cetak dan video reels pendek Pass Temenan.',
+    hasilInovasi: 'Pembuatan rubrik "Teman Inspiratif" bulanan di mading utama & Instagram resmi sekolah.',
+    produkKreatif: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=800&q=80',
+    rtlList: [
+      { id: 'rtl-1', pic: 'Ibu Rahmawati, S.Pd', target: 'Pencetakan Poster & Banner Anti Perundungan', deadline: '25 Agustus 2026' },
+      { id: 'rtl-2', pic: 'Bapak Hendra, M.Pd & OSIS', target: 'Workshop Peer-Counselor untuk Siswa', deadline: '30 Agustus 2026' },
+    ],
+    keterangan: 'Rapat pleno bulanan bersama Kepala Sekolah dan komite.',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+export const INITIAL_SENANDUNG_SERASI: SenandungSerasi[] = [
+  {
+    id: 'senandung-1',
+    hariTanggal: 'Jumat, 14 Agustus 2026',
+    waktu: '07.00 - 07.30 WIB',
+    pesanDisampaikan: '"Berteman bukan mencari siapa yang sempurna, melainkan saling melengkapi dan menjaga kehormatan sesama di SMPN 7 Pasuruan."',
+    keterangan: 'Disiarkan melalui pengeras suara sekolah pada sesi Apel Pagi Ramah Anak.',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'senandung-2',
+    hariTanggal: 'Senin, 10 Agustus 2026',
+    waktu: '06.45 - 07.15 WIB',
+    pesanDisampaikan: '"Satu kata santun darimu adalah pelindung bagi saudaramu. Jadilah pelopor kebaikan, stop perundungan sekarang juga!"',
+    keterangan: 'Pesan literasi dan penguatan karakter mingguan.',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+export const INITIAL_E_LAPOR: ELaporPerundungan[] = [
+  {
+    id: 'lapor-1',
+    hariTanggal: 'Rabu, 12 Agustus 2026',
+    waktuKejadian: '10.15 WIB (Saat Istirahat Pertama)',
+    namaSiswa: 'Siswa Kelas VIII-C (Nama Dirahasiakan)',
+    kelas: 'VIII C',
+    kronologi: 'Terdapat perbedaan pendapat saat bermain olahraga futsal yang memicu ejekan verbal antar kelompok kecil.',
+    penyadaran: 'Edukasi pentingnya sportivitas dan kontrol emosi melalui konseling sebaya.',
+    pencegahan: 'Pengawasan guru piket ditambah di area lapangan olahraga saat jam istirahat.',
+    penangananRespon: 'Guru BK dan Tim Pass Temenan langsung memanggil kedua belah pihak secara empatik.',
+    pelaporan: 'Tercatat dalam rekam penanganan Pass Temenan SPANJU dan telah diselesaikan dengan damai.',
+    tindakLanjut: 'Mediasi kekeluargaan dan saling berjabat tangan komitmen persahabatan.',
+    status: 'Selesai',
+    keterangan: 'Kasus terselesaikan dalam 1x24 jam tanpa eskalasi.',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+export const INITIAL_BUKU_TAMU: BukuTamu[] = [
+  {
+    id: 'tamu-1',
+    hariTanggal: 'Kamis, 13 Agustus 2026',
+    jamKedatangan: '09.30 WIB',
+    namaLengkap: 'Drs. H. Mulyono, M.Si',
+    nipNik: '197304151998031004',
+    jabatan: 'Pengawas Pembina Sekolah',
+    instansiAsal: 'Dinas Pendidikan dan Kebudayaan Kota Pasuruan',
+    tujuanKunjungan: 'Monitoring dan Evaluasi Implementasi Program Pencegahan Perundungan (Pass Temenan) SMPN 7 Pasuruan',
+    tandaTangan: '',
+    tindakLanjut: 'Apresiasi program dan saran penguatan sistem digitalisasi laporan.',
+    keterangan: 'Diterima langsung oleh Kepala SMPN 7 Pasuruan.',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+export const GURU_BK_OPTIONS = [
+  {
+    nama: 'WIWIK ISMIATI, S.Pd',
+    nip: '19831116 200904 2 003',
+    jabatan: 'Guru Pendamping / Guru BK',
+  },
+  {
+    nama: 'EKI FEBRIANI, S.Pd',
+    nip: '19940214 202221 2 014',
+    jabatan: 'Guru Pendamping / Guru BK',
+  },
+];
+
+export const DEFAULT_PEJABAT_CONFIG = {
+  kepalaSekolahNama: 'NUR FADILAH, S.Pd., M.Pd',
+  kepalaSekolahNip: '19860410 201001 2 030',
+  kepalaSekolahJabatan: 'Kepala UPT SMP Negeri 7 Pasuruan',
+  kepalaSekolahTtd: '',
+  selectedGuruBK: 'WIWIK ISMIATI, S.Pd',
+  guruBKNip: '19831116 200904 2 003',
+  guruBKJabatan: 'Guru Pendamping / Guru BK',
+  guruBKTtd: '',
+};
+
+export const DEFAULT_DATABASE: AppDatabase = {
+  customLinks: INITIAL_CUSTOM_LINKS,
+  piketHarian: INITIAL_PIKET_HARIAN,
+  sabtuBeliTehCeri: INITIAL_SABTU_TEH_CERI,
+  kebunLuasBerseri: INITIAL_KEBUN_BERSERI,
+  senandungSerasi: INITIAL_SENANDUNG_SERASI,
+  eLaporPerundungan: INITIAL_E_LAPOR,
+  bukuTamu: INITIAL_BUKU_TAMU,
+  supabaseConfig: {
+    url: '',
+    anonKey: '',
+    isConnected: false,
+    autoSync: false,
+  },
+  pejabatConfig: DEFAULT_PEJABAT_CONFIG,
+  version: 1,
+};
+
+export class StorageService {
+  private static db: AppDatabase | null = null;
+  private static supabaseClient: SupabaseClient | null = null;
+
+  public static getDb(): AppDatabase {
+    if (this.db) return this.db;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        this.db = {
+          ...DEFAULT_DATABASE,
+          ...parsed,
+          customLinks: parsed.customLinks || DEFAULT_DATABASE.customLinks,
+          piketHarian: parsed.piketHarian || DEFAULT_DATABASE.piketHarian,
+          sabtuBeliTehCeri: parsed.sabtuBeliTehCeri || DEFAULT_DATABASE.sabtuBeliTehCeri,
+          kebunLuasBerseri: parsed.kebunLuasBerseri || DEFAULT_DATABASE.kebunLuasBerseri,
+          senandungSerasi: parsed.senandungSerasi || DEFAULT_DATABASE.senandungSerasi,
+          eLaporPerundungan: parsed.eLaporPerundungan || DEFAULT_DATABASE.eLaporPerundungan,
+          bukuTamu: parsed.bukuTamu || DEFAULT_DATABASE.bukuTamu,
+          supabaseConfig: { ...DEFAULT_DATABASE.supabaseConfig, ...(parsed.supabaseConfig || {}) },
+          pejabatConfig: { ...DEFAULT_PEJABAT_CONFIG, ...(parsed.pejabatConfig || {}) },
+        };
+      } else {
+        this.db = { ...DEFAULT_DATABASE };
+        this.saveDb();
+      }
+    } catch (e) {
+      console.error('Error loading database from localStorage', e);
+      this.db = { ...DEFAULT_DATABASE };
+    }
+    return this.db;
+  }
+
+  public static saveDb(): void {
+    if (!this.db) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.db));
+      // Trigger storage event for UI reactivity
+      window.dispatchEvent(new Event('pass-temenan-db-updated'));
+    } catch (e) {
+      console.error('Error saving to localStorage', e);
+    }
+  }
+
+  // --- SUPABASE CLIENT & CLOUD SYNC ---
+  public static getSupabaseClient(): SupabaseClient | null {
+    const config = this.getDb().supabaseConfig;
+    if (!config.url || !config.anonKey) {
+      return null;
+    }
+    if (!this.supabaseClient) {
+      try {
+        this.supabaseClient = createClient(config.url, config.anonKey);
+      } catch (e) {
+        console.error('Error creating Supabase client', e);
+        return null;
+      }
+    }
+    return this.supabaseClient;
+  }
+
+  public static async testSupabaseConnection(url: string, anonKey: string): Promise<{ success: boolean; message: string }> {
+    try {
+      if (!url || !anonKey) {
+        return { success: false, message: 'URL dan API Key Supabase tidak boleh kosong.' };
+      }
+      const testClient = createClient(url, anonKey);
+      // Attempt a lightweight select or test
+      const { error } = await testClient.from('piket_harian').select('count', { count: 'exact', head: true });
+      if (error && error.code !== 'PGRST116' && error.message && !error.message.includes('relation "piket_harian" does not exist')) {
+        return { success: false, message: `Gagal terhubung: ${error.message}` };
+      }
+      return { success: true, message: 'Berhasil terhubung ke Supabase!' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Gagal menghubungi server Supabase.' };
+    }
+  }
+
+  public static async syncToSupabase(): Promise<{ success: boolean; message: string }> {
+    const client = this.getSupabaseClient();
+    if (!client) {
+      return { success: false, message: 'Konfigurasi Supabase belum diatur atau tidak valid.' };
+    }
+
+    const db = this.getDb();
+    let syncedCount = 0;
+    const errors: string[] = [];
+
+    try {
+      // 1. Piket Harian
+      if (db.piketHarian.length > 0) {
+        const { error } = await client.from('piket_harian').upsert(
+          db.piketHarian.map((item) => ({
+            id: item.id,
+            hari_tanggal: item.hariTanggal,
+            waktu: item.waktu,
+            nama_anggota: item.namaAnggota,
+            kelas: item.kelas,
+            hasil_temuan: item.hasilTemuan,
+            link_foto: item.linkFoto,
+            tanda_tangan: item.tandaTangan || null,
+            keterangan: item.keterangan,
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+          }))
+        );
+        if (error) errors.push(`Piket: ${error.message}`);
+        else syncedCount += db.piketHarian.length;
+      }
+
+      // 2. Sabtu Beli Teh Ceri
+      if (db.sabtuBeliTehCeri.length > 0) {
+        const { error } = await client.from('sabtu_teh_ceri').upsert(
+          db.sabtuBeliTehCeri.map((item) => ({
+            id: item.id,
+            hari_tanggal: item.hariTanggal,
+            waktu: item.waktu,
+            hasil_temuan_1minggu: item.hasilTemuan1Minggu,
+            evaluasi_kegiatan: item.evaluasiKegiatan,
+            rencana_inovasi: item.rencanaInovasi,
+            link_foto: item.linkFoto,
+            tanda_tangan: item.tandaTangan || null,
+            keterangan: item.keterangan,
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+          }))
+        );
+        if (error) errors.push(`Sabtu Teh Ceri: ${error.message}`);
+        else syncedCount += db.sabtuBeliTehCeri.length;
+      }
+
+      // 3. Kebun Luas Berseri
+      if (db.kebunLuasBerseri.length > 0) {
+        const { error } = await client.from('kebun_luas_berseri').upsert(
+          db.kebunLuasBerseri.map((item) => ({
+            id: item.id,
+            hari_tanggal: item.hariTanggal,
+            waktu: item.waktu,
+            evaluasi_berhasil: item.evaluasiBerhasil,
+            kendala_solusi: item.kendalaSolusi,
+            hasil_inovasi: item.hasilInovasi,
+            produk_kreatif: item.produkKreatif,
+            rtl_list: item.rtlList,
+            tanda_tangan: item.tandaTangan || null,
+            keterangan: item.keterangan,
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+          }))
+        );
+        if (error) errors.push(`Kebun Berseri: ${error.message}`);
+        else syncedCount += db.kebunLuasBerseri.length;
+      }
+
+      // 4. Senandung Serasi
+      if (db.senandungSerasi.length > 0) {
+        const { error } = await client.from('senandung_serasi').upsert(
+          db.senandungSerasi.map((item) => ({
+            id: item.id,
+            hari_tanggal: item.hariTanggal,
+            waktu: item.waktu,
+            pesan_disampaikan: item.pesanDisampaikan,
+            tanda_tangan: item.tandaTangan || null,
+            keterangan: item.keterangan,
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+          }))
+        );
+        if (error) errors.push(`Senandung Serasi: ${error.message}`);
+        else syncedCount += db.senandungSerasi.length;
+      }
+
+      // 5. E-Lapor Perundungan
+      if (db.eLaporPerundungan.length > 0) {
+        const { error } = await client.from('e_lapor_perundungan').upsert(
+          db.eLaporPerundungan.map((item) => ({
+            id: item.id,
+            hari_tanggal: item.hariTanggal,
+            waktu_kejadian: item.waktuKejadian,
+            nama_siswa: item.namaSiswa,
+            kelas: item.kelas,
+            kronologi: item.kronologi,
+            penyadaran: item.penyadaran,
+            pencegahan: item.pencegahan,
+            penanganan_respon: item.penangananRespon,
+            pelaporan: item.pelaporan,
+            tindak_lanjut: item.tindakLanjut,
+            status: item.status,
+            tanda_tangan: item.tandaTangan || null,
+            keterangan: item.keterangan,
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+          }))
+        );
+        if (error) errors.push(`E-Lapor: ${error.message}`);
+        else syncedCount += db.eLaporPerundungan.length;
+      }
+
+      // 6. Buku Tamu
+      if (db.bukuTamu.length > 0) {
+        const { error } = await client.from('buku_tamu').upsert(
+          db.bukuTamu.map((item) => ({
+            id: item.id,
+            hari_tanggal: item.hariTanggal,
+            jam_kedatangan: item.jamKedatangan,
+            nama_lengkap: item.namaLengkap,
+            nip_nik: item.nipNik,
+            jabatan: item.jabatan,
+            instansi_asal: item.instansiAsal,
+            tujuan_kunjungan: item.tujuanKunjungan,
+            tanda_tangan: item.tandaTangan,
+            tindak_lanjut: item.tindakLanjut,
+            keterangan: item.keterangan,
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+          }))
+        );
+        if (error) errors.push(`Buku Tamu: ${error.message}`);
+        else syncedCount += db.bukuTamu.length;
+      }
+
+      // 7. Custom Links
+      if (db.customLinks.length > 0) {
+        const { error } = await client.from('custom_links').upsert(
+          db.customLinks.map((item) => ({
+            id: item.id,
+            title: item.title,
+            url: item.url,
+            description: item.description || '',
+            category: item.category,
+            icon_name: item.iconName,
+            color: item.color,
+            is_custom: item.isCustom ?? true,
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+          }))
+        );
+        if (error) errors.push(`Custom Links: ${error.message}`);
+        else syncedCount += db.customLinks.length;
+      }
+
+      db.supabaseConfig.lastSyncedAt = new Date().toISOString();
+      db.supabaseConfig.isConnected = true;
+      this.saveDb();
+
+      if (errors.length > 0) {
+        return {
+          success: false,
+          message: `Sebagian data belum tersinkron (${errors.join('; ')}). Pastikan tabel Supabase sudah dibuat menggunakan script SQL generator.`,
+        };
+      }
+
+      return {
+        success: true,
+        message: `Berhasil menyinkronkan ${syncedCount} catatan data ke database Supabase!`,
+      };
+    } catch (e: any) {
+      console.error('Sync failed', e);
+      return { success: false, message: `Gagal sinkronisasi: ${e?.message || 'Error tidak diketahui'}` };
+    }
+  }
+
+  // --- CRUD HELPERS FOR ALL ENTITIES ---
+
+  // 1. Custom Links
+  public static saveCustomLink(link: Omit<CustomLink, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): CustomLink {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let saved: CustomLink;
+
+    if (link.id) {
+      const idx = db.customLinks.findIndex((l) => l.id === link.id);
+      if (idx >= 0) {
+        saved = { ...db.customLinks[idx], ...link, updatedAt: now };
+        db.customLinks[idx] = saved;
+      } else {
+        saved = { ...link, id: link.id, createdAt: now, updatedAt: now };
+        db.customLinks.push(saved);
+      }
+    } else {
+      saved = {
+        ...link,
+        id: 'link-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+        createdAt: now,
+        updatedAt: now,
+        isCustom: true,
+      };
+      db.customLinks.push(saved);
+    }
+    this.saveDb();
+    return saved;
+  }
+
+  public static saveLink(link: any): CustomLink {
+    return this.saveCustomLink(link);
+  }
+
+  public static deleteCustomLink(id: string): void {
+    const db = this.getDb();
+    db.customLinks = db.customLinks.filter((l) => l.id !== id);
+    this.saveDb();
+  }
+
+  public static deleteLink(id: string): void {
+    this.deleteCustomLink(id);
+  }
+
+  // 2. Piket Harian
+  public static savePiketHarian(item: Omit<PiketHarian, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): PiketHarian {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let saved: PiketHarian;
+
+    if (item.id) {
+      const idx = db.piketHarian.findIndex((p) => p.id === item.id);
+      if (idx >= 0) {
+        saved = { ...db.piketHarian[idx], ...item, updatedAt: now };
+        db.piketHarian[idx] = saved;
+      } else {
+        saved = { ...item, id: item.id, createdAt: now, updatedAt: now };
+        db.piketHarian.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...item,
+        id: 'piket-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.piketHarian.unshift(saved);
+    }
+    this.saveDb();
+    return saved;
+  }
+
+  public static deletePiketHarian(id: string): void {
+    const db = this.getDb();
+    db.piketHarian = db.piketHarian.filter((p) => p.id !== id);
+    this.saveDb();
+  }
+
+  // 3. Sabtu Beli Teh Ceri
+  public static saveSabtuBeliTehCeri(item: Omit<SabtuBeliTehCeri, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): SabtuBeliTehCeri {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let saved: SabtuBeliTehCeri;
+
+    if (item.id) {
+      const idx = db.sabtuBeliTehCeri.findIndex((p) => p.id === item.id);
+      if (idx >= 0) {
+        saved = { ...db.sabtuBeliTehCeri[idx], ...item, updatedAt: now };
+        db.sabtuBeliTehCeri[idx] = saved;
+      } else {
+        saved = { ...item, id: item.id, createdAt: now, updatedAt: now };
+        db.sabtuBeliTehCeri.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...item,
+        id: 'ceri-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.sabtuBeliTehCeri.unshift(saved);
+    }
+    this.saveDb();
+    return saved;
+  }
+
+  public static deleteSabtuBeliTehCeri(id: string): void {
+    const db = this.getDb();
+    db.sabtuBeliTehCeri = db.sabtuBeliTehCeri.filter((p) => p.id !== id);
+    this.saveDb();
+  }
+
+  // 4. Kebun Luas Berseri
+  public static saveKebunLuasBerseri(item: Omit<KebunLuasBerseri, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): KebunLuasBerseri {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let saved: KebunLuasBerseri;
+
+    if (item.id) {
+      const idx = db.kebunLuasBerseri.findIndex((p) => p.id === item.id);
+      if (idx >= 0) {
+        saved = { ...db.kebunLuasBerseri[idx], ...item, updatedAt: now };
+        db.kebunLuasBerseri[idx] = saved;
+      } else {
+        saved = { ...item, id: item.id, createdAt: now, updatedAt: now };
+        db.kebunLuasBerseri.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...item,
+        id: 'kebun-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.kebunLuasBerseri.unshift(saved);
+    }
+    this.saveDb();
+    return saved;
+  }
+
+  public static deleteKebunLuasBerseri(id: string): void {
+    const db = this.getDb();
+    db.kebunLuasBerseri = db.kebunLuasBerseri.filter((p) => p.id !== id);
+    this.saveDb();
+  }
+
+  // 5. Senandung Serasi
+  public static saveSenandungSerasi(item: Omit<SenandungSerasi, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): SenandungSerasi {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let saved: SenandungSerasi;
+
+    if (item.id) {
+      const idx = db.senandungSerasi.findIndex((p) => p.id === item.id);
+      if (idx >= 0) {
+        saved = { ...db.senandungSerasi[idx], ...item, updatedAt: now };
+        db.senandungSerasi[idx] = saved;
+      } else {
+        saved = { ...item, id: item.id, createdAt: now, updatedAt: now };
+        db.senandungSerasi.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...item,
+        id: 'senandung-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.senandungSerasi.unshift(saved);
+    }
+    this.saveDb();
+    return saved;
+  }
+
+  public static deleteSenandungSerasi(id: string): void {
+    const db = this.getDb();
+    db.senandungSerasi = db.senandungSerasi.filter((p) => p.id !== id);
+    this.saveDb();
+  }
+
+  // 6. E-Lapor Perundungan
+  public static saveELapor(item: Omit<ELaporPerundungan, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): ELaporPerundungan {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let saved: ELaporPerundungan;
+
+    if (item.id) {
+      const idx = db.eLaporPerundungan.findIndex((p) => p.id === item.id);
+      if (idx >= 0) {
+        saved = { ...db.eLaporPerundungan[idx], ...item, updatedAt: now };
+        db.eLaporPerundungan[idx] = saved;
+      } else {
+        saved = { ...item, id: item.id, createdAt: now, updatedAt: now };
+        db.eLaporPerundungan.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...item,
+        id: 'lapor-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.eLaporPerundungan.unshift(saved);
+    }
+    this.saveDb();
+    return saved;
+  }
+
+  public static deleteELapor(id: string): void {
+    const db = this.getDb();
+    db.eLaporPerundungan = db.eLaporPerundungan.filter((p) => p.id !== id);
+    this.saveDb();
+  }
+
+  // 7. Buku Tamu
+  public static saveBukuTamu(item: Omit<BukuTamu, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): BukuTamu {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let saved: BukuTamu;
+
+    if (item.id) {
+      const idx = db.bukuTamu.findIndex((p) => p.id === item.id);
+      if (idx >= 0) {
+        saved = { ...db.bukuTamu[idx], ...item, updatedAt: now };
+        db.bukuTamu[idx] = saved;
+      } else {
+        saved = { ...item, id: item.id, createdAt: now, updatedAt: now };
+        db.bukuTamu.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...item,
+        id: 'tamu-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.bukuTamu.unshift(saved);
+    }
+    this.saveDb();
+    return saved;
+  }
+
+  public static deleteBukuTamu(id: string): void {
+    const db = this.getDb();
+    db.bukuTamu = db.bukuTamu.filter((p) => p.id !== id);
+    this.saveDb();
+  }
+
+  // --- PEJABAT & SIGNATURE CONFIG ---
+  public static getPejabatConfig() {
+    const db = this.getDb();
+    return db.pejabatConfig || DEFAULT_PEJABAT_CONFIG;
+  }
+
+  public static savePejabatConfig(config: Partial<typeof DEFAULT_PEJABAT_CONFIG>) {
+    const db = this.getDb();
+    db.pejabatConfig = {
+      ...(db.pejabatConfig || DEFAULT_PEJABAT_CONFIG),
+      ...config,
+    };
+    this.saveDb();
+    return db.pejabatConfig;
+  }
+
+  // --- CONFIG ---
+  public static updateSupabaseConfig(config: Partial<SupabaseConfig>): void {
+    const db = this.getDb();
+    db.supabaseConfig = { ...db.supabaseConfig, ...config };
+    this.supabaseClient = null; // reset client to renew
+    this.saveDb();
+  }
+
+  // --- BACKUP & RESTORE ---
+  public static exportBackupJSON(): string {
+    const db = this.getDb();
+    return JSON.stringify(db, null, 2);
+  }
+
+  public static importBackupJSON(jsonStr: string, mode: 'merge' | 'overwrite'): { success: boolean; message: string } {
+    try {
+      const parsed = JSON.parse(jsonStr) as AppDatabase;
+      if (!parsed || typeof parsed !== 'object') {
+        return { success: false, message: 'Format file JSON tidak valid.' };
+      }
+
+      if (mode === 'overwrite') {
+        this.db = {
+          ...DEFAULT_DATABASE,
+          ...parsed,
+          supabaseConfig: {
+            ...DEFAULT_DATABASE.supabaseConfig,
+            ...(parsed.supabaseConfig || {}),
+          },
+        };
+      } else {
+        // Merge mode
+        const current = this.getDb();
+        const mergeUnique = <T extends { id: string }>(currentArr: T[], incomingArr: T[] = []): T[] => {
+          const map = new Map<string, T>();
+          currentArr.forEach((item) => map.set(item.id, item));
+          incomingArr.forEach((item) => map.set(item.id, item));
+          return Array.from(map.values());
+        };
+
+        this.db = {
+          customLinks: mergeUnique(current.customLinks, parsed.customLinks),
+          piketHarian: mergeUnique(current.piketHarian, parsed.piketHarian),
+          sabtuBeliTehCeri: mergeUnique(current.sabtuBeliTehCeri, parsed.sabtuBeliTehCeri),
+          kebunLuasBerseri: mergeUnique(current.kebunLuasBerseri, parsed.kebunLuasBerseri),
+          senandungSerasi: mergeUnique(current.senandungSerasi, parsed.senandungSerasi),
+          eLaporPerundungan: mergeUnique(current.eLaporPerundungan, parsed.eLaporPerundungan),
+          bukuTamu: mergeUnique(current.bukuTamu, parsed.bukuTamu),
+          supabaseConfig: {
+            ...current.supabaseConfig,
+            ...(parsed.supabaseConfig || {}),
+          },
+          version: 1,
+        };
+      }
+
+      this.saveDb();
+      return { success: true, message: 'Data backup berhasil dipulihkan!' };
+    } catch (e: any) {
+      return { success: false, message: `Gagal membaca file JSON: ${e?.message}` };
+    }
+  }
+
+  // --- SQL SCHEMA GENERATOR FOR SUPABASE ---
+  public static getSupabaseSQLScript(): string {
+    return `-- =================================================================
+-- SCRIPT SQL TABEL SUPABASE UNTUK PROGRAM PASS TEMENAN SMPN 7 PASURUAN
+-- Jalankan skrip ini di: Supabase Dashboard > SQL Editor > New Query > Run
+-- =================================================================
+
+-- 1. Tabel Piket Harian
+CREATE TABLE IF NOT EXISTS public.piket_harian (
+    id TEXT PRIMARY KEY,
+    hari_tanggal TEXT NOT NULL,
+    waktu TEXT NOT NULL,
+    nama_anggota TEXT NOT NULL,
+    kelas TEXT,
+    hasil_temuan TEXT NOT NULL,
+    link_foto TEXT,
+    keterangan TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Tabel Sabtu Beli Teh Ceri
+CREATE TABLE IF NOT EXISTS public.sabtu_teh_ceri (
+    id TEXT PRIMARY KEY,
+    hari_tanggal TEXT NOT NULL,
+    waktu TEXT NOT NULL,
+    hasil_temuan_1minggu TEXT NOT NULL,
+    evaluasi_kegiatan TEXT,
+    rencana_inovasi TEXT,
+    link_foto TEXT,
+    keterangan TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Tabel Kebun Luas Berseri
+CREATE TABLE IF NOT EXISTS public.kebun_luas_berseri (
+    id TEXT PRIMARY KEY,
+    hari_tanggal TEXT NOT NULL,
+    waktu TEXT NOT NULL,
+    evaluasi_berhasil TEXT,
+    kendala_solusi TEXT,
+    hasil_inovasi TEXT,
+    produk_kreatif TEXT,
+    rtl_list JSONB DEFAULT '[]'::jsonb,
+    keterangan TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. Tabel Senandung Serasi
+CREATE TABLE IF NOT EXISTS public.senandung_serasi (
+    id TEXT PRIMARY KEY,
+    hari_tanggal TEXT NOT NULL,
+    waktu TEXT NOT NULL,
+    pesan_disampaikan TEXT NOT NULL,
+    keterangan TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. Tabel E-Lapor Perundungan
+CREATE TABLE IF NOT EXISTS public.e_lapor_perundungan (
+    id TEXT PRIMARY KEY,
+    hari_tanggal TEXT NOT NULL,
+    waktu_kejadian TEXT NOT NULL,
+    nama_siswa TEXT NOT NULL,
+    kelas TEXT,
+    kronologi TEXT NOT NULL,
+    penyadaran TEXT,
+    pencegahan TEXT,
+    penanganan_respon TEXT,
+    pelaporan TEXT,
+    tindak_lanjut TEXT,
+    status TEXT DEFAULT 'Laporan Baru',
+    keterangan TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. Tabel Buku Tamu
+CREATE TABLE IF NOT EXISTS public.buku_tamu (
+    id TEXT PRIMARY KEY,
+    hari_tanggal TEXT NOT NULL,
+    jam_kedatangan TEXT NOT NULL,
+    nama_lengkap TEXT NOT NULL,
+    nip_nik TEXT,
+    jabatan TEXT,
+    instansi_asal TEXT NOT NULL,
+    tujuan_kunjungan TEXT NOT NULL,
+    tanda_tangan TEXT,
+    tindak_lanjut TEXT,
+    keterangan TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. Tabel Custom Links & Menu
+CREATE TABLE IF NOT EXISTS public.custom_links (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    url TEXT NOT NULL,
+    description TEXT,
+    category TEXT,
+    icon_name TEXT,
+    color TEXT,
+    is_custom BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable Row Level Security (RLS) & Public Policies for open access as requested
+ALTER TABLE public.piket_harian ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sabtu_teh_ceri ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kebun_luas_berseri ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.senandung_serasi ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.e_lapor_perundungan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.buku_tamu ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.custom_links ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read and write (upsert) for all users
+CREATE POLICY "Public Read All" ON public.piket_harian FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.piket_harian FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.piket_harian FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.piket_harian FOR DELETE USING (true);
+
+CREATE POLICY "Public Read All" ON public.sabtu_teh_ceri FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.sabtu_teh_ceri FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.sabtu_teh_ceri FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.sabtu_teh_ceri FOR DELETE USING (true);
+
+CREATE POLICY "Public Read All" ON public.kebun_luas_berseri FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.kebun_luas_berseri FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.kebun_luas_berseri FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.kebun_luas_berseri FOR DELETE USING (true);
+
+CREATE POLICY "Public Read All" ON public.senandung_serasi FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.senandung_serasi FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.senandung_serasi FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.senandung_serasi FOR DELETE USING (true);
+
+CREATE POLICY "Public Read All" ON public.e_lapor_perundungan FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.e_lapor_perundungan FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.e_lapor_perundungan FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.e_lapor_perundungan FOR DELETE USING (true);
+
+CREATE POLICY "Public Read All" ON public.buku_tamu FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.buku_tamu FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.buku_tamu FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.buku_tamu FOR DELETE USING (true);
+
+CREATE POLICY "Public Read All" ON public.custom_links FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.custom_links FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.custom_links FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.custom_links FOR DELETE USING (true);
+`;
+  }
+}

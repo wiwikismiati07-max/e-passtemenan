@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+/* 3D and Glass Effect Helpers */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.card-3d-glow {
+  box-shadow: 0 10px 30px -10px rgba(13, 148, 136, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.card-3d-glow:hover {
+  box-shadow: 0 20px 40px -12px rgba(13, 148, 136, 0.4), 0 0 0 1px rgba(45, 212, 191, 0.3);
+}
+
+.btn-3d {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 0 0 rgba(0, 0, 0, 0.4);
+}
+
+.btn-3d:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Custom modern scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.8);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(13, 148, 136, 0.8);
+}
+
+/* Print Optimization Styles */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide interactive elements during printing */
+  .no-print,
+  .print\:hidden,
+  nav,
+  aside,
+  button:not(.print-allow) {
+    display: none !important;
+  }
+
+  /* Reset fixed/absolute positioning for modal print */
+  .fixed, .backdrop-blur-sm, .backdrop-blur-md, .bg-slate-950\/80 {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  .max-h-\[92vh\], .max-h-\[90vh\], .overflow-y-auto {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure text and borders render cleanly in dark mode print */
+  .dark {
+    color-scheme: light !important;
+  }
+
+  .dark * {
+    color: #000000 !important;
+    border-color: #cbd5e1 !important;
+    background-color: transparent !important;
+  }
+}
+
+
