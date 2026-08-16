@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Sparkles,
   ArrowRight,
@@ -8,13 +8,21 @@ import {
   CheckCircle2,
   FileImage,
   ChevronDown,
+  RefreshCw,
+  Eye,
 } from 'lucide-react';
+
+import bagan1Img from '../assets/images/bagan-1.png';
+import bagan2Img from '../assets/images/bagan-2.png';
+import bagan3Img from '../assets/images/bagan-3.png';
 
 interface FlowchartIntroLandingProps {
   onEnterApp: () => void;
 }
 
 export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ onEnterApp }) => {
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
   const flowcharts = [
     {
       id: 'bagan-1',
@@ -22,8 +30,9 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
       title: 'Bagan Struktur Tolak Ukur E-Pass Temenan',
       subtitle: 'Kerangka Kerja & Indikator Satgas Anti Perundungan SPANJU',
       webLink: 'https://ibb.co.com/Tx9BwDfb',
-      localUrl: '/images/bagan-1.png',
-      fallbackUrl: 'https://i.ibb.co/S4FX6Djd/Bagan-Struktur-Tolak-Ukur-E-Pass-Temenan-Spanju.png',
+      primaryImg: bagan1Img,
+      fallbackImg: '/images/bagan-1.png',
+      onlineImg: 'https://i.ibb.co/S4FX6Djd/Bagan-Struktur-Tolak-Ukur-E-Pass-Temenan-Spanju.png',
       badge: 'Struktur Utama',
       badgeColor: 'bg-emerald-500 text-white',
     },
@@ -33,8 +42,9 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
       title: 'Alur Penilaian Tolak Ukur & Bagan Keputusan',
       subtitle: 'Tahapan Evaluasi, Bobot Penilaian, dan Klasifikasi Keputusan',
       webLink: 'https://ibb.co.com/FpgTjqT',
-      localUrl: '/images/bagan-2.png',
-      fallbackUrl: 'https://i.ibb.co/XHSRvkR/Alur-Penilaian-Tolak-Ukur-Bagan-Keputusan.png',
+      primaryImg: bagan2Img,
+      fallbackImg: '/images/bagan-2.png',
+      onlineImg: 'https://i.ibb.co/XHSRvkR/Alur-Penilaian-Tolak-Ukur-Bagan-Keputusan.png',
       badge: 'Bagan Keputusan',
       badgeColor: 'bg-amber-500 text-slate-950',
     },
@@ -44,12 +54,28 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
       title: 'Diagram Alur Respon Tindak Lanjut Laporan',
       subtitle: 'Prosedur Respon Cepat, Penanganan 4 Pilar, dan Pendampingan BK',
       webLink: 'https://ibb.co.com/NgKRd6S8',
-      localUrl: '/images/bagan-3.png',
-      fallbackUrl: 'https://i.ibb.co/spq7dvH0/Diagram-Alur-Penilaian-Respon-Laporan.png',
+      primaryImg: bagan3Img,
+      fallbackImg: '/images/bagan-3.png',
+      onlineImg: 'https://i.ibb.co/spq7dvH0/Diagram-Alur-Penilaian-Respon-Laporan.png',
       badge: 'Tindak Lanjut',
       badgeColor: 'bg-rose-500 text-white',
     },
   ];
+
+  const handleImageError = (id: string, currentTarget: HTMLImageElement, fallbackImg: string, onlineImg: string) => {
+    // Attempt fallback cascade: primary bundled asset -> public relative path -> online direct link -> show interactive fallback card
+    if (currentTarget.src.includes('data:image') || imageErrors[id]) return;
+
+    if (!currentTarget.dataset.triedFallback) {
+      currentTarget.dataset.triedFallback = '1';
+      currentTarget.src = fallbackImg;
+    } else if (!currentTarget.dataset.triedOnline) {
+      currentTarget.dataset.triedOnline = '1';
+      currentTarget.src = onlineImg;
+    } else {
+      setImageErrors((prev) => ({ ...prev, [id]: true }));
+    }
+  };
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -138,22 +164,52 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
                   {item.subtitle}
                 </p>
               </div>
+
+              {/* External HD Image Link */}
+              <div className="shrink-0 flex items-center gap-2">
+                <a
+                  href={item.webLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center gap-2 border border-indigo-200 dark:border-indigo-800 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Buka Gambar HD</span>
+                </a>
+              </div>
             </div>
 
             {/* Natural Full Image Container - Crisp & Scaled for Studio and Vercel */}
-            <div className="p-3 sm:p-6 bg-slate-100/60 dark:bg-slate-950/80 flex justify-center items-center">
-              <img
-                src={item.localUrl}
-                alt={item.title}
-                onError={(e) => {
-                  const target = e.currentTarget as HTMLImageElement;
-                  if (target.src !== item.fallbackUrl) {
-                    target.src = item.fallbackUrl;
-                  }
-                }}
-                className="w-full h-auto object-contain rounded-2xl shadow-md border border-slate-200 dark:border-slate-800 bg-white min-h-[300px]"
-                loading="eager"
-              />
+            <div className="p-3 sm:p-6 bg-slate-100/60 dark:bg-slate-950/80 flex justify-center items-center min-h-[300px]">
+              {imageErrors[item.id] ? (
+                <div className="w-full max-w-2xl p-8 rounded-2xl bg-slate-800/90 text-white text-center space-y-4 border border-slate-700 my-4">
+                  <FileImage className="w-12 h-12 text-indigo-400 mx-auto" />
+                  <div>
+                    <h4 className="font-bold text-base">{item.title}</h4>
+                    <p className="text-xs text-slate-300 mt-1">
+                      Gambar tidak dapat dimuat secara langsung di browser ini. Anda dapat membuka atau mengunduh bagan secara penuh melalui tautan resmi di bawah ini:
+                    </p>
+                  </div>
+                  <a
+                    href={item.webLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>BUKA BAGAN DI TAB BARU</span>
+                  </a>
+                </div>
+              ) : (
+                <img
+                  src={item.primaryImg}
+                  alt={item.title}
+                  referrerPolicy="no-referrer"
+                  onError={(e) => handleImageError(item.id, e.currentTarget, item.fallbackImg, item.onlineImg)}
+                  className="w-full h-auto object-contain rounded-2xl shadow-md border border-slate-200 dark:border-slate-800 bg-white"
+                  loading="eager"
+                />
+              )}
             </div>
           </div>
         ))}
