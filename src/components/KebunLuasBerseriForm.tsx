@@ -43,9 +43,10 @@ import {
 
 interface Props {
   initialTab?: 'form' | 'rekap' | 'statistik';
+  userRole?: 'admin' | 'siswa';
 }
 
-export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form' }) => {
+export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', userRole = 'admin' }) => {
   const [dataList, setDataList] = useState<KebunLuasBerseri[]>([]);
   const [activeTab, setActiveTab] = useState<'form' | 'rekap' | 'statistik'>(initialTab);
   const [editingItem, setEditingItem] = useState<KebunLuasBerseri | null>(null);
@@ -132,6 +133,10 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form' }) =
   };
 
   const handleOpenEdit = (item: KebunLuasBerseri) => {
+    if (userRole !== 'admin') {
+      alert('Akses Ditolak: Hanya akun Admin yang dapat mengedit laporan.');
+      return;
+    }
     setEditingItem(item);
     setHariTanggalText(item.hariTanggal);
     setWaktu(item.waktu);
@@ -150,6 +155,10 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form' }) =
   };
 
   const handleDelete = (item: KebunLuasBerseri) => {
+    if (userRole !== 'admin') {
+      alert('Akses Ditolak: Hanya akun Admin yang dapat menghapus laporan.');
+      return;
+    }
     setDeleteTargetItem(item);
   };
 
@@ -656,20 +665,42 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form' }) =
                     </button>
 
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenEdit(item)}
-                        className="p-1.5 text-slate-600 hover:text-emerald-600 rounded-lg hover:bg-white"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item)}
-                        className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                        title="Hapus Data"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {userRole === 'admin' ? (
+                        <button
+                          onClick={() => handleOpenEdit(item)}
+                          className="p-1.5 text-slate-600 hover:text-emerald-600 rounded-lg hover:bg-white cursor-pointer"
+                          title="Edit (Khusus Admin)"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => alert('Akses Siswa: Anda tidak memiliki wewenang untuk mengedit atau menghapus laporan. Silakan hubungi Admin.')}
+                          className="p-1.5 text-slate-300 dark:text-slate-700 hover:text-emerald-500 rounded-lg transition-colors cursor-not-allowed opacity-50"
+                          title="Akses Siswa: Tidak bisa mengedit atau menghapus laporan"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {userRole === 'admin' ? (
+                        <button
+                          onClick={() => handleDelete(item)}
+                          className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          title="Hapus Data (Khusus Admin)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => alert('Akses Siswa: Anda tidak memiliki wewenang untuk mengedit atau menghapus laporan. Silakan hubungi Admin.')}
+                          className="p-2 text-slate-300 dark:text-slate-700 hover:text-rose-500 rounded-xl transition-colors cursor-not-allowed opacity-50"
+                          title="Akses Siswa: Tidak bisa mengedit atau menghapus laporan"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

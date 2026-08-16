@@ -22,7 +22,8 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
       title: 'Bagan Struktur Tolak Ukur E-Pass Temenan',
       subtitle: 'Kerangka Kerja & Indikator Satgas Anti Perundungan SPANJU',
       webLink: 'https://ibb.co.com/Tx9BwDfb',
-      imageUrl: 'https://i.ibb.co/S4FX6Djd/Bagan-Struktur-Tolak-Ukur-E-Pass-Temenan-Spanju.png',
+      localUrl: '/images/bagan-1.png',
+      fallbackUrl: 'https://i.ibb.co/S4FX6Djd/Bagan-Struktur-Tolak-Ukur-E-Pass-Temenan-Spanju.png',
       badge: 'Struktur Utama',
       badgeColor: 'bg-emerald-500 text-white',
     },
@@ -32,7 +33,8 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
       title: 'Alur Penilaian Tolak Ukur & Bagan Keputusan',
       subtitle: 'Tahapan Evaluasi, Bobot Penilaian, dan Klasifikasi Keputusan',
       webLink: 'https://ibb.co.com/FpgTjqT',
-      imageUrl: 'https://i.ibb.co/XHSRvkR/Alur-Penilaian-Tolak-Ukur-Bagan-Keputusan.png',
+      localUrl: '/images/bagan-2.png',
+      fallbackUrl: 'https://i.ibb.co/XHSRvkR/Alur-Penilaian-Tolak-Ukur-Bagan-Keputusan.png',
       badge: 'Bagan Keputusan',
       badgeColor: 'bg-amber-500 text-slate-950',
     },
@@ -42,7 +44,8 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
       title: 'Diagram Alur Respon Tindak Lanjut Laporan',
       subtitle: 'Prosedur Respon Cepat, Penanganan 4 Pilar, dan Pendampingan BK',
       webLink: 'https://ibb.co.com/NgKRd6S8',
-      imageUrl: 'https://i.ibb.co/spq7dvH0/Diagram-Alur-Penilaian-Respon-Laporan.png',
+      localUrl: '/images/bagan-3.png',
+      fallbackUrl: 'https://i.ibb.co/spq7dvH0/Diagram-Alur-Penilaian-Respon-Laporan.png',
       badge: 'Tindak Lanjut',
       badgeColor: 'bg-rose-500 text-white',
     },
@@ -135,28 +138,21 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
                   {item.subtitle}
                 </p>
               </div>
-
-              <a
-                href={item.webLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-700 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-2 shrink-0 transition-all self-start sm:self-auto shadow-2xs"
-                title="Buka atau unduh berkas gambar dalam tab baru"
-              >
-                <FileImage className="w-4 h-4" />
-                <span>Buka Link Asli</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
             </div>
 
-            {/* Natural Full Image Container */}
+            {/* Natural Full Image Container - Crisp & Scaled for Studio and Vercel */}
             <div className="p-3 sm:p-6 bg-slate-100/60 dark:bg-slate-950/80 flex justify-center items-center">
               <img
-                src={item.imageUrl}
+                src={item.localUrl}
                 alt={item.title}
-                className="w-full h-auto object-contain rounded-2xl shadow-md border border-slate-200 dark:border-slate-800 bg-white"
-                loading="lazy"
-                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  if (target.src !== item.fallbackUrl) {
+                    target.src = item.fallbackUrl;
+                  }
+                }}
+                className="w-full h-auto object-contain rounded-2xl shadow-md border border-slate-200 dark:border-slate-800 bg-white min-h-[300px]"
+                loading="eager"
               />
             </div>
           </div>

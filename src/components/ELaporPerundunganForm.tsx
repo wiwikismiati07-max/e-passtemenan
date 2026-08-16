@@ -38,7 +38,11 @@ import {
   getRealtimeTimeString,
 } from '../utils/dateUtils';
 
-export const ELaporPerundunganForm: React.FC = () => {
+interface Props {
+  userRole?: 'admin' | 'siswa';
+}
+
+export const ELaporPerundunganForm: React.FC<Props> = ({ userRole = 'admin' }) => {
   const [dataList, setDataList] = useState<ELaporPerundungan[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ELaporPerundungan | null>(null);
@@ -97,6 +101,10 @@ export const ELaporPerundunganForm: React.FC = () => {
   };
 
   const handleOpenEdit = (item: ELaporPerundungan) => {
+    if (userRole !== 'admin') {
+      alert('Akses Ditolak: Hanya akun Admin yang dapat mengedit laporan.');
+      return;
+    }
     setEditingItem(item);
     setHariTanggal(item.hariTanggal);
     setWaktuKejadian(item.waktuKejadian);
@@ -115,6 +123,10 @@ export const ELaporPerundunganForm: React.FC = () => {
   };
 
   const handleDelete = (item: ELaporPerundungan) => {
+    if (userRole !== 'admin') {
+      alert('Akses Ditolak: Hanya akun Admin yang dapat menghapus laporan.');
+      return;
+    }
     setDeleteTargetItem(item);
   };
 
@@ -471,20 +483,42 @@ export const ELaporPerundunganForm: React.FC = () => {
               </button>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleOpenEdit(item)}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-                  title="Update Laporan"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleDelete(item)}
-                  className="p-1.5 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/40 transition-colors"
-                  title="Hapus Laporan"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {userRole === 'admin' ? (
+                  <button
+                    onClick={() => handleOpenEdit(item)}
+                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                    title="Update Laporan (Khusus Admin)"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => alert('Akses Siswa: Anda tidak memiliki wewenang untuk mengedit atau menghapus laporan. Silakan hubungi Admin.')}
+                    className="p-1.5 text-slate-600 hover:text-white rounded-lg transition-colors cursor-not-allowed opacity-50"
+                    title="Akses Siswa: Tidak bisa mengedit atau menghapus laporan"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {userRole === 'admin' ? (
+                  <button
+                    onClick={() => handleDelete(item)}
+                    className="p-1.5 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/40 transition-colors cursor-pointer"
+                    title="Hapus Laporan (Khusus Admin)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => alert('Akses Siswa: Anda tidak memiliki wewenang untuk mengedit atau menghapus laporan. Silakan hubungi Admin.')}
+                    className="p-1.5 text-slate-600 hover:text-rose-500 rounded-lg transition-colors cursor-not-allowed opacity-50"
+                    title="Akses Siswa: Tidak bisa mengedit atau menghapus laporan"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

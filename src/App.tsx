@@ -28,6 +28,10 @@ import {
   CheckCircle2,
   Share2,
   Clock,
+  LogOut,
+  GraduationCap,
+  UserCog,
+  UserCheck,
 } from 'lucide-react';
 import { getRealtimeFullFormattedDate, getRealtimeTimeStringWithSeconds } from './utils/dateUtils';
 import { AppDatabase, CustomLink } from './types';
@@ -47,9 +51,21 @@ import { SupabaseSettingsModal } from './components/SupabaseSettingsModal';
 import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { PejabatSettingsModal } from './components/PejabatSettingsModal';
 import { FlowchartIntroLanding } from './components/FlowchartIntroLanding';
-import { UserCheck } from 'lucide-react';
+import { LoginScreen, UserSession } from './components/LoginScreen';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
+    const saved = sessionStorage.getItem('pass_temenan_user_session');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+
   const [db, setDb] = useState<AppDatabase>(StorageService.getDb());
   const [activeView, setActiveView] = useState<string>('flowchart-intro');
   const [activeTab, setActiveTab] = useState<'form' | 'rekap' | 'statistik'>('form');
@@ -99,6 +115,16 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  const handleLoginSuccess = (session: UserSession) => {
+    setCurrentUser(session);
+    sessionStorage.setItem('pass_temenan_user_session', JSON.stringify(session));
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    sessionStorage.removeItem('pass_temenan_user_session');
+  };
 
   const handleOpenAddLink = (linkToEdit?: CustomLink) => {
     setEditingLink(linkToEdit);
@@ -173,6 +199,10 @@ export default function App() {
     setActiveView(viewKey);
     setActiveTab(tab);
   };
+
+  if (!currentUser) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50/50 via-slate-50 to-indigo-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased selection:bg-pink-400 selection:text-slate-900 font-sans transition-colors duration-200">
@@ -274,6 +304,34 @@ export default function App() {
           >
             {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
           </button>
+
+          {/* User Session Badge & Logout Button */}
+          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
+            <div
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border shadow-2xs ${
+                currentUser.role === 'admin'
+                  ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300'
+                  : 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
+              }`}
+            >
+              {currentUser.role === 'admin' ? (
+                <UserCog className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              ) : (
+                <GraduationCap className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              )}
+              <span className="hidden md:inline font-extrabold uppercase">{currentUser.role}:</span>
+              <span className="font-semibold">{currentUser.username}</span>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 transition-all shadow-2xs flex items-center gap-1 text-xs font-bold"
+              title="Keluar dari Akun"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Keluar</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -359,15 +417,17 @@ export default function App() {
 
             {/* 3. SUB-SECTION LAYOUT (Split Sub-Nav Menu + Form / View) */}
             <div className="flex flex-col lg:flex-row gap-6 items-start">
-              {/* Left SubNavMenu (Collapsible with "Sembunyikan" button) */}
-              <SubNavMenu
-                db={db}
-                activeView={activeView}
-                activeTab={activeTab}
-                onNavigate={(viewKey, tab) => handleNavigate(viewKey, tab)}
-                isOpen={isSubNavOpen}
-                onToggleOpen={() => setIsSubNavOpen(!isSubNavOpen)}
-              />
+              {/* Left SubNavMenu (Rendered only for module form views) */}
+              {activeView !== 'flowchart-intro' && activeView !== 'dashboard-overview' && (
+                <SubNavMenu
+                  db={db}
+                  activeView={activeView}
+                  activeTab={activeTab}
+                  onNavigate={(viewKey, tab) => handleNavigate(viewKey, tab)}
+                  isOpen={isSubNavOpen}
+                  onToggleOpen={() => setIsSubNavOpen(!isSubNavOpen)}
+                />
+              )}
 
               {/* Right View Container */}
               <div className="flex-1 min-w-0 w-full">
@@ -387,12 +447,12 @@ export default function App() {
                   />
                 )}
 
-                {activeView === 'piket-harian' && <PiketHarianForm initialTab={activeTab} />}
-                {activeView === 'sabtu-teh-ceri' && <SabtuBeliTehCeriForm initialTab={activeTab} />}
-                {activeView === 'kebun-berseri' && <KebunLuasBerseriForm />}
-                {activeView === 'senandung-serasi' && <SenandungSerasiForm />}
-                {activeView === 'e-lapor' && <ELaporPerundunganForm />}
-                {activeView === 'buku-tamu' && <BukuTamuForm />}
+                {activeView === 'piket-harian' && <PiketHarianForm initialTab={activeTab} userRole={currentUser.role} />}
+                {activeView === 'sabtu-teh-ceri' && <SabtuBeliTehCeriForm initialTab={activeTab} userRole={currentUser.role} />}
+                {activeView === 'kebun-berseri' && <KebunLuasBerseriForm initialTab={activeTab} userRole={currentUser.role} />}
+                {activeView === 'senandung-serasi' && <SenandungSerasiForm userRole={currentUser.role} />}
+                {activeView === 'e-lapor' && <ELaporPerundunganForm userRole={currentUser.role} />}
+                {activeView === 'buku-tamu' && <BukuTamuForm userRole={currentUser.role} />}
 
                 {/* Custom Web Embed View */}
                 {activeCustomLink && <WebEmbedViewer link={activeCustomLink} />}

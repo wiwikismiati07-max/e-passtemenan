@@ -36,7 +36,11 @@ import {
   getRealtimeTimeString,
 } from '../utils/dateUtils';
 
-export const SenandungSerasiForm: React.FC = () => {
+interface Props {
+  userRole?: 'admin' | 'siswa';
+}
+
+export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => {
   const [dataList, setDataList] = useState<SenandungSerasi[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SenandungSerasi | null>(null);
@@ -79,6 +83,10 @@ export const SenandungSerasiForm: React.FC = () => {
   };
 
   const handleOpenEdit = (item: SenandungSerasi) => {
+    if (userRole !== 'admin') {
+      alert('Akses Ditolak: Hanya akun Admin yang dapat mengedit laporan.');
+      return;
+    }
     setEditingItem(item);
     setHariTanggal(item.hariTanggal);
     setWaktu(item.waktu);
@@ -89,6 +97,10 @@ export const SenandungSerasiForm: React.FC = () => {
   };
 
   const handleDelete = (item: SenandungSerasi) => {
+    if (userRole !== 'admin') {
+      alert('Akses Ditolak: Hanya akun Admin yang dapat menghapus laporan.');
+      return;
+    }
     setDeleteTargetItem(item);
   };
 
@@ -334,20 +346,42 @@ export const SenandungSerasiForm: React.FC = () => {
               </button>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleOpenEdit(item)}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-                  title="Edit Data"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleDelete(item)}
-                  className="p-1.5 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/40 transition-colors"
-                  title="Hapus Data"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {userRole === 'admin' ? (
+                  <button
+                    onClick={() => handleOpenEdit(item)}
+                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                    title="Edit Data (Khusus Admin)"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => alert('Akses Siswa: Anda tidak memiliki wewenang untuk mengedit atau menghapus laporan. Silakan hubungi Admin.')}
+                    className="p-1.5 text-slate-600 hover:text-white rounded-lg transition-colors cursor-not-allowed opacity-50"
+                    title="Akses Siswa: Tidak bisa mengedit atau menghapus laporan"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {userRole === 'admin' ? (
+                  <button
+                    onClick={() => handleDelete(item)}
+                    className="p-1.5 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/40 transition-colors cursor-pointer"
+                    title="Hapus Data (Khusus Admin)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => alert('Akses Siswa: Anda tidak memiliki wewenang untuk mengedit atau menghapus laporan. Silakan hubungi Admin.')}
+                    className="p-1.5 text-slate-600 hover:text-rose-500 rounded-lg transition-colors cursor-not-allowed opacity-50"
+                    title="Akses Siswa: Tidak bisa mengedit atau menghapus laporan"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
