@@ -77,11 +77,72 @@ function categorizeIncident(text: string): 'verbal' | 'fisik' | 'relasional' | '
   return 'verbal';
 }
 
+interface ProcessedIncidentKey {
+  studentKey: string;
+  className: string;
+  dateStr: string;
+  category: 'verbal' | 'fisik' | 'relasional' | 'siber';
+  isResolved: boolean;
+}
+
 /**
- * Computes live Class Zone analysis aggregated from all 4 applications
+ * Extracts and de-duplicates student/incident records from Piket Harian and E-Lapor Perundungan
+ */
+function collectDeduplicatedIncidents(db: AppDatabase): ProcessedIncidentKey[] {
+  const incidentMap = new Map<string, ProcessedIncidentKey>();
+
+  // 1. Process E-Lapor Perundungan
+  (db.eLaporPerundungan || []).forEach((item) => {
+    const studentRaw = (item.namaSiswa || item.korbanNama || 'Anonim').trim().toLowerCase();
+    const clsName = normalizeClassName(item.kelas || item.korbanKelas || '') || normalizeClassName(item.kronologi) || '7A';
+    const cat = categorizeIncident(`${item.kronologi} ${item.penyadaran} ${item.penangananRespon} ${item.keterangan}`);
+    const dateStr = item.hariTanggal || item.createdAt || '';
+    const isResolved = item.status === 'Selesai' || item.status === 'Mediasi' || item.statusPenanganan?.includes('Selesai');
+
+    // Create unique key to prevent duplicate student name entries in same class on same incident
+    const uniqueKey = `${studentRaw}_${clsName}_${cat}`;
+    if (!incidentMap.has(uniqueKey)) {
+      incidentMap.set(uniqueKey, {
+        studentKey: studentRaw,
+        className: clsName,
+        dateStr,
+        category: cat,
+        isResolved,
+      });
+    }
+  });
+
+  // 2. Process Piket Harian
+  (db.piketHarian || []).forEach((item) => {
+    const text = `${item.hasilTemuan} ${item.keterangan} ${item.namaAnggota || ''}`.toLowerCase();
+    const hasIncident = text.includes('perundungan') || text.includes('bullying') || text.includes('ejekan') || text.includes('konflik') || text.includes('perselisihan') || text.includes('kekerasan');
+    
+    if (hasIncident) {
+      const studentRaw = (item.namaAnggota || 'Siswa Piket').trim().toLowerCase();
+      const clsName = normalizeClassName(item.kelas || '') || normalizeClassName(text) || '7A';
+      const cat = categorizeIncident(text);
+      const dateStr = item.hariTanggal || item.createdAt || '';
+
+      const uniqueKey = `${studentRaw}_${clsName}_${cat}`;
+      if (!incidentMap.has(uniqueKey)) {
+        incidentMap.set(uniqueKey, {
+          studentKey: studentRaw,
+          className: clsName,
+          dateStr,
+          category: cat,
+          isResolved: true, // Piket findings are handled immediately
+        });
+      }
+    }
+  });
+
+  return Array.from(incidentMap.values());
+}
+
+/**
+ * Computes live Class Zone analysis aggregated with de-duplicated student records from 4 applications
  */
 export function calculateClassZoneData(db: AppDatabase): ClassZoneInfo[] {
-  // Clone initial 24 class templates
   const classMap = new Map<string, ClassZoneInfo>();
   INITIAL_CLASS_ZONE_DATA.forEach((cls) => {
     classMap.set(cls.namaKelas, {
@@ -96,52 +157,28 @@ export function calculateClassZoneData(db: AppDatabase): ClassZoneInfo[] {
     });
   });
 
-  // 1. Process E-Lapor Perundungan (Direct perundungan reports)
-  (db.eLaporPerundungan || []).forEach((item) => {
-    const clsName = normalizeClassName(item.kelas) || normalizeClassName(item.kronologi) || normalizeClassName(item.namaSiswa);
-    if (clsName && classMap.has(clsName)) {
-      const clsInfo = classMap.get(clsName)!;
-      const cat = categorizeIncident(`${item.kronologi} ${item.penyadaran} ${item.penangananRespon} ${item.keterangan}`);
-      
-      if (cat === 'verbal') clsInfo.kasusVerbal += 1;
-      else if (cat === 'fisik') clsInfo.kasusFisik += 1;
-      else if (cat === 'relasional') clsInfo.kasusRelasional += 1;
-      else if (cat === 'siber') clsInfo.kasusSiber += 1;
+  // Get de-duplicated incidents
+  const incidents = collectDeduplicatedIncidents(db);
 
-      if (item.status === 'Selesai' || item.status === 'Mediasi') {
+  incidents.forEach((inc) => {
+    if (classMap.has(inc.className)) {
+      const clsInfo = classMap.get(inc.className)!;
+      if (inc.category === 'verbal') clsInfo.kasusVerbal += 1;
+      else if (inc.category === 'fisik') clsInfo.kasusFisik += 1;
+      else if (inc.category === 'relasional') clsInfo.kasusRelasional += 1;
+      else if (inc.category === 'siber') clsInfo.kasusSiber += 1;
+
+      if (inc.isResolved) {
         clsInfo.kasusSelesai += 1;
       }
     }
   });
 
-  // 2. Process Piket Harian (Look for perundungan/kejadian findings per class)
-  (db.piketHarian || []).forEach((item) => {
-    const text = `${item.hasilTemuan} ${item.keterangan}`.toLowerCase();
-    const hasIncident = text.includes('perundungan') || text.includes('bullying') || text.includes('ejekan') || text.includes('konflik') || text.includes('perselisihan') || text.includes('kekerasan');
-    
-    if (hasIncident) {
-      const clsName = normalizeClassName(item.kelas) || normalizeClassName(text);
-      if (clsName && classMap.has(clsName)) {
-        const clsInfo = classMap.get(clsName)!;
-        const cat = categorizeIncident(text);
-        if (cat === 'verbal') clsInfo.kasusVerbal += 1;
-        else if (cat === 'fisik') clsInfo.kasusFisik += 1;
-        else if (cat === 'relasional') clsInfo.kasusRelasional += 1;
-        else if (cat === 'siber') clsInfo.kasusSiber += 1;
-
-        // Piket findings handled on site count as resolved
-        clsInfo.kasusSelesai += 1;
-      }
-    }
-  });
-
-  // 3. Process Sabtu Beli Teh Ceri (Inovasi mingguan findings)
+  // Also check Sabtu Beli Teh Ceri & Kebun Luas Berseri text mentions
   (db.sabtuBeliTehCeri || []).forEach((item) => {
     const text = `${item.hasilTemuan1Minggu} ${item.evaluasiKegiatan} ${item.keterangan}`.toLowerCase();
     const hasIncident = text.includes('perundungan') || text.includes('bullying') || text.includes('konflik') || text.includes('ejekan') || text.includes('kekerasan');
-    
     if (hasIncident) {
-      // Find any class mentioned in text
       INITIAL_CLASS_ZONE_DATA.forEach((c) => {
         if (text.includes(c.namaKelas.toLowerCase())) {
           const clsInfo = classMap.get(c.namaKelas)!;
@@ -156,11 +193,9 @@ export function calculateClassZoneData(db: AppDatabase): ClassZoneInfo[] {
     }
   });
 
-  // 4. Process Kebun Luas Berseri (Evaluasi bulanan findings)
   (db.kebunLuasBerseri || []).forEach((item) => {
     const text = `${item.evaluasiBerhasil} ${item.kendalaSolusi} ${item.keterangan}`.toLowerCase();
     const hasIncident = text.includes('perundungan') || text.includes('bullying') || text.includes('konflik') || text.includes('ejekan') || text.includes('kekerasan');
-
     if (hasIncident) {
       INITIAL_CLASS_ZONE_DATA.forEach((c) => {
         if (text.includes(c.namaKelas.toLowerCase())) {
@@ -209,10 +244,9 @@ export function calculateClassZoneData(db: AppDatabase): ClassZoneInfo[] {
 }
 
 /**
- * Computes live Monthly Trend data aggregated from all 4 applications
+ * Computes live Monthly Trend data aggregated with de-duplicated records from Piket & E-Lapor
  */
 export function calculateMonthlyTrendData(db: AppDatabase): MonthlyTrendData[] {
-  // Baseline benchmarks for "Sebelum Pass Temenan"
   const BASELINE_SEBELUM = [14, 16, 12, 15, 11, 10, 13, 15, 12, 14, 11, 13];
   
   const monthNames = [
@@ -242,59 +276,24 @@ export function calculateMonthlyTrendData(db: AppDatabase): MonthlyTrendData[] {
     siber: 0,
   }));
 
-  // Helper to add case to month
-  const addCaseToMonth = (dateStr: string, cat: 'verbal' | 'fisik' | 'relasional' | 'siber', isResolved: boolean) => {
-    const mIdx = parseMonthIndex(dateStr);
+  const incidents = collectDeduplicatedIncidents(db);
+
+  incidents.forEach((inc) => {
+    const mIdx = parseMonthIndex(inc.dateStr);
     const target = trends[mIdx];
     if (target) {
       target.sesudahPassTemenan += 1;
-      if (cat === 'verbal') target.verbal += 1;
-      else if (cat === 'fisik') target.fisik += 1;
-      else if (cat === 'relasional') target.relasional += 1;
-      else if (cat === 'siber') target.siber += 1;
+      if (inc.category === 'verbal') target.verbal += 1;
+      else if (inc.category === 'fisik') target.fisik += 1;
+      else if (inc.category === 'relasional') target.relasional += 1;
+      else if (inc.category === 'siber') target.siber += 1;
 
-      if (isResolved) {
+      if (inc.isResolved) {
         target.kasusSelesai += 1;
       }
-    }
-  };
-
-  // 1. E-Lapor Perundungan
-  (db.eLaporPerundungan || []).forEach((item) => {
-    const cat = categorizeIncident(`${item.kronologi} ${item.penyadaran} ${item.penangananRespon} ${item.keterangan}`);
-    const isResolved = item.status === 'Selesai' || item.status === 'Mediasi';
-    addCaseToMonth(item.hariTanggal || item.createdAt, cat, isResolved);
-  });
-
-  // 2. Piket Harian
-  (db.piketHarian || []).forEach((item) => {
-    const text = `${item.hasilTemuan} ${item.keterangan}`.toLowerCase();
-    const hasIncident = text.includes('perundungan') || text.includes('bullying') || text.includes('ejekan') || text.includes('konflik') || text.includes('perselisihan') || text.includes('kekerasan');
-    if (hasIncident) {
-      const cat = categorizeIncident(text);
-      addCaseToMonth(item.hariTanggal || item.createdAt, cat, true);
-    }
-  });
-
-  // 3. Sabtu Beli Teh Ceri
-  (db.sabtuBeliTehCeri || []).forEach((item) => {
-    const text = `${item.hasilTemuan1Minggu} ${item.evaluasiKegiatan}`.toLowerCase();
-    const hasIncident = text.includes('perundungan') || text.includes('bullying') || text.includes('konflik') || text.includes('ejekan') || text.includes('kekerasan');
-    if (hasIncident) {
-      const cat = categorizeIncident(text);
-      addCaseToMonth(item.hariTanggal || item.createdAt, cat, true);
-    }
-  });
-
-  // 4. Kebun Luas Berseri
-  (db.kebunLuasBerseri || []).forEach((item) => {
-    const text = `${item.evaluasiBerhasil} ${item.kendalaSolusi}`.toLowerCase();
-    const hasIncident = text.includes('perundungan') || text.includes('bullying') || text.includes('konflik') || text.includes('ejekan') || text.includes('kekerasan');
-    if (hasIncident) {
-      const cat = categorizeIncident(text);
-      addCaseToMonth(item.hariTanggal || item.createdAt, cat, true);
     }
   });
 
   return trends;
 }
+
