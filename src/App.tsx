@@ -237,7 +237,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50/50 via-slate-50 to-indigo-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased selection:bg-pink-400 selection:text-slate-900 font-sans transition-colors duration-200">
       {/* 1. TOP NAVBAR (Matching image screenshot header) */}
-      <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 py-3 flex items-center justify-between shadow-xs transition-colors">
+      <header className="sticky top-2 z-30 mx-2 sm:mx-4 mt-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-4 md:px-8 py-3 rounded-2xl flex items-center justify-between shadow-sm transition-colors">
         {/* Left branding */}
         <div className="flex items-center gap-3 min-w-0">
           <button
