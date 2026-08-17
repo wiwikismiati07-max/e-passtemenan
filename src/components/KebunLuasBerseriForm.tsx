@@ -665,24 +665,14 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
                     </button>
 
                     <div className="flex items-center gap-2">
-                      {userRole === 'admin' ? (
-                        <button
-                          onClick={() => handleOpenEdit(item)}
-                          className="p-1.5 text-slate-600 hover:text-emerald-600 rounded-lg hover:bg-white cursor-pointer"
-                          title="Edit (Khusus Admin)"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => alert('Akses Siswa: Anda tidak memiliki wewenang untuk mengedit atau menghapus laporan. Silakan hubungi Admin.')}
-                          className="p-1.5 text-slate-300 dark:text-slate-700 hover:text-emerald-500 rounded-lg transition-colors cursor-not-allowed opacity-50"
-                          title="Akses Siswa: Tidak bisa mengedit atau menghapus laporan"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleOpenEdit(item)}
+                        className="p-1.5 text-slate-600 hover:text-emerald-600 rounded-lg hover:bg-white cursor-pointer"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+
                       {userRole === 'admin' ? (
                         <button
                           onClick={() => handleDelete(item)}
@@ -694,9 +684,9 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
                       ) : (
                         <button
                           type="button"
-                          onClick={() => alert('Akses Siswa: Anda tidak memiliki wewenang untuk mengedit atau menghapus laporan. Silakan hubungi Admin.')}
+                          onClick={() => alert('Akses Siswa: Anda dapat menambah dan mengedit data, namun tidak diizinkan untuk menghapus data.')}
                           className="p-2 text-slate-300 dark:text-slate-700 hover:text-rose-500 rounded-xl transition-colors cursor-not-allowed opacity-50"
-                          title="Akses Siswa: Tidak bisa mengedit atau menghapus laporan"
+                          title="Akses Siswa: Tidak bisa menghapus data"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

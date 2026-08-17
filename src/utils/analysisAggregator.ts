@@ -92,7 +92,7 @@ function collectDeduplicatedIncidents(db: AppDatabase): ProcessedIncidentKey[] {
   const incidentMap = new Map<string, ProcessedIncidentKey>();
 
   // 1. Process E-Lapor Perundungan
-  (db.eLaporPerundungan || []).forEach((item) => {
+  (db.eLaporPerundungan || []).forEach((item: any) => {
     const studentRaw = (item.namaSiswa || item.korbanNama || 'Anonim').trim().toLowerCase();
     const clsName = normalizeClassName(item.kelas || item.korbanKelas || '') || normalizeClassName(item.kronologi) || '7A';
     const cat = categorizeIncident(`${item.kronologi} ${item.penyadaran} ${item.penangananRespon} ${item.keterangan}`);

@@ -24,8 +24,8 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('passtemenan');
+  const [password, setPassword] = useState('smpn7');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -58,15 +58,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     }, 400);
   };
 
-  const handleQuickFill = (type: 'siswa' | 'admin') => {
+  const handleQuickFill = () => {
     setErrorMessage('');
-    if (type === 'siswa') {
-      setUsername('passtemenan');
-      setPassword('smpn7');
-    } else {
-      setUsername('admin');
-      setPassword('admin123');
-    }
+    setUsername('passtemenan');
+    setPassword('smpn7');
   };
 
   return (
@@ -104,24 +99,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Quick Preset Buttons for easy login */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
+          {/* Quick Preset Button */}
+          <div className="pt-1">
             <button
               type="button"
-              onClick={() => handleQuickFill('siswa')}
-              className="px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+              onClick={handleQuickFill}
+              className="w-full px-3 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
             >
-              <GraduationCap className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <GraduationCap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               <span>Isi Akses Siswa</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('admin')}
-              className="px-3 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/80 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-            >
-              <UserCog className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-              <span>Isi Akses Admin</span>
             </button>
           </div>
 
@@ -202,21 +188,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               <KeyRound className="w-3.5 h-3.5 text-amber-500" />
               <span>Daftar Akun Resmi:</span>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-              <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-0.5">
+            <div className="text-[11px] font-mono">
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-0.5">
                 <p className="font-sans font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                  <GraduationCap className="w-3 h-3" /> Siswa
+                  <GraduationCap className="w-3 h-3" /> Siswa (Akses Input & Edit)
                 </p>
                 <p className="text-slate-600 dark:text-slate-300">User: <span className="font-extrabold text-slate-900 dark:text-white">passtemenan</span></p>
                 <p className="text-slate-600 dark:text-slate-300">Pass: <span className="font-extrabold text-slate-900 dark:text-white">smpn7</span></p>
-              </div>
-
-              <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-0.5">
-                <p className="font-sans font-extrabold text-purple-600 dark:text-purple-400 flex items-center gap-1">
-                  <UserCog className="w-3 h-3" /> Admin
-                </p>
-                <p className="text-slate-600 dark:text-slate-300">User: <span className="font-extrabold text-slate-900 dark:text-white">admin</span></p>
-                <p className="text-slate-600 dark:text-slate-300">Pass: <span className="font-extrabold text-slate-900 dark:text-white">admin123</span></p>
               </div>
             </div>
           </div>

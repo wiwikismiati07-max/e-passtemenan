@@ -410,24 +410,14 @@ export const BukuTamuForm: React.FC<Props> = ({ userRole = 'admin' }) => {
               </button>
 
               <div className="flex items-center gap-2">
-                {userRole === 'admin' ? (
-                  <button
-                    onClick={() => handleOpenEdit(item)}
-                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-                    title="Edit Data (Khusus Admin)"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => alert('Akses Siswa: Anda tidak memiliki wewenang untuk mengedit atau menghapus laporan. Silakan hubungi Admin.')}
-                    className="p-1.5 text-slate-600 hover:text-white rounded-lg transition-colors cursor-not-allowed opacity-50"
-                    title="Akses Siswa: Tidak bisa mengedit atau menghapus laporan"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <button
+                  onClick={() => handleOpenEdit(item)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Edit Data"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+
                 {userRole === 'admin' ? (
                   <button
                     onClick={() => handleDelete(item)}
@@ -439,9 +429,9 @@ export const BukuTamuForm: React.FC<Props> = ({ userRole = 'admin' }) => {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => alert('Akses Siswa: Anda tidak memiliki wewenang untuk mengedit atau menghapus laporan. Silakan hubungi Admin.')}
+                    onClick={() => alert('Akses Siswa: Anda dapat menambah dan mengedit data, namun tidak diizinkan untuk menghapus data.')}
                     className="p-1.5 text-slate-600 hover:text-rose-500 rounded-lg transition-colors cursor-not-allowed opacity-50"
-                    title="Akses Siswa: Tidak bisa mengedit atau menghapus laporan"
+                    title="Akses Siswa: Tidak bisa menghapus data"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
