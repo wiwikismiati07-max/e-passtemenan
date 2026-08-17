@@ -145,8 +145,11 @@ function collectDeduplicatedIncidents(db: AppDatabase): ProcessedIncidentKey[] {
 export function calculateClassZoneData(db: AppDatabase): ClassZoneInfo[] {
   const classMap = new Map<string, ClassZoneInfo>();
   INITIAL_CLASS_ZONE_DATA.forEach((cls) => {
+    const custom = db.classAssignments?.[cls.namaKelas];
     classMap.set(cls.namaKelas, {
       ...cls,
+      waliKelas: custom?.waliKelas || cls.waliKelas,
+      dutaAntiBullying: custom?.dutaAntiBullying || cls.dutaAntiBullying,
       kasusVerbal: 0,
       kasusFisik: 0,
       kasusRelasional: 0,

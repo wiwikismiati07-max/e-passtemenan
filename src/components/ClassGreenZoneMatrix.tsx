@@ -18,9 +18,10 @@ import { ClassDetailModal } from './ClassDetailModal';
 
 interface ClassGreenZoneMatrixProps {
   db?: AppDatabase;
+  onRefresh?: () => void;
 }
 
-export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db }) => {
+export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db, onRefresh }) => {
   const [selectedTingkat, setSelectedTingkat] = useState<'all' | '7' | '8' | '9'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState<ClassZoneInfo | null>(null);
@@ -28,6 +29,10 @@ export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db }
 
   // Compute live class zone data if db is present
   const classList = db ? calculateClassZoneData(db) : INITIAL_CLASS_ZONE_DATA;
+
+  const activeSelectedClass = selectedClass
+    ? classList.find((c) => c.id === selectedClass.id) || selectedClass
+    : null;
 
   const filteredClasses = classList.filter((cls) => {
     const matchTingkat = selectedTingkat === 'all' || cls.tingkat === selectedTingkat;
@@ -247,9 +252,11 @@ export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db }
 
       {/* Class Detail Modal */}
       <ClassDetailModal
-        classInfo={selectedClass}
+        classInfo={activeSelectedClass}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        db={db}
+        onRefresh={onRefresh}
       />
     </div>
   );

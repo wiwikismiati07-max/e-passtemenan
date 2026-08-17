@@ -476,6 +476,7 @@ export default function App() {
                     onOpenLinkModal={() => handleOpenAddLink()}
                     onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
                     onOpenBackupModal={() => setIsBackupModalOpen(true)}
+                    onRefresh={refreshDb}
                   />
                 )}
 

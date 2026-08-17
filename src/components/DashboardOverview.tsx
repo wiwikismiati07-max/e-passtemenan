@@ -24,11 +24,15 @@ interface DashboardOverviewProps {
   onOpenLinkModal?: () => void;
   onOpenSupabaseModal: () => void;
   onOpenBackupModal: () => void;
+  onRefresh?: () => void;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   db,
   onNavigate,
+  onOpenSupabaseModal,
+  onOpenBackupModal,
+  onRefresh,
 }) => {
   const [isInovasiModalOpen, setIsInovasiModalOpen] = useState(false);
 
@@ -151,7 +155,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       <BullyingTrendChart db={db} />
 
       {/* 3. ZONA HIJAU NO BULLYING & KEKERASAN DI SETIAP KELAS (7A - 7H, 8A - 8H, 9A - 9H) */}
-      <ClassGreenZoneMatrix db={db} />
+      <ClassGreenZoneMatrix db={db} onRefresh={onRefresh} />
 
       {/* Rencana Inovasi Popup Modal */}
       <RencanaInovasiModal

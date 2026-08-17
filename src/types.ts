@@ -165,6 +165,7 @@ export interface AppDatabase {
   bukuTamu: BukuTamu[];
   masterSiswa: SiswaItem[];
   masterGuru: GuruItem[];
+  classAssignments?: Record<string, { waliKelas: string; dutaAntiBullying: string }>;
   supabaseConfig: SupabaseConfig;
   pejabatConfig?: PejabatConfig;
   version: number;

@@ -338,6 +338,7 @@ export const DEFAULT_DATABASE: AppDatabase = {
   bukuTamu: INITIAL_BUKU_TAMU,
   masterSiswa: INITIAL_MASTER_SISWA,
   masterGuru: INITIAL_MASTER_GURU,
+  classAssignments: {},
   supabaseConfig: {
     url: 'https://oshvgrglseefguybezdh.supabase.co',
     anonKey: 'sb_publishable_G3RlEXsgYJfeqa9AMP7HyA_3aKPEJ9M',
@@ -1111,6 +1112,18 @@ export class StorageService {
     return db.pejabatConfig;
   }
 
+  public static saveClassAssignment(namaKelas: string, waliKelas: string, dutaAntiBullying: string): void {
+    const db = this.getDb();
+    if (!db.classAssignments) {
+      db.classAssignments = {};
+    }
+    db.classAssignments[namaKelas] = {
+      waliKelas,
+      dutaAntiBullying,
+    };
+    this.saveDb();
+  }
+
   // --- CONFIG ---
   public static updateSupabaseConfig(config: Partial<SupabaseConfig>): void {
     const db = this.getDb();
@@ -1160,6 +1173,9 @@ export class StorageService {
           eLaporPerundungan: mergeUnique(current.eLaporPerundungan, parsed.eLaporPerundungan),
           bukuTamu: mergeUnique(current.bukuTamu, parsed.bukuTamu),
           masterSiswa: mergeUnique(current.masterSiswa, parsed.masterSiswa),
+          masterGuru: mergeUnique(current.masterGuru, parsed.masterGuru),
+          classAssignments: { ...(current.classAssignments || {}), ...(parsed.classAssignments || {}) },
+          pejabatConfig: parsed.pejabatConfig || current.pejabatConfig,
           supabaseConfig: {
             ...current.supabaseConfig,
             ...(parsed.supabaseConfig || {}),
