@@ -708,52 +708,72 @@ export const ELaporPerundunganForm: React.FC<Props> = ({ userRole = 'admin' }) =
                     <label className="block text-[11px] font-semibold text-slate-400 mb-1">
                       1. Kegiatan Penyadaran
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={penyadaran}
                       onChange={(e) => setPenyadaran(e.target.value)}
-                      placeholder="Langkah edukasi empati & konseling"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
-                    />
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
+                    >
+                      <option value="">-- Pilih Kegiatan Penyadaran --</option>
+                      <option value="Langkah edukasi empati & konseling">Langkah edukasi empati & konseling</option>
+                      <option value="Sosialisasi pencegahan perundungan di kelas">Sosialisasi pencegahan perundungan di kelas</option>
+                      <option value="Bimbingan konseling kelompok sebaya">Bimbingan konseling kelompok sebaya</option>
+                      <option value="Penguatan karakter profil pelajar Pancasila">Penguatan karakter profil pelajar Pancasila</option>
+                      <option value="Edukasi bahaya perundungan verbal & siber">Edukasi bahaya perundungan verbal & siber</option>
+                    </select>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-400 mb-1">
                       2. Kegiatan Pencegahan
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={pencegahan}
                       onChange={(e) => setPencegahan(e.target.value)}
-                      placeholder="Upaya preventif & patroli berkala"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
-                    />
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
+                    >
+                      <option value="">-- Pilih Kegiatan Pencegahan --</option>
+                      <option value="Upaya preventif & patroli berkala area sekolah">Upaya preventif & patroli berkala area sekolah</option>
+                      <option value="Kampanye anti perundungan di lingkungan sekolah">Kampanye anti perundungan di lingkungan sekolah</option>
+                      <option value="Pengawasan ketat di sudut rawan dan kantin">Pengawasan ketat di sudut rawan dan kantin</option>
+                      <option value="Pembentukan satgas & duta anti perundungan">Pembentukan satgas & duta anti perundungan</option>
+                      <option value="Pemasangan poster edukasi anti kekerasan">Pemasangan poster edukasi anti kekerasan</option>
+                    </select>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-400 mb-1">
                       3. Kegiatan Penanganan Respon
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={penangananRespon}
                       onChange={(e) => setPenangananRespon(e.target.value)}
-                      placeholder="Tindakan cepat tanggap guru & tim BK"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
-                    />
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
+                    >
+                      <option value="">-- Pilih Kegiatan Penanganan Respon --</option>
+                      <option value="Tindakan cepat tanggap guru & tim BK">Tindakan cepat tanggap guru & tim BK</option>
+                      <option value="Mediasi damai kekeluargaan segera">Mediasi damai kekeluargaan segera</option>
+                      <option value="Pendampingan psikologis dan pemulihan korban">Pendampingan psikologis dan pemulihan korban</option>
+                      <option value="Penertiban dan pembinaan sanksi edukatif">Penertiban dan pembinaan sanksi edukatif</option>
+                      <option value="Koordinasi penanganan darurat dengan pembina">Koordinasi penanganan darurat dengan pembina</option>
+                    </select>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-400 mb-1">
                       4. Kegiatan Pelaporan
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={pelaporan}
                       onChange={(e) => setPelaporan(e.target.value)}
-                      placeholder="Pencatatan rekam kasus & koordinasi"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
-                    />
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
+                    >
+                      <option value="">-- Pilih Kegiatan Pelaporan --</option>
+                      <option value="Pencatatan rekam kasus & koordinasi wali kelas">Pencatatan rekam kasus & koordinasi wali kelas</option>
+                      <option value="Pelaporan resmi kepada Kepala Sekolah & Pengawas">Pelaporan resmi kepada Kepala Sekolah & Pengawas</option>
+                      <option value="Koordinasi lintas pihak dengan orang tua/wali murid">Koordinasi lintas pihak dengan orang tua/wali murid</option>
+                      <option value="Arsip dokumentasi penanganan kasus terpadu">Arsip dokumentasi penanganan kasus terpadu</option>
+                      <option value="Penyusunan berita acara laporan selesai">Penyusunan berita acara laporan selesai</option>
+                    </select>
                   </div>
                 </div>
               </div>
