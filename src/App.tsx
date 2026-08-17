@@ -292,38 +292,38 @@ export default function App() {
         </div>
 
         {/* Right action tools */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Pejabat & TTD Settings Pill */}
           <button
             onClick={() => setIsPejabatModalOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 border border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+            className="px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 border border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
             title="Pengaturan Guru Pendamping & Kepala Sekolah"
           >
-            <UserCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-            <span className="hidden sm:inline">Guru BK & Pejabat</span>
+            <UserCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+            <span className="hidden md:inline">Pejabat & BK</span>
           </button>
 
           {/* Instal App Button */}
           <button
             onClick={handleInstallApp}
-            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm shadow-indigo-600/20"
+            className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm shadow-indigo-600/20"
             title="Instal Aplikasi PWA"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Instal App</span>
+            <Download className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">Instal</span>
           </button>
 
           {/* Supabase Status Pill */}
           <button
             onClick={() => setIsSupabaseModalOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+            className="px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
             title="Konfigurasi & Status Supabase"
           >
-            <Database className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">
+            <Database className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="hidden lg:inline">
               {db.supabaseConfig.isConnected ? 'Supabase Online' : 'Supabase Setup'}
             </span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
           </button>
 
           {/* Dark / Light Mode Toggle */}
@@ -336,21 +336,21 @@ export default function App() {
           </button>
 
           {/* User Session Badge & Logout Button */}
-          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200 dark:border-slate-800">
             <div
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border shadow-2xs ${
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border shadow-2xs ${
                 currentUser.role === 'admin'
                   ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300'
                   : 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
               }`}
             >
               {currentUser.role === 'admin' ? (
-                <UserCog className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <UserCog className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
               ) : (
-                <GraduationCap className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <GraduationCap className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
               )}
-              <span className="hidden md:inline font-extrabold uppercase">{currentUser.role}:</span>
-              <span className="font-semibold">{currentUser.username}</span>
+              <span className="hidden sm:inline font-extrabold uppercase">{currentUser.role}:</span>
+              <span className="font-semibold truncate max-w-[80px] sm:max-w-none">{currentUser.username}</span>
             </div>
 
             <button
