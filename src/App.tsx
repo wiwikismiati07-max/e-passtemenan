@@ -51,6 +51,8 @@ import { SupabaseSettingsModal } from './components/SupabaseSettingsModal';
 import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { PejabatSettingsModal } from './components/PejabatSettingsModal';
 import { FlowchartIntroLanding } from './components/FlowchartIntroLanding';
+import { MasterSiswaView } from './components/MasterSiswaView';
+import { MasterGuruView } from './components/MasterGuruView';
 import { LoginScreen, UserSession } from './components/LoginScreen';
 
 export default function App() {
@@ -448,7 +450,7 @@ export default function App() {
             {/* 3. SUB-SECTION LAYOUT (Split Sub-Nav Menu + Form / View) */}
             <div className="flex flex-col lg:flex-row gap-6 items-start">
               {/* Left SubNavMenu (Rendered only for module form views) */}
-              {activeView !== 'flowchart-intro' && activeView !== 'dashboard-overview' && (
+              {activeView !== 'flowchart-intro' && activeView !== 'dashboard-overview' && activeView !== 'master-siswa' && activeView !== 'master-guru' && (
                 <SubNavMenu
                   db={db}
                   activeView={activeView}
@@ -483,6 +485,8 @@ export default function App() {
                 {activeView === 'senandung-serasi' && <SenandungSerasiForm userRole={currentUser.role} />}
                 {activeView === 'e-lapor' && <ELaporPerundunganForm userRole={currentUser.role} />}
                 {activeView === 'buku-tamu' && <BukuTamuForm userRole={currentUser.role} />}
+                {activeView === 'master-siswa' && <MasterSiswaView db={db} onRefresh={refreshDb} />}
+                {activeView === 'master-guru' && <MasterGuruView db={db} onRefresh={refreshDb} />}
 
                 {/* Custom Web Embed View */}
                 {activeCustomLink && <WebEmbedViewer link={activeCustomLink} />}

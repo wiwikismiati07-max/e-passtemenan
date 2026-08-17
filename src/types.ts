@@ -109,6 +109,33 @@ export interface BukuTamu {
   updatedAt: string;
 }
 
+export interface SiswaItem {
+  id: string;
+  nisn: string;
+  nis?: string;
+  namaLengkap: string;
+  kelas: string; // e.g. "7A", "7B", "8A", "9C"
+  jenisKelamin: 'L' | 'P';
+  alamat?: string;
+  noHp?: string;
+  keterangan?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GuruItem {
+  id: string;
+  nip: string;
+  namaLengkap: string;
+  jabatan: string;
+  mapel?: string;
+  noHp?: string;
+  email?: string;
+  keterangan?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SupabaseConfig {
   url: string;
   anonKey: string;
@@ -136,6 +163,8 @@ export interface AppDatabase {
   senandungSerasi: SenandungSerasi[];
   eLaporPerundungan: ELaporPerundungan[];
   bukuTamu: BukuTamu[];
+  masterSiswa: SiswaItem[];
+  masterGuru: GuruItem[];
   supabaseConfig: SupabaseConfig;
   pejabatConfig?: PejabatConfig;
   version: number;

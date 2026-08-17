@@ -9,6 +9,8 @@ import {
   SabtuBeliTehCeri,
   SenandungSerasi,
   SupabaseConfig,
+  SiswaItem,
+  GuruItem,
 } from '../types';
 
 const STORAGE_KEY = 'PASS_TEMENAN_SPANJU_DB_V1';
@@ -196,6 +198,112 @@ export const INITIAL_BUKU_TAMU: BukuTamu[] = [
   },
 ];
 
+export const INITIAL_MASTER_SISWA: SiswaItem[] = [
+  {
+    id: 'sis-1',
+    nisn: '0081234561',
+    nis: '1001',
+    namaLengkap: 'Ahmad Fauzi Ramadhan',
+    kelas: '7A',
+    jenisKelamin: 'L',
+    alamat: 'Jl. Panglima Sudirman No. 45, Pasuruan',
+    noHp: '081234567890',
+    keterangan: 'Aktif / Kader Pass Temenan',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'sis-2',
+    nisn: '0081234562',
+    nis: '1002',
+    namaLengkap: 'Siti Nur Aisyah',
+    kelas: '7A',
+    jenisKelamin: 'P',
+    alamat: 'Jl. Dr. Wahidin Sudirohusodo No. 12, Pasuruan',
+    noHp: '081234567891',
+    keterangan: 'Aktif',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'sis-3',
+    nisn: '0079876541',
+    nis: '9501',
+    namaLengkap: 'Budi Santoso',
+    kelas: '8B',
+    jenisKelamin: 'L',
+    alamat: 'Jl. Untung Suropati No. 88, Pasuruan',
+    noHp: '081987654321',
+    keterangan: 'Aktif',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'sis-4',
+    nisn: '0079876542',
+    nis: '9502',
+    namaLengkap: 'Dewi Lestari',
+    kelas: '9C',
+    jenisKelamin: 'P',
+    alamat: 'Jl. Diponegoro No. 20, Pasuruan',
+    noHp: '081555666777',
+    keterangan: 'Aktif / Pengurus Kelas',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+export const INITIAL_MASTER_GURU: GuruItem[] = [
+  {
+    id: 'guru-1',
+    nip: '19860410 201001 2 030',
+    namaLengkap: 'NUR FADILAH, S.Pd., M.Pd',
+    jabatan: 'Kepala Sekolah',
+    mapel: 'Manajemen Pendidikan',
+    noHp: '081234567800',
+    email: 'nurfadilah@smpn7pasuruan.sch.id',
+    keterangan: 'Kepala UPT SMPN 7 Pasuruan',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'guru-2',
+    nip: '19831116 200904 2 003',
+    namaLengkap: 'WIWIK ISMIATI, S.Pd',
+    jabatan: 'Guru Pendamping / Guru BK',
+    mapel: 'Bimbingan Konseling',
+    noHp: '081234567801',
+    email: 'wiwikismiati@smpn7pasuruan.sch.id',
+    keterangan: 'Koordinator Pass Temenan & BK',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'guru-3',
+    nip: '19940214 202221 2 014',
+    namaLengkap: 'EKI FEBRIANI, S.Pd',
+    jabatan: 'Guru Pendamping / Guru BK',
+    mapel: 'Bimbingan Konseling',
+    noHp: '081234567802',
+    email: 'ekifebriani@smpn7pasuruan.sch.id',
+    keterangan: 'Tim BK & Pencegahan Perundungan',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'guru-4',
+    nip: '19730415 199803 1 004',
+    namaLengkap: 'Drs. H. Mulyono, M.Si',
+    jabatan: 'Guru Mata Pelajaran',
+    mapel: 'Matematika',
+    noHp: '081234567803',
+    email: 'mulyono@smpn7pasuruan.sch.id',
+    keterangan: 'Guru Senior / Pembina Kesiswaan',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
 export const GURU_BK_OPTIONS = [
   {
     nama: 'WIWIK ISMIATI, S.Pd',
@@ -228,6 +336,8 @@ export const DEFAULT_DATABASE: AppDatabase = {
   senandungSerasi: INITIAL_SENANDUNG_SERASI,
   eLaporPerundungan: INITIAL_E_LAPOR,
   bukuTamu: INITIAL_BUKU_TAMU,
+  masterSiswa: INITIAL_MASTER_SISWA,
+  masterGuru: INITIAL_MASTER_GURU,
   supabaseConfig: {
     url: 'https://oshvgrglseefguybezdh.supabase.co',
     anonKey: 'sb_publishable_G3RlEXsgYJfeqa9AMP7HyA_3aKPEJ9M',
@@ -258,6 +368,7 @@ export class StorageService {
           senandungSerasi: parsed.senandungSerasi || DEFAULT_DATABASE.senandungSerasi,
           eLaporPerundungan: parsed.eLaporPerundungan || DEFAULT_DATABASE.eLaporPerundungan,
           bukuTamu: parsed.bukuTamu || DEFAULT_DATABASE.bukuTamu,
+          masterSiswa: parsed.masterSiswa || DEFAULT_DATABASE.masterSiswa,
           supabaseConfig: { ...DEFAULT_DATABASE.supabaseConfig, ...(parsed.supabaseConfig || {}) },
           pejabatConfig: { ...DEFAULT_PEJABAT_CONFIG, ...(parsed.pejabatConfig || {}) },
         };
@@ -459,7 +570,48 @@ export class StorageService {
         else syncedCount += db.bukuTamu.length;
       }
 
-      // 7. Custom Links
+      // 7. Master Siswa
+      if (db.masterSiswa && db.masterSiswa.length > 0) {
+        const { error } = await client.from('master_siswa').upsert(
+          db.masterSiswa.map((item) => ({
+            id: item.id,
+            nisn: item.nisn,
+            nis: item.nis || '',
+            nama_lengkap: item.namaLengkap,
+            kelas: item.kelas,
+            jenis_kelamin: item.jenisKelamin,
+            alamat: item.alamat || '',
+            no_hp: item.noHp || '',
+            keterangan: item.keterangan || '',
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+          }))
+        );
+        if (error) errors.push(`Master Siswa: ${error.message}`);
+        else syncedCount += db.masterSiswa.length;
+      }
+
+      // 8. Master Guru
+      if (db.masterGuru && db.masterGuru.length > 0) {
+        const { error } = await client.from('master_guru').upsert(
+          db.masterGuru.map((item) => ({
+            id: item.id,
+            nip: item.nip,
+            nama_lengkap: item.namaLengkap,
+            jabatan: item.jabatan,
+            mapel: item.mapel || '',
+            no_hp: item.noHp || '',
+            email: item.email || '',
+            keterangan: item.keterangan || '',
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+          }))
+        );
+        if (error) errors.push(`Master Guru: ${error.message}`);
+        else syncedCount += db.masterGuru.length;
+      }
+
+      // 9. Custom Links
       if (db.customLinks.length > 0) {
         const { error } = await client.from('custom_links').upsert(
           db.customLinks.map((item) => ({
@@ -749,6 +901,200 @@ export class StorageService {
     this.saveDb();
   }
 
+  // --- MASTER SISWA CRUD & EXCEL IMPORT ---
+  public static saveSiswa(item: Omit<SiswaItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): SiswaItem {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let saved: SiswaItem;
+
+    if (item.id) {
+      const idx = db.masterSiswa.findIndex((s) => s.id === item.id);
+      if (idx >= 0) {
+        saved = { ...db.masterSiswa[idx], ...item, updatedAt: now };
+        db.masterSiswa[idx] = saved;
+      } else {
+        saved = { ...item, id: item.id, createdAt: now, updatedAt: now };
+        db.masterSiswa.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...item,
+        id: 'sis-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.masterSiswa.unshift(saved);
+    }
+    this.saveDb();
+    return saved;
+  }
+
+  public static deleteSiswa(id: string): void {
+    const db = this.getDb();
+    db.masterSiswa = db.masterSiswa.filter((s) => s.id !== id);
+    this.saveDb();
+  }
+
+  public static deleteMultipleSiswa(ids: string[]): void {
+    const db = this.getDb();
+    db.masterSiswa = db.masterSiswa.filter((s) => !ids.includes(s.id));
+    this.saveDb();
+  }
+
+  public static importSiswaBatch(rows: Array<{ nisn?: string; nis?: string; namaLengkap?: string; kelas?: string; jenisKelamin?: string; alamat?: string; noHp?: string; keterangan?: string }>): { added: number; updated: number } {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let added = 0;
+    let updated = 0;
+
+    rows.forEach((r) => {
+      if (!r.namaLengkap) return;
+      const nisn = r.nisn ? String(r.nisn).trim() : '';
+      const nis = r.nis ? String(r.nis).trim() : '';
+      const nama = String(r.namaLengkap).trim();
+      const kelas = r.kelas ? String(r.kelas).trim().toUpperCase() : '7A';
+      const jkRaw = r.jenisKelamin ? String(r.jenisKelamin).trim().toUpperCase() : 'L';
+      const jenisKelamin = (jkRaw.startsWith('P') ? 'P' : 'L') as 'L' | 'P';
+      const alamat = r.alamat ? String(r.alamat).trim() : '';
+      const noHp = r.noHp ? String(r.noHp).trim() : '';
+      const keterangan = r.keterangan ? String(r.keterangan).trim() : 'Import Excel';
+
+      const existingIdx = db.masterSiswa.findIndex(
+        (s) => (nisn && s.nisn === nisn) || (nis && s.nis === nis) || (s.namaLengkap.toLowerCase() === nama.toLowerCase() && s.kelas === kelas)
+      );
+
+      if (existingIdx >= 0) {
+        db.masterSiswa[existingIdx] = {
+          ...db.masterSiswa[existingIdx],
+          nisn: nisn || db.masterSiswa[existingIdx].nisn,
+          nis: nis || db.masterSiswa[existingIdx].nis,
+          namaLengkap: nama,
+          kelas,
+          jenisKelamin,
+          alamat: alamat || db.masterSiswa[existingIdx].alamat,
+          noHp: noHp || db.masterSiswa[existingIdx].noHp,
+          keterangan: keterangan || db.masterSiswa[existingIdx].keterangan,
+          updatedAt: now,
+        };
+        updated++;
+      } else {
+        const newSis: SiswaItem = {
+          id: 'sis-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+          nisn: nisn || ('00' + Math.floor(Math.random() * 90000000 + 10000000)),
+          nis: nis || String(Math.floor(Math.random() * 9000 + 1000)),
+          namaLengkap: nama,
+          kelas,
+          jenisKelamin,
+          alamat,
+          noHp,
+          keterangan,
+          createdAt: now,
+          updatedAt: now,
+        };
+        db.masterSiswa.unshift(newSis);
+        added++;
+      }
+    });
+
+    this.saveDb();
+    return { added, updated };
+  }
+
+  // --- MASTER GURU CRUD & EXCEL IMPORT ---
+  public static saveGuru(item: Omit<GuruItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): GuruItem {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let saved: GuruItem;
+
+    if (item.id) {
+      const idx = db.masterGuru.findIndex((g) => g.id === item.id);
+      if (idx >= 0) {
+        saved = { ...db.masterGuru[idx], ...item, updatedAt: now };
+        db.masterGuru[idx] = saved;
+      } else {
+        saved = { ...item, id: item.id, createdAt: now, updatedAt: now };
+        db.masterGuru.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...item,
+        id: 'guru-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.masterGuru.unshift(saved);
+    }
+    this.saveDb();
+    return saved;
+  }
+
+  public static deleteGuru(id: string): void {
+    const db = this.getDb();
+    db.masterGuru = db.masterGuru.filter((g) => g.id !== id);
+    this.saveDb();
+  }
+
+  public static deleteMultipleGuru(ids: string[]): void {
+    const db = this.getDb();
+    db.masterGuru = db.masterGuru.filter((g) => !ids.includes(g.id));
+    this.saveDb();
+  }
+
+  public static importGuruBatch(rows: Array<{ nip?: string; namaLengkap?: string; jabatan?: string; mapel?: string; noHp?: string; email?: string; keterangan?: string }>): { added: number; updated: number } {
+    const db = this.getDb();
+    const now = new Date().toISOString();
+    let added = 0;
+    let updated = 0;
+
+    rows.forEach((r) => {
+      if (!r.namaLengkap) return;
+      const nip = r.nip ? String(r.nip).trim() : '';
+      const nama = String(r.namaLengkap).trim();
+      const jabatan = r.jabatan ? String(r.jabatan).trim() : 'Guru Mata Pelajaran';
+      const mapel = r.mapel ? String(r.mapel).trim() : '';
+      const noHp = r.noHp ? String(r.noHp).trim() : '';
+      const email = r.email ? String(r.email).trim() : '';
+      const keterangan = r.keterangan ? String(r.keterangan).trim() : 'Import Excel';
+
+      const existingIdx = db.masterGuru.findIndex(
+        (g) => (nip && g.nip === nip) || g.namaLengkap.toLowerCase() === nama.toLowerCase()
+      );
+
+      if (existingIdx >= 0) {
+        db.masterGuru[existingIdx] = {
+          ...db.masterGuru[existingIdx],
+          nip: nip || db.masterGuru[existingIdx].nip,
+          namaLengkap: nama,
+          jabatan: jabatan || db.masterGuru[existingIdx].jabatan,
+          mapel: mapel || db.masterGuru[existingIdx].mapel,
+          noHp: noHp || db.masterGuru[existingIdx].noHp,
+          email: email || db.masterGuru[existingIdx].email,
+          keterangan: keterangan || db.masterGuru[existingIdx].keterangan,
+          updatedAt: now,
+        };
+        updated++;
+      } else {
+        const newGuru: GuruItem = {
+          id: 'guru-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+          nip: nip || ('19' + Math.floor(Math.random() * 9000000000 + 1000000000)),
+          namaLengkap: nama,
+          jabatan,
+          mapel,
+          noHp,
+          email,
+          keterangan,
+          createdAt: now,
+          updatedAt: now,
+        };
+        db.masterGuru.unshift(newGuru);
+        added++;
+      }
+    });
+
+    this.saveDb();
+    return { added, updated };
+  }
+
   // --- PEJABAT & SIGNATURE CONFIG ---
   public static getPejabatConfig() {
     const db = this.getDb();
@@ -813,6 +1159,7 @@ export class StorageService {
           senandungSerasi: mergeUnique(current.senandungSerasi, parsed.senandungSerasi),
           eLaporPerundungan: mergeUnique(current.eLaporPerundungan, parsed.eLaporPerundungan),
           bukuTamu: mergeUnique(current.bukuTamu, parsed.bukuTamu),
+          masterSiswa: mergeUnique(current.masterSiswa, parsed.masterSiswa),
           supabaseConfig: {
             ...current.supabaseConfig,
             ...(parsed.supabaseConfig || {}),
@@ -925,7 +1272,36 @@ CREATE TABLE IF NOT EXISTS public.buku_tamu (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. Tabel Custom Links & Menu
+-- 7. Tabel Master Siswa
+CREATE TABLE IF NOT EXISTS public.master_siswa (
+    id TEXT PRIMARY KEY,
+    nisn TEXT NOT NULL,
+    nis TEXT,
+    nama_lengkap TEXT NOT NULL,
+    kelas TEXT NOT NULL,
+    jenis_kelamin TEXT NOT NULL,
+    alamat TEXT,
+    no_hp TEXT,
+    keterangan TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. Tabel Master Guru
+CREATE TABLE IF NOT EXISTS public.master_guru (
+    id TEXT PRIMARY KEY,
+    nip TEXT NOT NULL,
+    nama_lengkap TEXT NOT NULL,
+    jabatan TEXT NOT NULL,
+    mapel TEXT,
+    no_hp TEXT,
+    email TEXT,
+    keterangan TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9. Tabel Custom Links & Menu
 CREATE TABLE IF NOT EXISTS public.custom_links (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
@@ -946,6 +1322,8 @@ ALTER TABLE public.kebun_luas_berseri ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.senandung_serasi ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.e_lapor_perundungan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.buku_tamu ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.master_siswa ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.master_guru ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.custom_links ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read and write (upsert) for all users
@@ -978,6 +1356,16 @@ CREATE POLICY "Public Read All" ON public.buku_tamu FOR SELECT USING (true);
 CREATE POLICY "Public Insert All" ON public.buku_tamu FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Update All" ON public.buku_tamu FOR UPDATE USING (true);
 CREATE POLICY "Public Delete All" ON public.buku_tamu FOR DELETE USING (true);
+
+CREATE POLICY "Public Read All" ON public.master_siswa FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.master_siswa FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.master_siswa FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.master_siswa FOR DELETE USING (true);
+
+CREATE POLICY "Public Read All" ON public.master_guru FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.master_guru FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.master_guru FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.master_guru FOR DELETE USING (true);
 
 CREATE POLICY "Public Read All" ON public.custom_links FOR SELECT USING (true);
 CREATE POLICY "Public Insert All" ON public.custom_links FOR INSERT WITH CHECK (true);

@@ -19,6 +19,8 @@ import {
   FileJson,
   X,
   Workflow,
+  Users,
+  GraduationCap,
 } from 'lucide-react';
 import { AppDatabase, CustomLink } from '../types';
 
@@ -118,6 +120,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: BookOpenCheck,
       color: 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/50 border-cyan-200 dark:border-cyan-800',
       activeColor: 'bg-cyan-600 text-white',
+    },
+    {
+      id: 'master-siswa',
+      title: 'MASTER DATA SISWA',
+      tag: 'AKADEMIK',
+      category: 'Akademik',
+      subtitle: 'Upload Excel, Edit & Hapus Siswa...',
+      icon: Users,
+      color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-800',
+      activeColor: 'bg-teal-600 text-white',
+    },
+    {
+      id: 'master-guru',
+      title: 'MASTER DATA GURU',
+      tag: 'PENDIDIK',
+      category: 'Akademik',
+      subtitle: 'Upload Excel, Edit & Hapus Guru...',
+      icon: GraduationCap,
+      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800',
+      activeColor: 'bg-emerald-600 text-white',
     },
   ];
 
