@@ -81,6 +81,18 @@ export default function App() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState('');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
+  }, []);
 
   // Realtime clock state
   const [realtimeClock, setRealtimeClock] = useState(getRealtimeTimeStringWithSeconds());
@@ -163,10 +175,28 @@ export default function App() {
     }
   };
 
-  const handleInstallApp = () => {
-    alert(
-      'Aplikasi PASS TEMENAN SPANJU siap dipasang di perangkat Anda! Buka menu browser (titik tiga atau tombol bagikan) lalu pilih "Tambahkan ke Layar Utama / Install App".'
-    );
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      alert(
+        'PANDUAN INSTALASI APLIKASI E-PASS TEMENAN SPANJU:\n\n' +
+        '💻 DI LAPTOP / KOMPUTER (Chrome / Edge):\n' +
+        '- Klik ikon Pasang (ikon monitor/panah di sebelah kanan bilah alamat URL browser).\n' +
+        '- Atau klik ikon titik tiga (Menu) di pojok kanan atas browser, lalu pilih "Install E-Pass Temenan SPAnju...".\n\n' +
+        '📱 DI HP ANDROID (Chrome):\n' +
+        '- Ketuk ikon titik tiga di pojok kanan atas browser.\n' +
+        '- Pilih opsi "Tambahkan ke Layar Utama" (Add to Home screen) atau "Install Aplikasi".\n\n' +
+        '🍏 DI iPHONE / IPAD (Safari):\n' +
+        '- Ketuk tombol Bagikan (Share) di bawah layar.\n' +
+        '- Pilih "Tambahkan ke Layar Utama".\n\n' +
+        'Aplikasi akan terpasang di perangkat Anda dan dapat diakses layaknya aplikasi native!'
+      );
+    }
   };
 
   // Find active custom link if selected
