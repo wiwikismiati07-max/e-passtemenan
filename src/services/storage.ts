@@ -13,6 +13,7 @@ import {
   GuruItem,
   ClassAssignmentItem,
 } from '../types';
+import { INITIAL_CLASS_ZONE_DATA } from '../data/classZoneData';
 
 const STORAGE_KEY = 'PASS_TEMENAN_SPANJU_DB_V1';
 
@@ -371,6 +372,8 @@ export class StorageService {
           eLaporPerundungan: parsed.eLaporPerundungan || DEFAULT_DATABASE.eLaporPerundungan,
           bukuTamu: parsed.bukuTamu || DEFAULT_DATABASE.bukuTamu,
           masterSiswa: parsed.masterSiswa || DEFAULT_DATABASE.masterSiswa,
+          masterGuru: parsed.masterGuru || DEFAULT_DATABASE.masterGuru,
+          classAssignments: parsed.classAssignments || DEFAULT_DATABASE.classAssignments || {},
           supabaseConfig: { ...DEFAULT_DATABASE.supabaseConfig, ...(parsed.supabaseConfig || {}) },
           pejabatConfig: { ...DEFAULT_PEJABAT_CONFIG, ...(parsed.pejabatConfig || {}) },
         };
@@ -1784,12 +1787,13 @@ export class StorageService {
     if (!db.classAssignments) {
       db.classAssignments = {};
     }
+    const initialDefault = INITIAL_CLASS_ZONE_DATA.find((c) => c.namaKelas === namaKelas);
     const existing = db.classAssignments[namaKelas] || {
-      waliKelas: '',
-      dutaAntiBullying: '',
-      ikrarSiswa: '',
-      catatanKegiatan: '',
-      deklarasiDamai: true,
+      waliKelas: initialDefault?.waliKelas || '',
+      dutaAntiBullying: initialDefault?.dutaAntiBullying || '',
+      ikrarSiswa: initialDefault?.ikrarSiswa || '',
+      catatanKegiatan: initialDefault?.catatanKegiatan || '',
+      deklarasiDamai: initialDefault?.deklarasiDamai ?? true,
     };
 
     if (typeof dataOrWali === 'string') {

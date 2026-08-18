@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   ShieldCheck,
@@ -56,19 +56,38 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavedSuccess, setIsSavedSuccess] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  // Track the current class id to avoid wiping state on unrelated prop re-renders
+  const currentClassRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (classInfo) {
-      setWaliKelas(classInfo.waliKelas || '');
-      setDutaAntiBullying(classInfo.dutaAntiBullying || '');
-      setIkrarSiswa(classInfo.ikrarSiswa || '');
-      setCatatanKegiatan(classInfo.catatanKegiatan || '');
-      setDeklarasiDamai(classInfo.deklarasiDamai !== undefined ? classInfo.deklarasiDamai : true);
+    if (isOpen && classInfo) {
+      if (currentClassRef.current !== classInfo.namaKelas) {
+        currentClassRef.current = classInfo.namaKelas;
+        const assigned = db?.classAssignments?.[classInfo.namaKelas];
+        setWaliKelas(assigned?.waliKelas || classInfo.waliKelas || '');
+        setDutaAntiBullying(assigned?.dutaAntiBullying || classInfo.dutaAntiBullying || '');
+        setIkrarSiswa(assigned?.ikrarSiswa || classInfo.ikrarSiswa || '');
+        setCatatanKegiatan(assigned?.catatanKegiatan || classInfo.catatanKegiatan || '');
+        setDeklarasiDamai(
+          assigned?.deklarasiDamai !== undefined
+            ? assigned.deklarasiDamai
+            : classInfo.deklarasiDamai !== undefined
+            ? classInfo.deklarasiDamai
+            : true
+        );
+        setIsEditing(false);
+        setIsSavedSuccess(false);
+        setSaveMessage(null);
+      }
+    } else if (!isOpen) {
+      currentClassRef.current = null;
+      setIsSavedSuccess(false);
       setSaveMessage(null);
-      setIsEditing(false);
     }
-  }, [classInfo, isOpen]);
+  }, [isOpen, classInfo?.namaKelas]);
 
   if (!isOpen || !classInfo) return null;
 
@@ -104,7 +123,6 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
     setActiveSelectType('duta');
     setSearchQuery('');
 
-    // Auto populate existing selection from dutaAntiBullying
     const currentNames = (dutaAntiBullying || classInfo.dutaAntiBullying || '')
       .split(/&|,/)
       .map((n) => n.trim().toLowerCase())
@@ -123,19 +141,24 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   };
 
   const handleSelectWali = (teacher: GuruItem) => {
-    setWaliKelas(teacher.namaLengkap);
-    const res = StorageService.saveClassAssignment(classInfo.namaKelas, {
-      waliKelas: teacher.namaLengkap,
-      dutaAntiBullying,
-      ikrarSiswa,
-      catatanKegiatan,
+    const chosenName = teacher.namaLengkap;
+    setWaliKelas(chosenName);
+    StorageService.saveClassAssignment(classInfo.namaKelas, {
+      waliKelas: chosenName,
+      dutaAntiBullying: dutaAntiBullying || classInfo.dutaAntiBullying,
+      ikrarSiswa: ikrarSiswa || classInfo.ikrarSiswa,
+      catatanKegiatan: catatanKegiatan || classInfo.catatanKegiatan,
       deklarasiDamai,
     });
+    window.dispatchEvent(new Event('pass-temenan-db-updated'));
     if (onRefresh) onRefresh();
+
     setSaveMessage({
-      text: `Wali Kelas ${teacher.namaLengkap} berhasil disimpan!`,
+      text: `✓ Wali Kelas (${chosenName}) berhasil disimpan & tersinkron!`,
       type: 'success',
     });
+    setIsSavedSuccess(true);
+
     setTimeout(() => {
       setActiveSelectType(null);
     }, 350);
@@ -156,18 +179,22 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
     }
 
     setDutaAntiBullying(finalDutaText);
-    const res = StorageService.saveClassAssignment(classInfo.namaKelas, {
-      waliKelas,
+    StorageService.saveClassAssignment(classInfo.namaKelas, {
+      waliKelas: waliKelas || classInfo.waliKelas,
       dutaAntiBullying: finalDutaText,
-      ikrarSiswa,
-      catatanKegiatan,
+      ikrarSiswa: ikrarSiswa || classInfo.ikrarSiswa,
+      catatanKegiatan: catatanKegiatan || classInfo.catatanKegiatan,
       deklarasiDamai,
     });
+    window.dispatchEvent(new Event('pass-temenan-db-updated'));
     if (onRefresh) onRefresh();
+
     setSaveMessage({
-      text: `Duta Anti-Bullying (${finalDutaText}) berhasil disimpan!`,
+      text: `✓ Duta Anti-Bullying (${finalDutaText}) berhasil disimpan & tersinkron!`,
       type: 'success',
     });
+    setIsSavedSuccess(true);
+
     setTimeout(() => {
       setActiveSelectType(null);
       setSelectedStudentIds([]);
@@ -189,31 +216,46 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
     setSelectedStudentIds(newIds);
   };
 
-  const handleSaveAll = async () => {
+  const handleSaveAll = async (autoClose: boolean = false) => {
     if (!classInfo) return;
     setIsSaving(true);
     try {
-      const res = StorageService.saveClassAssignment(classInfo.namaKelas, {
-        waliKelas: waliKelas.trim() || classInfo.waliKelas,
-        dutaAntiBullying: dutaAntiBullying.trim() || classInfo.dutaAntiBullying,
-        ikrarSiswa: ikrarSiswa.trim(),
-        catatanKegiatan: catatanKegiatan.trim(),
+      const finalWali = (waliKelas || classInfo.waliKelas).trim();
+      const finalDuta = (dutaAntiBullying || classInfo.dutaAntiBullying).trim();
+      const finalIkrar = (ikrarSiswa || classInfo.ikrarSiswa).trim();
+      const finalCatatan = (catatanKegiatan || classInfo.catatanKegiatan).trim();
+
+      StorageService.saveClassAssignment(classInfo.namaKelas, {
+        waliKelas: finalWali,
+        dutaAntiBullying: finalDuta,
+        ikrarSiswa: finalIkrar,
+        catatanKegiatan: finalCatatan,
         deklarasiDamai,
       });
+
+      // Notify entire app of the database update
+      window.dispatchEvent(new Event('pass-temenan-db-updated'));
 
       if (onRefresh) {
         onRefresh();
       }
 
+      setIsSavedSuccess(true);
       setSaveMessage({
-        text: `✓ Perubahan data Zona Hijau Kelas ${classInfo.namaKelas} berhasil disimpan permanen!`,
+        text: `✓ Data Zona Hijau Kelas ${classInfo.namaKelas} berhasil disimpan ke sistem & Cloud!`,
         type: 'success',
       });
       setIsEditing(false);
 
-      setTimeout(() => {
-        setSaveMessage(null);
-      }, 4000);
+      if (autoClose) {
+        setTimeout(() => {
+          onClose();
+        }, 800);
+      } else {
+        setTimeout(() => {
+          setIsSavedSuccess(false);
+        }, 3500);
+      }
     } catch (e: any) {
       setSaveMessage({
         text: `Gagal menyimpan: ${e?.message || 'Terjadi kesalahan sistem'}`,
@@ -234,10 +276,11 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-fadeIn">
-      <div id="class-detail-printable-area" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl animate-scaleUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-xs animate-fadeIn">
+      <div id="class-detail-printable-area" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl animate-scaleUp flex flex-col relative">
+        
         {/* Modal Header */}
-        <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs p-5 md:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs p-5 md:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-700 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-black text-xl font-display shadow-2xs">
               {classInfo.namaKelas}
@@ -264,34 +307,34 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
           </button>
         </div>
 
-        {/* Save Status Notification */}
+        {/* Floating Success / Error Notification Banner */}
         {saveMessage && (
           <div
-            className={`mx-5 md:mx-6 mt-4 p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in slide-in-from-top-2 duration-200 ${
+            className={`mx-5 md:mx-6 mt-4 p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-between gap-2 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 ${
               saveMessage.type === 'success'
-                ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200'
-                : 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200'
+                ? 'bg-emerald-500 text-white border-emerald-600 dark:bg-emerald-600'
+                : 'bg-rose-500 text-white border-rose-600 dark:bg-rose-600'
             }`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               {saveMessage.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-white shrink-0" />
               ) : (
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <AlertCircle className="w-5 h-5 text-white shrink-0" />
               )}
-              <span>{saveMessage.text}</span>
+              <span className="leading-snug">{saveMessage.text}</span>
             </div>
             <button
               onClick={() => setSaveMessage(null)}
-              className="text-slate-400 hover:text-slate-600 p-0.5"
+              className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/20 transition-colors"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
         {/* Modal Body */}
-        <div className="p-5 md:p-6 space-y-5">
+        <div className="p-5 md:p-6 space-y-5 flex-1">
           {/* Quick Edit Toggle & Status Bar */}
           <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200 dark:border-emerald-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start gap-2.5">
@@ -301,7 +344,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   Zona Hijau Zero Bullying • Kepatuhan {classInfo.skorKepatuhan}%
                 </h4>
                 <p className="text-xs text-emerald-800/90 dark:text-emerald-300/90 mt-0.5 leading-relaxed">
-                  Data kelas terhubung langsung ke dashboard monitoring & database Supabase.
+                  Data kelas terhubung langsung ke dashboard monitoring & database Supabase Cloud.
                 </p>
               </div>
             </div>
@@ -311,7 +354,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-slate-700 shadow-2xs flex items-center gap-1.5 transition-all"
+                  className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-slate-700 shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                   <span>Mode Edit Kelas</span>
@@ -328,9 +371,9 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={handleSaveAll}
+                    onClick={() => handleSaveAll(false)}
                     disabled={isSaving}
-                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all"
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <Save className="w-3.5 h-3.5" />
                     <span>{isSaving ? 'Menyimpan...' : 'Simpan Sekarang'}</span>
@@ -351,7 +394,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   </span>
                   <button
                     onClick={handleOpenWaliModal}
-                    className="px-2 py-1 rounded-lg bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-200 hover:bg-teal-200 dark:hover:bg-teal-900 border border-teal-300 dark:border-teal-700 transition-colors flex items-center gap-1 text-[11px] font-bold"
+                    className="px-2 py-1 rounded-lg bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-200 hover:bg-teal-200 dark:hover:bg-teal-900 border border-teal-300 dark:border-teal-700 transition-colors flex items-center gap-1 text-[11px] font-bold cursor-pointer"
                     title="Pilih dari Master Data Guru"
                   >
                     <GraduationCap className="w-3.5 h-3.5" />
@@ -393,7 +436,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   </span>
                   <button
                     onClick={handleOpenDutaModal}
-                    className="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-200 dark:hover:bg-emerald-900 border border-emerald-300 dark:border-emerald-700 transition-colors flex items-center gap-1 text-[11px] font-bold"
+                    className="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-200 dark:hover:bg-emerald-900 border border-emerald-300 dark:border-emerald-700 transition-colors flex items-center gap-1 text-[11px] font-bold cursor-pointer"
                     title="Pilih dari Master Data Siswa"
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -440,7 +483,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="text-[10px] font-bold text-amber-700 dark:text-amber-300 hover:underline flex items-center gap-1"
+                  className="text-[10px] font-bold text-amber-700 dark:text-amber-300 hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Edit2 className="w-3 h-3" />
                   <span>Ubah Ikrar</span>
@@ -474,7 +517,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:underline flex items-center gap-1"
+                  className="text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Edit2 className="w-3 h-3" />
                   <span>Ubah Catatan</span>
@@ -533,36 +576,48 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
         </div>
 
         {/* Modal Footer with Explicit Save Button */}
-        <div className="p-5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70 dark:bg-slate-900/70 sticky bottom-0 z-10 backdrop-blur-xs">
+        <div className="p-5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/90 dark:bg-slate-900/90 sticky bottom-0 z-20 backdrop-blur-xs">
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 transition-all"
+              className="px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Cetak Profil</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
             >
               Tutup
             </button>
 
             <button
-              onClick={handleSaveAll}
+              onClick={() => handleSaveAll(false)}
               disabled={isSaving}
-              className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/25 flex items-center gap-2 transition-all cursor-pointer"
+              className={`px-5 py-2.5 rounded-xl text-xs font-extrabold shadow-lg flex items-center gap-2 transition-all cursor-pointer ${
+                isSavedSuccess
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30 ring-2 ring-emerald-300 scale-105'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/25 active:scale-95'
+              }`}
             >
               {isSaving ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
+                <RefreshCw className="w-4 h-4 animate-spin text-white" />
+              ) : isSavedSuccess ? (
+                <Check className="w-4 h-4 text-white stroke-[3]" />
               ) : (
-                <Save className="w-4 h-4" />
+                <Save className="w-4 h-4 text-white" />
               )}
-              <span>{isSaving ? 'Menyimpan ke Cloud...' : 'Simpan Data Zona Hijau'}</span>
+              <span>
+                {isSaving
+                  ? 'Menyimpan ke Cloud...'
+                  : isSavedSuccess
+                  ? '✓ Tersimpan & Tersinkron!'
+                  : 'Simpan Data Zona Hijau'}
+              </span>
             </button>
           </div>
         </div>
@@ -570,7 +625,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
 
       {/* SELECTION POPUP MODAL (Wali Kelas / Duta Anti-Bullying) */}
       {activeSelectType && (
-        <div className="fixed inset-0 z-60 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 shrink-0">
               <div className="flex items-center gap-2.5">
@@ -757,7 +812,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={handleSaveDutaSelection}
-                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all"
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <Save className="w-4 h-4" />
                     <span>Simpan Duta Terpilih</span>
