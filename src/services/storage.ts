@@ -942,6 +942,69 @@ export class StorageService {
     }
   }
 
+  // --- DEDICATED MASTER GURU SUPABASE SYNC ---
+  public static async syncGuruToSupabase(): Promise<{ success: boolean; message: string; count?: number }> {
+    const client = this.getSupabaseClient();
+    if (!client) {
+      return {
+        success: false,
+        message: 'Konfigurasi Supabase belum diatur. Silakan atur URL & Anon Key di menu Pengaturan Supabase.',
+      };
+    }
+
+    const db = this.getDb();
+    if (!db.masterGuru || db.masterGuru.length === 0) {
+      return {
+        success: false,
+        message: 'Belum ada data guru di sistem untuk disimpan ke Supabase.',
+      };
+    }
+
+    try {
+      const chunkSize = 100;
+      let totalSynced = 0;
+
+      for (let i = 0; i < db.masterGuru.length; i += chunkSize) {
+        const chunk = db.masterGuru.slice(i, i + chunkSize);
+        const { error } = await client.from('master_guru').upsert(
+          chunk.map((item) => ({
+            id: item.id,
+            nip: item.nip,
+            nama_lengkap: item.namaLengkap,
+            jabatan: item.jabatan,
+            mapel: item.mapel || '',
+            no_hp: item.noHp || '',
+            email: item.email || '',
+            keterangan: item.keterangan || '',
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+          }))
+        );
+
+        if (error) {
+          throw new Error(error.message);
+        }
+        totalSynced += chunk.length;
+      }
+
+      db.supabaseConfig.lastSyncedAt = new Date().toISOString();
+      db.supabaseConfig.isConnected = true;
+      this.saveDb();
+
+      return {
+        success: true,
+        message: `Berhasil menyimpan ${totalSynced} data guru ke Supabase Cloud! Seluruh pengguna kini dapat mengakses data ini secara otomatis.`,
+        count: totalSynced,
+      };
+    } catch (e: any) {
+      console.error('Sync guru to Supabase error:', e);
+      return {
+        success: false,
+        message: `Gagal menyimpan data guru ke Supabase: ${e?.message || 'Error tidak diketahui'}. Pastikan tabel 'master_guru' sudah dibuat di SQL Editor Supabase.`,
+      };
+    }
+  }
+
   // --- CRUD HELPERS FOR ALL ENTITIES ---
 
   // 1. Custom Links
@@ -1604,6 +1667,15 @@ export class StorageService {
     });
 
     this.saveDb();
+
+    // Trigger cloud sync to Supabase if connected
+    const client = this.getSupabaseClient();
+    if (client && db.masterGuru.length > 0) {
+      this.syncGuruToSupabase().catch((err) => {
+        console.warn('Auto sync guru in merge mode notice:', err);
+      });
+    }
+
     return { added, updated, total: db.masterGuru.length };
   }
 

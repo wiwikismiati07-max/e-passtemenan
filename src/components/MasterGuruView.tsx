@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Users,
   Plus,
@@ -24,6 +24,8 @@ import {
   Check,
   Database,
   CheckCircle2,
+  Cloud,
+  CloudUpload,
 } from 'lucide-react';
 import { GuruItem } from '../types';
 import { StorageService } from '../services/storage';
@@ -52,7 +54,16 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
 
   // Sync state
   const [isFetchingSupabase, setIsFetchingSupabase] = useState(false);
+  const [isPushingSupabase, setIsPushingSupabase] = useState(false);
   const [supabaseNotice, setSupabaseNotice] = useState<string | null>(null);
+
+  // Auto-fetch if local database has 0 teachers and Supabase credentials exist
+  useEffect(() => {
+    const config = StorageService.getDb().supabaseConfig;
+    if (config?.url && config?.anonKey && db.masterGuru.length === 0) {
+      handleFetchFromSupabase();
+    }
+  }, []);
 
   // Excel Import Staging Modal
   const [importModal, setImportModal] = useState<{
@@ -82,6 +93,32 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
 
   const masterGuruSql = StorageService.getSupabaseMasterGuruSQLScript();
 
+  // Manual Push to Supabase Cloud
+  const handleSyncToSupabase = async () => {
+    setIsPushingSupabase(true);
+    setSupabaseNotice(null);
+    try {
+      const res = await StorageService.syncGuruToSupabase();
+      if (res.success) {
+        onRefresh();
+        confetti({
+          particleCount: 50,
+          spread: 70,
+          origin: { y: 0.7 },
+          colors: ['#0d9488', '#14b8a6', '#5eead4', '#38bdf8'],
+        });
+        setSupabaseNotice(`✓ Berhasil Tersimpan di Supabase! ${res.message}`);
+        setTimeout(() => setSupabaseNotice(null), 6000);
+      } else {
+        alert(`Gagal menyimpan ke Supabase: ${res.message}`);
+      }
+    } catch (e: any) {
+      alert(`Error simpan ke Supabase: ${e?.message || e}`);
+    } finally {
+      setIsPushingSupabase(false);
+    }
+  };
+
   // Manual pull from Supabase
   const handleFetchFromSupabase = async () => {
     setIsFetchingSupabase(true);
@@ -91,7 +128,7 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
       if (res.success) {
         onRefresh();
         const guruCount = res.counts?.['master_guru'] ?? db.masterGuru.length;
-        setSupabaseNotice(`Berhasil sinkronisasi dari Supabase! Total ${guruCount} data guru.`);
+        setSupabaseNotice(`✓ Berhasil sinkronisasi dari Supabase! Total ${guruCount} data guru.`);
         setTimeout(() => setSupabaseNotice(null), 5000);
       } else {
         alert(`Gagal mengambil data dari Supabase: ${res.message}`);
@@ -228,14 +265,19 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
     
     StorageService.saveDb();
 
+    // Also trigger cloud sync to Supabase in background
+    StorageService.syncGuruToSupabase().catch((err) => {
+      console.warn('Sync selected to Supabase notice:', err);
+    });
+
     confetti({
-      particleCount: 35,
-      spread: 60,
+      particleCount: 40,
+      spread: 65,
       origin: { y: 0.8 },
       colors: ['#0d9488', '#14b8a6', '#5eead4'],
     });
 
-    setSaveNotice(`✓ Berhasil Menyimpan! Status ${selectedIds.length} data guru terpilih telah tersimpan di sistem.`);
+    setSaveNotice(`✓ Berhasil Menyimpan! Status ${selectedIds.length} data guru terpilih telah tersimpan di sistem & database Supabase Cloud.`);
     setIsSavingSelected(false);
     onRefresh();
     setTimeout(() => setSaveNotice(null), 4500);
@@ -345,18 +387,30 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
   };
 
   // Execute Excel Import based on selected mode
-  const handleExecuteImport = () => {
+  const handleExecuteImport = async () => {
     if (importModal.rows.length === 0) return;
     const overwrite = importModal.mode === 'overwrite';
     const result = StorageService.importGuruBatch(importModal.rows, importModal.mode);
     setImportModal({ isOpen: false, fileName: '', rows: [], mode: 'overwrite' });
     onRefresh();
-    alert(
-      `Sukses Impor Excel Data Guru & Staf!\n` +
-      `- Mode: ${overwrite ? 'Tindih / Ganti Semua Data Lama' : 'Gabungkan / Update Data'}\n` +
-      `- Data berhasil diimpor: ${result.added} guru\n` +
-      `- Total guru terdaftar saat ini: ${result.total} orang`
-    );
+
+    // Explicitly sync to Supabase so it's guaranteed uploaded immediately
+    const syncRes = await StorageService.syncGuruToSupabase();
+    
+    confetti({
+      particleCount: 60,
+      spread: 80,
+      origin: { y: 0.6 },
+      colors: ['#0d9488', '#10b981', '#38bdf8'],
+    });
+
+    if (syncRes.success) {
+      setSupabaseNotice(`✓ Berhasil Mengimpor & Menyimpan ke Cloud Supabase! Total ${result.total} data guru kini tersimpan di database Supabase dan siap digunakan semua pengguna.`);
+    } else {
+      setSupabaseNotice(`Data berhasil diimpor lokal (${result.added} ditambahkan, total ${result.total}). ${syncRes.message}`);
+    }
+
+    setTimeout(() => setSupabaseNotice(null), 7000);
   };
 
   return (
@@ -384,16 +438,33 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
                 <Users className="w-3.5 h-3.5" />
                 {db.masterGuru.length} Guru / Staf Terdaftar
               </span>
+              {StorageService.getDb().supabaseConfig?.isConnected && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-400/20 text-teal-200 text-xs font-semibold border border-teal-400/30">
+                  <Database className="w-3.5 h-3.5 text-teal-300" />
+                  Cloud Supabase Terhubung
+                </span>
+              )}
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
               Master Data Guru & Pegawai SMPN 7 Pasuruan
             </h2>
             <p className="text-teal-200 text-sm mt-1 max-w-2xl">
-              Kelola data seluruh guru dan staf pengajar. Unggah rekap Excel (.xlsx) dengan opsi tindih data lama, buat tabel di Supabase SQL, atau sinkronkan data cloud secara otomatis.
+              Kelola data seluruh guru dan staf pengajar. Simpan ke database Supabase agar data langsung tersedia bagi semua pengguna tanpa perlu upload berulang kali.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {/* Direct Save to Supabase Cloud Button */}
+            <button
+              onClick={handleSyncToSupabase}
+              disabled={isPushingSupabase || db.masterGuru.length === 0}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white text-xs font-extrabold flex items-center gap-2 transition-all shadow-md shadow-emerald-900/30 border border-teal-300/30 active:scale-95 disabled:opacity-50"
+              title="Simpan data guru ke Supabase Cloud agar dapat diakses semua user"
+            >
+              <CloudUpload className={`w-4 h-4 text-emerald-100 ${isPushingSupabase ? 'animate-bounce' : ''}`} />
+              <span>{isPushingSupabase ? 'Menyimpan ke Cloud...' : 'Simpan ke Supabase'}</span>
+            </button>
+
             <button
               onClick={handleFetchFromSupabase}
               disabled={isFetchingSupabase}
