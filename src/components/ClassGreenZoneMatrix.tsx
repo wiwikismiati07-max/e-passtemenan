@@ -10,10 +10,15 @@ import {
   Search,
   HeartHandshake,
   Layers,
+  Edit3,
+  Cloud,
+  RefreshCw,
+  Check,
 } from 'lucide-react';
 import { ClassZoneInfo, INITIAL_CLASS_ZONE_DATA } from '../data/classZoneData';
 import { AppDatabase } from '../types';
 import { calculateClassZoneData } from '../utils/analysisAggregator';
+import { StorageService } from '../services/storage';
 import { ClassDetailModal } from './ClassDetailModal';
 
 interface ClassGreenZoneMatrixProps {
@@ -26,6 +31,8 @@ export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db, 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState<ClassZoneInfo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
 
   // Compute live class zone data if db is present
   const classList = db ? calculateClassZoneData(db) : INITIAL_CLASS_ZONE_DATA;
@@ -49,6 +56,22 @@ export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db, 
   const handleOpenDetail = (cls: ClassZoneInfo) => {
     setSelectedClass(cls);
     setIsModalOpen(true);
+  };
+
+  const handleSyncZonaHijau = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await StorageService.syncClassAssignmentsToSupabase();
+      setSyncToast(res.message);
+      if (onRefresh) onRefresh();
+    } catch (e: any) {
+      setSyncToast(`Gagal sinkron: ${e?.message || 'Error'}`);
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => {
+        setSyncToast(null);
+      }, 4000);
+    }
   };
 
   return (
@@ -80,8 +103,25 @@ export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db, 
           </div>
         </div>
 
-        {/* Filter controls */}
+        {/* Action & Filter controls */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Cloud Sync Button */}
+          {db?.supabaseConfig?.isConnected && (
+            <button
+              onClick={handleSyncZonaHijau}
+              disabled={isSyncing}
+              className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-200 dark:border-emerald-800 text-xs font-bold flex items-center gap-1.5 transition-all"
+              title="Sinkronkan penugasan kelas ke database Supabase Cloud"
+            >
+              {isSyncing ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+              ) : (
+                <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              )}
+              <span>{isSyncing ? 'Sinkron...' : 'Sinkron Cloud'}</span>
+            </button>
+          )}
+
           {/* Search bar */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -140,11 +180,25 @@ export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db, 
         </div>
       </div>
 
+      {/* Sync Toast Feedback */}
+      {syncToast && (
+        <div className="mt-3 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center justify-between animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{syncToast}</span>
+          </div>
+          <button onClick={() => setSyncToast(null)} className="text-slate-400 hover:text-slate-600">
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Grid Container for 2 Rows with Vertical Scroll */}
-      <div className="max-h-[460px] overflow-y-auto pr-1 sm:pr-2 mt-4 space-y-3 rounded-2xl">
+      <div className="max-h-[480px] overflow-y-auto pr-1 sm:pr-2 mt-4 space-y-3 rounded-2xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
           {filteredClasses.map((cls) => {
             const totalKasus = cls.kasusVerbal + cls.kasusFisik + cls.kasusRelasional + cls.kasusSiber;
+            const hasCustomAssignment = !!db?.classAssignments?.[cls.namaKelas];
 
             return (
               <div
@@ -160,9 +214,14 @@ export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db, 
                         {cls.namaKelas}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white font-display truncate">
-                          Kelas {cls.namaKelas}
-                        </h4>
+                        <div className="flex items-center gap-1">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white font-display truncate">
+                            Kelas {cls.namaKelas}
+                          </h4>
+                          {hasCustomAssignment && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Data tersimpan khusus" />
+                          )}
+                        </div>
                         <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block truncate">
                           {cls.waliKelas}
                         </span>
@@ -223,10 +282,16 @@ export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db, 
                         : `${cls.kasusSelesai}/${totalKasus} Kasus Tuntas`}
                     </span>
                   </div>
-                  <span className="font-bold text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-0.5">
-                    <span>Detail</span>
-                    <Eye className="w-3 h-3" />
-                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenDetail(cls);
+                    }}
+                    className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 transition-colors"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>Edit & Simpan</span>
+                  </button>
                 </div>
               </div>
             );
@@ -240,7 +305,7 @@ export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db, 
           Menampilkan <strong className="text-slate-700 dark:text-slate-200">{filteredClasses.length}</strong> rombel kelas
         </span>
         <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
-          <span>↕ Gulir ke bawah untuk melihat baris kelas lainnya</span>
+          <span>↕ Klik kartu atau tombol &quot;Edit & Simpan&quot; untuk memperbarui data zona hijau tiap kelas</span>
         </span>
       </div>
 

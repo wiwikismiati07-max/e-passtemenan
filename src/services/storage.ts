@@ -11,6 +11,7 @@ import {
   SupabaseConfig,
   SiswaItem,
   GuruItem,
+  ClassAssignmentItem,
 } from '../types';
 
 const STORAGE_KEY = 'PASS_TEMENAN_SPANJU_DB_V1';
@@ -700,6 +701,33 @@ export class StorageService {
         // silently handle
       }
 
+      // 10. Fetch Class Assignments (Zona Hijau Tiap Kelas)
+      try {
+        const { data: classData, error: classErr } = await client
+          .from('class_assignments')
+          .select('*')
+          .range(0, 999);
+
+        if (!classErr && classData && classData.length > 0) {
+          if (!db.classAssignments) db.classAssignments = {};
+          classData.forEach((row: any) => {
+            if (row.nama_kelas) {
+              db.classAssignments![row.nama_kelas] = {
+                waliKelas: row.wali_kelas || '',
+                dutaAntiBullying: row.duta_anti_bullying || '',
+                ikrarSiswa: row.ikrar_siswa || '',
+                catatanKegiatan: row.catatan_kegiatan || '',
+                deklarasiDamai: row.deklarasi_damai ?? true,
+                updatedAt: row.updated_at || new Date().toISOString(),
+              };
+            }
+          });
+          counts['class_assignments'] = classData.length;
+        }
+      } catch (e: any) {
+        // silently handle
+      }
+
       db.supabaseConfig.lastSyncedAt = new Date().toISOString();
       db.supabaseConfig.isConnected = true;
       this.saveDb();
@@ -919,6 +947,23 @@ export class StorageService {
         );
         if (error) errors.push(`Custom Links: ${error.message}`);
         else syncedCount += db.customLinks.length;
+      }
+
+      // 10. Class Assignments (Zona Hijau Tiap Kelas)
+      if (db.classAssignments && Object.keys(db.classAssignments).length > 0) {
+        const assignmentsList = Object.entries(db.classAssignments).map(([namaKelas, val]) => ({
+          nama_kelas: namaKelas,
+          wali_kelas: val.waliKelas || '',
+          duta_anti_bullying: val.dutaAntiBullying || '',
+          ikrar_siswa: val.ikrarSiswa || '',
+          catatan_kegiatan: val.catatanKegiatan || '',
+          deklarasi_damai: val.deklarasiDamai ?? true,
+          updated_at: val.updatedAt || new Date().toISOString(),
+        }));
+
+        const { error } = await client.from('class_assignments').upsert(assignmentsList);
+        if (error) errors.push(`Class Assignments: ${error.message}`);
+        else syncedCount += assignmentsList.length;
       }
 
       db.supabaseConfig.lastSyncedAt = new Date().toISOString();
@@ -1695,16 +1740,92 @@ export class StorageService {
     return db.pejabatConfig;
   }
 
-  public static saveClassAssignment(namaKelas: string, waliKelas: string, dutaAntiBullying: string): void {
+  public static async syncClassAssignmentsToSupabase(): Promise<{ success: boolean; message: string }> {
+    const client = this.getSupabaseClient();
+    if (!client) {
+      return { success: false, message: 'Supabase client belum diatur.' };
+    }
+    const db = this.getDb();
+    if (!db.classAssignments || Object.keys(db.classAssignments).length === 0) {
+      return { success: true, message: 'Belum ada data penugasan kelas untuk disinkronkan.' };
+    }
+    try {
+      const assignmentsList = Object.entries(db.classAssignments).map(([namaKelas, val]) => ({
+        nama_kelas: namaKelas,
+        wali_kelas: val.waliKelas || '',
+        duta_anti_bullying: val.dutaAntiBullying || '',
+        ikrar_siswa: val.ikrarSiswa || '',
+        catatan_kegiatan: val.catatanKegiatan || '',
+        deklarasi_damai: val.deklarasiDamai ?? true,
+        updated_at: val.updatedAt || new Date().toISOString(),
+      }));
+
+      const { error } = await client.from('class_assignments').upsert(assignmentsList);
+      if (error) throw new Error(error.message);
+
+      return {
+        success: true,
+        message: `Berhasil menyinkronkan data Zona Hijau ${assignmentsList.length} kelas ke Supabase Cloud!`,
+      };
+    } catch (e: any) {
+      console.error('Error syncing class assignments to Supabase:', e);
+      return { success: false, message: `Gagal sinkronisasi Zona Hijau kelas: ${e?.message || 'Error tidak diketahui'}` };
+    }
+  }
+
+  public static saveClassAssignment(
+    namaKelas: string,
+    dataOrWali: string | Partial<ClassAssignmentItem>,
+    legacyDuta?: string,
+    legacyIkrar?: string,
+    legacyCatatan?: string
+  ): { success: boolean; message: string } {
     const db = this.getDb();
     if (!db.classAssignments) {
       db.classAssignments = {};
     }
-    db.classAssignments[namaKelas] = {
-      waliKelas,
-      dutaAntiBullying,
+    const existing = db.classAssignments[namaKelas] || {
+      waliKelas: '',
+      dutaAntiBullying: '',
+      ikrarSiswa: '',
+      catatanKegiatan: '',
+      deklarasiDamai: true,
     };
+
+    if (typeof dataOrWali === 'string') {
+      db.classAssignments[namaKelas] = {
+        waliKelas: dataOrWali || existing.waliKelas,
+        dutaAntiBullying: legacyDuta !== undefined ? legacyDuta : existing.dutaAntiBullying,
+        ikrarSiswa: legacyIkrar !== undefined ? legacyIkrar : existing.ikrarSiswa,
+        catatanKegiatan: legacyCatatan !== undefined ? legacyCatatan : existing.catatanKegiatan,
+        deklarasiDamai: existing.deklarasiDamai ?? true,
+        updatedAt: new Date().toISOString(),
+      };
+    } else {
+      db.classAssignments[namaKelas] = {
+        waliKelas: dataOrWali.waliKelas !== undefined ? dataOrWali.waliKelas : existing.waliKelas,
+        dutaAntiBullying: dataOrWali.dutaAntiBullying !== undefined ? dataOrWali.dutaAntiBullying : existing.dutaAntiBullying,
+        ikrarSiswa: dataOrWali.ikrarSiswa !== undefined ? dataOrWali.ikrarSiswa : existing.ikrarSiswa,
+        catatanKegiatan: dataOrWali.catatanKegiatan !== undefined ? dataOrWali.catatanKegiatan : existing.catatanKegiatan,
+        deklarasiDamai: dataOrWali.deklarasiDamai !== undefined ? dataOrWali.deklarasiDamai : (existing.deklarasiDamai ?? true),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
     this.saveDb();
+
+    // Trigger cloud sync to Supabase if connected
+    const client = this.getSupabaseClient();
+    if (client) {
+      this.syncClassAssignmentsToSupabase().catch((err) => {
+        console.warn('Auto sync class assignments notice:', err);
+      });
+    }
+
+    return {
+      success: true,
+      message: `Data Zona Hijau Kelas ${namaKelas} berhasil disimpan ke sistem & Cloud!`,
+    };
   }
 
   // --- CONFIG ---
@@ -1943,6 +2064,17 @@ CREATE TABLE IF NOT EXISTS public.custom_links (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 10. Tabel Penugasan Zona Hijau Kelas (Wali Kelas, Duta Bullying, Ikrar, Catatan)
+CREATE TABLE IF NOT EXISTS public.class_assignments (
+    nama_kelas TEXT PRIMARY KEY,
+    wali_kelas TEXT NOT NULL,
+    duta_anti_bullying TEXT NOT NULL,
+    ikrar_siswa TEXT,
+    catatan_kegiatan TEXT,
+    deklarasi_damai BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Enable Row Level Security (RLS) & Public Policies for open access as requested
 ALTER TABLE public.piket_harian ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sabtu_teh_ceri ENABLE ROW LEVEL SECURITY;
@@ -1953,6 +2085,7 @@ ALTER TABLE public.buku_tamu ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.master_siswa ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.master_guru ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.custom_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_assignments ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read and write (upsert) for all users
 CREATE POLICY "Public Read All" ON public.piket_harian FOR SELECT USING (true);
@@ -1999,6 +2132,11 @@ CREATE POLICY "Public Read All" ON public.custom_links FOR SELECT USING (true);
 CREATE POLICY "Public Insert All" ON public.custom_links FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Update All" ON public.custom_links FOR UPDATE USING (true);
 CREATE POLICY "Public Delete All" ON public.custom_links FOR DELETE USING (true);
+
+CREATE POLICY "Public Read All" ON public.class_assignments FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.class_assignments FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.class_assignments FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.class_assignments FOR DELETE USING (true);
 `;
   }
 }

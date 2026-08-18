@@ -155,6 +155,15 @@ export interface PejabatConfig {
   guruBKTtd?: string;
 }
 
+export interface ClassAssignmentItem {
+  waliKelas: string;
+  dutaAntiBullying: string;
+  ikrarSiswa?: string;
+  catatanKegiatan?: string;
+  deklarasiDamai?: boolean;
+  updatedAt?: string;
+}
+
 export interface AppDatabase {
   customLinks: CustomLink[];
   piketHarian: PiketHarian[];
@@ -165,7 +174,7 @@ export interface AppDatabase {
   bukuTamu: BukuTamu[];
   masterSiswa: SiswaItem[];
   masterGuru: GuruItem[];
-  classAssignments?: Record<string, { waliKelas: string; dutaAntiBullying: string }>;
+  classAssignments?: Record<string, ClassAssignmentItem>;
   supabaseConfig: SupabaseConfig;
   pejabatConfig?: PejabatConfig;
   version: number;
