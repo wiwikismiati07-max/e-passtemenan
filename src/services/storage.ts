@@ -429,6 +429,295 @@ export class StorageService {
     }
   }
 
+  public static async fetchFromSupabase(): Promise<{ success: boolean; message: string; counts?: Record<string, number> }> {
+    const client = this.getSupabaseClient();
+    if (!client) {
+      return { success: false, message: 'Konfigurasi Supabase belum diatur atau tidak valid.' };
+    }
+
+    const db = this.getDb();
+    const counts: Record<string, number> = {};
+    const errors: string[] = [];
+
+    try {
+      // 1. Fetch Master Siswa (Range 0 - 4999 to cover all 772+ students)
+      try {
+        const { data: siswaData, error: siswaErr } = await client
+          .from('master_siswa')
+          .select('*')
+          .range(0, 4999);
+
+        if (siswaErr) {
+          if (!siswaErr.message.includes('relation "master_siswa" does not exist')) {
+            errors.push(`Master Siswa: ${siswaErr.message}`);
+          }
+        } else if (siswaData && siswaData.length > 0) {
+          db.masterSiswa = siswaData.map((row: any) => ({
+            id: row.id || ('sis-' + Math.random().toString(36).substring(2, 9)),
+            nisn: String(row.nisn || ''),
+            nis: String(row.nis || ''),
+            namaLengkap: String(row.nama_lengkap || row.namaLengkap || ''),
+            kelas: String(row.kelas || '7A').toUpperCase(),
+            jenisKelamin: (String(row.jenis_kelamin || row.jenisKelamin || 'L').toUpperCase().startsWith('P') ? 'P' : 'L') as 'L' | 'P',
+            alamat: String(row.alamat || ''),
+            noHp: String(row.no_hp || row.noHp || ''),
+            keterangan: String(row.keterangan || 'Aktif'),
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at || new Date().toISOString(),
+          }));
+          counts['master_siswa'] = db.masterSiswa.length;
+        }
+      } catch (e: any) {
+        errors.push(`Master Siswa: ${e?.message}`);
+      }
+
+      // 2. Fetch Master Guru
+      try {
+        const { data: guruData, error: guruErr } = await client
+          .from('master_guru')
+          .select('*')
+          .range(0, 999);
+
+        if (guruErr) {
+          if (!guruErr.message.includes('relation "master_guru" does not exist')) {
+            errors.push(`Master Guru: ${guruErr.message}`);
+          }
+        } else if (guruData && guruData.length > 0) {
+          db.masterGuru = guruData.map((row: any) => ({
+            id: row.id || ('guru-' + Math.random().toString(36).substring(2, 9)),
+            nip: String(row.nip || ''),
+            namaLengkap: String(row.nama_lengkap || row.namaLengkap || ''),
+            jabatan: String(row.jabatan || 'Guru Mata Pelajaran'),
+            mapel: String(row.mapel || ''),
+            noHp: String(row.no_hp || row.noHp || ''),
+            email: String(row.email || ''),
+            keterangan: String(row.keterangan || 'Aktif'),
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at || new Date().toISOString(),
+          }));
+          counts['master_guru'] = db.masterGuru.length;
+        }
+      } catch (e: any) {
+        errors.push(`Master Guru: ${e?.message}`);
+      }
+
+      // 3. Fetch Piket Harian
+      try {
+        const { data: piketData, error: piketErr } = await client
+          .from('piket_harian')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(0, 999);
+
+        if (!piketErr && piketData && piketData.length > 0) {
+          db.piketHarian = piketData.map((row: any) => ({
+            id: row.id,
+            hariTanggal: row.hari_tanggal,
+            waktu: row.waktu,
+            namaAnggota: row.nama_anggota,
+            kelas: row.kelas || '',
+            hasilTemuan: row.hasil_temuan,
+            linkFoto: row.link_foto || '',
+            tandaTangan: row.tanda_tangan || '',
+            keterangan: row.keterangan || '',
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at || new Date().toISOString(),
+          }));
+          counts['piket_harian'] = db.piketHarian.length;
+        }
+      } catch (e: any) {
+        // silently handle
+      }
+
+      // 4. Fetch Sabtu Beli Teh Ceri
+      try {
+        const { data: ceriData, error: ceriErr } = await client
+          .from('sabtu_teh_ceri')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(0, 999);
+
+        if (!ceriErr && ceriData && ceriData.length > 0) {
+          db.sabtuBeliTehCeri = ceriData.map((row: any) => ({
+            id: row.id,
+            hariTanggal: row.hari_tanggal,
+            waktu: row.waktu,
+            hasilTemuan1Minggu: row.hasil_temuan_1minggu,
+            evaluasiKegiatan: row.evaluasi_kegiatan || '',
+            rencanaInovasi: row.rencana_inovasi || '',
+            linkFoto: row.link_foto || '',
+            tandaTangan: row.tanda_tangan || '',
+            keterangan: row.keterangan || '',
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at || new Date().toISOString(),
+          }));
+          counts['sabtu_teh_ceri'] = db.sabtuBeliTehCeri.length;
+        }
+      } catch (e: any) {
+        // silently handle
+      }
+
+      // 5. Fetch Kebun Luas Berseri
+      try {
+        const { data: kebunData, error: kebunErr } = await client
+          .from('kebun_luas_berseri')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(0, 999);
+
+        if (!kebunErr && kebunData && kebunData.length > 0) {
+          db.kebunLuasBerseri = kebunData.map((row: any) => ({
+            id: row.id,
+            hariTanggal: row.hari_tanggal,
+            waktu: row.waktu,
+            evaluasiBerhasil: row.evaluasi_berhasil || '',
+            kendalaSolusi: row.kendala_solusi || '',
+            hasilInovasi: row.hasil_inovasi || '',
+            produkKreatif: row.produk_kreatif || '',
+            rtlList: Array.isArray(row.rtl_list) ? row.rtl_list : [],
+            tandaTangan: row.tanda_tangan || '',
+            keterangan: row.keterangan || '',
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at || new Date().toISOString(),
+          }));
+          counts['kebun_luas_berseri'] = db.kebunLuasBerseri.length;
+        }
+      } catch (e: any) {
+        // silently handle
+      }
+
+      // 6. Fetch Senandung Serasi
+      try {
+        const { data: senandungData, error: senandungErr } = await client
+          .from('senandung_serasi')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(0, 999);
+
+        if (!senandungErr && senandungData && senandungData.length > 0) {
+          db.senandungSerasi = senandungData.map((row: any) => ({
+            id: row.id,
+            hariTanggal: row.hari_tanggal,
+            waktu: row.waktu,
+            pesanDisampaikan: row.pesan_disampaikan,
+            tandaTangan: row.tanda_tangan || '',
+            keterangan: row.keterangan || '',
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at || new Date().toISOString(),
+          }));
+          counts['senandung_serasi'] = db.senandungSerasi.length;
+        }
+      } catch (e: any) {
+        // silently handle
+      }
+
+      // 7. Fetch E-Lapor
+      try {
+        const { data: laporData, error: laporErr } = await client
+          .from('e_lapor_perundungan')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(0, 999);
+
+        if (!laporErr && laporData && laporData.length > 0) {
+          db.eLaporPerundungan = laporData.map((row: any) => ({
+            id: row.id,
+            hariTanggal: row.hari_tanggal,
+            waktuKejadian: row.waktu_kejadian,
+            namaSiswa: row.nama_siswa,
+            kelas: row.kelas || '',
+            kronologi: row.kronologi,
+            penyadaran: row.penyadaran || '',
+            pencegahan: row.pencegahan || '',
+            penangananRespon: row.penanganan_respon || '',
+            pelaporan: row.pelaporan || '',
+            tindakLanjut: row.tindak_lanjut || '',
+            status: row.status || 'Laporan Baru',
+            tandaTangan: row.tanda_tangan || '',
+            keterangan: row.keterangan || '',
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at || new Date().toISOString(),
+          }));
+          counts['e_lapor_perundungan'] = db.eLaporPerundungan.length;
+        }
+      } catch (e: any) {
+        // silently handle
+      }
+
+      // 8. Fetch Buku Tamu
+      try {
+        const { data: tamuData, error: tamuErr } = await client
+          .from('buku_tamu')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(0, 999);
+
+        if (!tamuErr && tamuData && tamuData.length > 0) {
+          db.bukuTamu = tamuData.map((row: any) => ({
+            id: row.id,
+            hariTanggal: row.hari_tanggal,
+            jamKedatangan: row.jam_kedatangan,
+            namaLengkap: row.nama_lengkap,
+            nipNik: row.nip_nik || '',
+            jabatan: row.jabatan || '',
+            instansiAsal: row.instansi_asal,
+            tujuanKunjungan: row.tujuan_kunjungan,
+            tandaTangan: row.tanda_tangan || '',
+            tindakLanjut: row.tindak_lanjut || '',
+            keterangan: row.keterangan || '',
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at || new Date().toISOString(),
+          }));
+          counts['buku_tamu'] = db.bukuTamu.length;
+        }
+      } catch (e: any) {
+        // silently handle
+      }
+
+      // 9. Fetch Custom Links
+      try {
+        const { data: linkData, error: linkErr } = await client
+          .from('custom_links')
+          .select('*')
+          .range(0, 999);
+
+        if (!linkErr && linkData && linkData.length > 0) {
+          db.customLinks = linkData.map((row: any) => ({
+            id: row.id,
+            title: row.title,
+            url: row.url,
+            description: row.description || '',
+            category: row.category || 'Sekolah',
+            iconName: row.icon_name || 'Globe',
+            color: row.color || '#0d9488',
+            isCustom: row.is_custom ?? true,
+            createdAt: row.created_at || new Date().toISOString(),
+            updatedAt: row.updated_at || new Date().toISOString(),
+          }));
+          counts['custom_links'] = db.customLinks.length;
+        }
+      } catch (e: any) {
+        // silently handle
+      }
+
+      db.supabaseConfig.lastSyncedAt = new Date().toISOString();
+      db.supabaseConfig.isConnected = true;
+      this.saveDb();
+
+      const totalRecords = Object.values(counts).reduce((a, b) => a + b, 0);
+      const detailStr = Object.entries(counts).map(([k, v]) => `${k.replace('_', ' ')}: ${v}`).join(', ');
+
+      return {
+        success: true,
+        message: `Berhasil memuat ${totalRecords} data dari Supabase! (${detailStr || 'Semua sinkron'})`,
+        counts,
+      };
+    } catch (e: any) {
+      console.error('Fetch from Supabase failed', e);
+      return { success: false, message: `Gagal memuat data dari Supabase: ${e?.message || 'Error tidak diketahui'}` };
+    }
+  }
+
   public static async syncToSupabase(): Promise<{ success: boolean; message: string }> {
     const client = this.getSupabaseClient();
     if (!client) {
@@ -927,6 +1216,30 @@ export class StorageService {
       db.masterSiswa.unshift(saved);
     }
     this.saveDb();
+
+    // Background sync to Supabase if connected
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('master_siswa')
+        .upsert({
+          id: saved.id,
+          nisn: saved.nisn,
+          nis: saved.nis || '',
+          nama_lengkap: saved.namaLengkap,
+          kelas: saved.kelas,
+          jenis_kelamin: saved.jenisKelamin,
+          alamat: saved.alamat || '',
+          no_hp: saved.noHp || '',
+          keterangan: saved.keterangan || '',
+          created_at: saved.createdAt,
+          updated_at: saved.updatedAt,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase auto-save siswa notice:', error.message);
+        });
+    }
+
     return saved;
   }
 
@@ -934,20 +1247,110 @@ export class StorageService {
     const db = this.getDb();
     db.masterSiswa = db.masterSiswa.filter((s) => s.id !== id);
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('master_siswa')
+        .delete()
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.warn('Supabase delete siswa notice:', error.message);
+        });
+    }
   }
 
   public static deleteMultipleSiswa(ids: string[]): void {
     const db = this.getDb();
     db.masterSiswa = db.masterSiswa.filter((s) => !ids.includes(s.id));
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client && ids.length > 0) {
+      client
+        .from('master_siswa')
+        .delete()
+        .in('id', ids)
+        .then(({ error }) => {
+          if (error) console.warn('Supabase bulk delete siswa notice:', error.message);
+        });
+    }
   }
 
-  public static importSiswaBatch(rows: Array<{ nisn?: string; nis?: string; namaLengkap?: string; kelas?: string; jenisKelamin?: string; alamat?: string; noHp?: string; keterangan?: string }>): { added: number; updated: number } {
+  public static importSiswaBatch(
+    rows: Array<{ nisn?: string; nis?: string; namaLengkap?: string; kelas?: string; jenisKelamin?: string; alamat?: string; noHp?: string; keterangan?: string }>,
+    mode: 'overwrite' | 'merge' = 'overwrite'
+  ): { added: number; updated: number; total: number } {
     const db = this.getDb();
     const now = new Date().toISOString();
     let added = 0;
     let updated = 0;
 
+    if (mode === 'overwrite') {
+      // Tindih / Ganti seluruh data lama
+      const newItems: SiswaItem[] = [];
+      rows.forEach((r, idx) => {
+        if (!r.namaLengkap) return;
+        const nisn = r.nisn ? String(r.nisn).trim() : '';
+        const nis = r.nis ? String(r.nis).trim() : '';
+        const nama = String(r.namaLengkap).trim();
+        const kelas = r.kelas ? String(r.kelas).trim().toUpperCase() : '7A';
+        const jkRaw = r.jenisKelamin ? String(r.jenisKelamin).trim().toUpperCase() : 'L';
+        const jenisKelamin = (jkRaw.startsWith('P') ? 'P' : 'L') as 'L' | 'P';
+        const alamat = r.alamat ? String(r.alamat).trim() : '';
+        const noHp = r.noHp ? String(r.noHp).trim() : '';
+        const keterangan = r.keterangan ? String(r.keterangan).trim() : 'Import Excel';
+
+        newItems.push({
+          id: 'sis-' + Date.now() + '-' + idx + '-' + Math.random().toString(36).substring(2, 6),
+          nisn: nisn || ('00' + Math.floor(Math.random() * 90000000 + 10000000)),
+          nis: nis || String(Math.floor(Math.random() * 9000 + 1000)),
+          namaLengkap: nama,
+          kelas,
+          jenisKelamin,
+          alamat,
+          noHp,
+          keterangan,
+          createdAt: now,
+          updatedAt: now,
+        });
+        added++;
+      });
+
+      db.masterSiswa = newItems;
+      this.saveDb();
+
+      // Trigger cloud sync to Supabase if connected
+      const client = this.getSupabaseClient();
+      if (client && newItems.length > 0) {
+        // Upsert all in chunks of 200
+        const chunkSize = 200;
+        (async () => {
+          for (let i = 0; i < newItems.length; i += chunkSize) {
+            const chunk = newItems.slice(i, i + chunkSize);
+            await client.from('master_siswa').upsert(
+              chunk.map((item) => ({
+                id: item.id,
+                nisn: item.nisn,
+                nis: item.nis || '',
+                nama_lengkap: item.namaLengkap,
+                kelas: item.kelas,
+                jenis_kelamin: item.jenisKelamin,
+                alamat: item.alamat || '',
+                no_hp: item.noHp || '',
+                keterangan: item.keterangan || '',
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            );
+          }
+        })();
+      }
+
+      return { added, updated: 0, total: db.masterSiswa.length };
+    }
+
+    // Merge mode
     rows.forEach((r) => {
       if (!r.namaLengkap) return;
       const nisn = r.nisn ? String(r.nisn).trim() : '';
@@ -998,7 +1401,7 @@ export class StorageService {
     });
 
     this.saveDb();
-    return { added, updated };
+    return { added, updated, total: db.masterSiswa.length };
   }
 
   // --- MASTER GURU CRUD & EXCEL IMPORT ---
@@ -1026,6 +1429,29 @@ export class StorageService {
       db.masterGuru.unshift(saved);
     }
     this.saveDb();
+
+    // Background sync to Supabase if connected
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('master_guru')
+        .upsert({
+          id: saved.id,
+          nip: saved.nip,
+          nama_lengkap: saved.namaLengkap,
+          jabatan: saved.jabatan,
+          mapel: saved.mapel || '',
+          no_hp: saved.noHp || '',
+          email: saved.email || '',
+          keterangan: saved.keterangan || '',
+          created_at: saved.createdAt,
+          updated_at: saved.updatedAt,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase auto-save guru notice:', error.message);
+        });
+    }
+
     return saved;
   }
 
@@ -1033,20 +1459,105 @@ export class StorageService {
     const db = this.getDb();
     db.masterGuru = db.masterGuru.filter((g) => g.id !== id);
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('master_guru')
+        .delete()
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.warn('Supabase delete guru notice:', error.message);
+        });
+    }
   }
 
   public static deleteMultipleGuru(ids: string[]): void {
     const db = this.getDb();
     db.masterGuru = db.masterGuru.filter((g) => !ids.includes(g.id));
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client && ids.length > 0) {
+      client
+        .from('master_guru')
+        .delete()
+        .in('id', ids)
+        .then(({ error }) => {
+          if (error) console.warn('Supabase bulk delete guru notice:', error.message);
+        });
+    }
   }
 
-  public static importGuruBatch(rows: Array<{ nip?: string; namaLengkap?: string; jabatan?: string; mapel?: string; noHp?: string; email?: string; keterangan?: string }>): { added: number; updated: number } {
+  public static importGuruBatch(
+    rows: Array<{ nip?: string; namaLengkap?: string; jabatan?: string; mapel?: string; noHp?: string; email?: string; keterangan?: string }>,
+    mode: 'overwrite' | 'merge' = 'overwrite'
+  ): { added: number; updated: number; total: number } {
     const db = this.getDb();
     const now = new Date().toISOString();
     let added = 0;
     let updated = 0;
 
+    if (mode === 'overwrite') {
+      // Tindih / Ganti seluruh data lama
+      const newGurus: GuruItem[] = [];
+      rows.forEach((r, idx) => {
+        if (!r.namaLengkap) return;
+        const nip = r.nip ? String(r.nip).trim() : '';
+        const nama = String(r.namaLengkap).trim();
+        const jabatan = r.jabatan ? String(r.jabatan).trim() : 'Guru Mata Pelajaran';
+        const mapel = r.mapel ? String(r.mapel).trim() : '';
+        const noHp = r.noHp ? String(r.noHp).trim() : '';
+        const email = r.email ? String(r.email).trim() : '';
+        const keterangan = r.keterangan ? String(r.keterangan).trim() : 'Import Excel';
+
+        newGurus.push({
+          id: 'guru-' + Date.now() + '-' + idx + '-' + Math.random().toString(36).substring(2, 6),
+          nip: nip || ('19' + Math.floor(Math.random() * 9000000000 + 1000000000)),
+          namaLengkap: nama,
+          jabatan,
+          mapel,
+          noHp,
+          email,
+          keterangan,
+          createdAt: now,
+          updatedAt: now,
+        });
+        added++;
+      });
+
+      db.masterGuru = newGurus;
+      this.saveDb();
+
+      // Trigger cloud sync to Supabase if connected
+      const client = this.getSupabaseClient();
+      if (client && newGurus.length > 0) {
+        const chunkSize = 200;
+        (async () => {
+          for (let i = 0; i < newGurus.length; i += chunkSize) {
+            const chunk = newGurus.slice(i, i + chunkSize);
+            await client.from('master_guru').upsert(
+              chunk.map((item) => ({
+                id: item.id,
+                nip: item.nip,
+                nama_lengkap: item.namaLengkap,
+                jabatan: item.jabatan,
+                mapel: item.mapel || '',
+                no_hp: item.noHp || '',
+                email: item.email || '',
+                keterangan: item.keterangan || '',
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            );
+          }
+        })();
+      }
+
+      return { added, updated: 0, total: db.masterGuru.length };
+    }
+
+    // Merge mode
     rows.forEach((r) => {
       if (!r.namaLengkap) return;
       const nip = r.nip ? String(r.nip).trim() : '';
@@ -1093,7 +1604,7 @@ export class StorageService {
     });
 
     this.saveDb();
-    return { added, updated };
+    return { added, updated, total: db.masterGuru.length };
   }
 
   // --- PEJABAT & SIGNATURE CONFIG ---
@@ -1192,6 +1703,35 @@ export class StorageService {
   }
 
   // --- SQL SCHEMA GENERATOR FOR SUPABASE ---
+  public static getSupabaseMasterGuruSQLScript(): string {
+    return `-- =================================================================
+-- SCRIPT SQL KHUSUS TABEL MASTER GURU DI SUPABASE
+-- Jalankan skrip ini di: Supabase Dashboard > SQL Editor > New Query > Run
+-- =================================================================
+
+CREATE TABLE IF NOT EXISTS public.master_guru (
+    id TEXT PRIMARY KEY,
+    nip TEXT NOT NULL,
+    nama_lengkap TEXT NOT NULL,
+    jabatan TEXT NOT NULL,
+    mapel TEXT,
+    no_hp TEXT,
+    email TEXT,
+    keterangan TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Aktifkan RLS dan Hak Akses Terbuka
+ALTER TABLE public.master_guru ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public Read All Master Guru" ON public.master_guru FOR SELECT USING (true);
+CREATE POLICY "Public Insert All Master Guru" ON public.master_guru FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All Master Guru" ON public.master_guru FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All Master Guru" ON public.master_guru FOR DELETE USING (true);
+`;
+  }
+
   public static getSupabaseSQLScript(): string {
     return `-- =================================================================
 -- SCRIPT SQL TABEL SUPABASE UNTUK PROGRAM PASS TEMENAN SMPN 7 PASURUAN

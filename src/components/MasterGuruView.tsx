@@ -18,10 +18,17 @@ import {
   Mail,
   Phone,
   Briefcase,
+  RefreshCw,
+  Code,
+  Copy,
+  Check,
+  Database,
+  CheckCircle2,
 } from 'lucide-react';
 import { GuruItem } from '../types';
 import { StorageService } from '../services/storage';
 import * as XLSX from 'xlsx';
+import confetti from 'canvas-confetti';
 
 interface MasterGuruViewProps {
   db: {
@@ -34,10 +41,31 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJabatan, setSelectedJabatan] = useState('Semua');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [isSavingSelected, setIsSavingSelected] = useState(false);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGuru, setEditingGuru] = useState<GuruItem | null>(null);
+  const [isSqlModalOpen, setIsSqlModalOpen] = useState(false);
+  const [isCopiedSql, setIsCopiedSql] = useState(false);
+
+  // Sync state
+  const [isFetchingSupabase, setIsFetchingSupabase] = useState(false);
+  const [supabaseNotice, setSupabaseNotice] = useState<string | null>(null);
+
+  // Excel Import Staging Modal
+  const [importModal, setImportModal] = useState<{
+    isOpen: boolean;
+    fileName: string;
+    rows: Array<Omit<GuruItem, 'id'>>;
+    mode: 'overwrite' | 'merge';
+  }>({
+    isOpen: false,
+    fileName: '',
+    rows: [],
+    mode: 'overwrite',
+  });
   
   // Form State
   const [nip, setNip] = useState('');
@@ -51,6 +79,35 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const jabatanOptions = ['Semua', 'Kepala Sekolah', 'Guru Pendamping / Guru BK', 'Guru Mata Pelajaran', 'Wakasek', 'Pembina OSIS'];
+
+  const masterGuruSql = StorageService.getSupabaseMasterGuruSQLScript();
+
+  // Manual pull from Supabase
+  const handleFetchFromSupabase = async () => {
+    setIsFetchingSupabase(true);
+    setSupabaseNotice(null);
+    try {
+      const res = await StorageService.fetchFromSupabase();
+      if (res.success) {
+        onRefresh();
+        const guruCount = res.counts?.['master_guru'] ?? db.masterGuru.length;
+        setSupabaseNotice(`Berhasil sinkronisasi dari Supabase! Total ${guruCount} data guru.`);
+        setTimeout(() => setSupabaseNotice(null), 5000);
+      } else {
+        alert(`Gagal mengambil data dari Supabase: ${res.message}`);
+      }
+    } catch (e: any) {
+      alert(`Error sinkronisasi: ${e?.message || e}`);
+    } finally {
+      setIsFetchingSupabase(false);
+    }
+  };
+
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(masterGuruSql);
+    setIsCopiedSql(true);
+    setTimeout(() => setIsCopiedSql(false), 3000);
+  };
 
   // Filtered teachers
   const filteredTeachers = (db.masterGuru || []).filter((g) => {
@@ -165,17 +222,45 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
     );
   };
 
+  const handleSaveSelected = async () => {
+    if (selectedIds.length === 0) return;
+    setIsSavingSelected(true);
+    
+    StorageService.saveDb();
+
+    confetti({
+      particleCount: 35,
+      spread: 60,
+      origin: { y: 0.8 },
+      colors: ['#0d9488', '#14b8a6', '#5eead4'],
+    });
+
+    setSaveNotice(`✓ Berhasil Menyimpan! Status ${selectedIds.length} data guru terpilih telah tersimpan di sistem.`);
+    setIsSavingSelected(false);
+    onRefresh();
+    setTimeout(() => setSaveNotice(null), 4500);
+  };
+
   // Excel Export Template
   const handleDownloadTemplate = () => {
     const templateData = [
       {
         NIP: '198311162009042003',
-        'Nama Lengkap': 'Contoh Guru, S.Pd',
+        'Nama Lengkap': 'Wiwik Ismiati, S.Pd',
         Jabatan: 'Guru Mata Pelajaran',
         Mapel: 'Matematika',
         'No. HP': '081234567890',
         Email: 'guru@smpn7pasuruan.sch.id',
         Keterangan: 'Aktif / Wali Kelas 7A',
+      },
+      {
+        NIP: '197505121999031002',
+        'Nama Lengkap': 'Bambang Sudarsono, M.Pd',
+        Jabatan: 'Wakasek',
+        Mapel: 'Bahasa Indonesia',
+        'No. HP': '081234567891',
+        Email: 'bambang@smpn7pasuruan.sch.id',
+        Keterangan: 'Wakasek Kesiswaan',
       },
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
@@ -206,7 +291,7 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
     XLSX.writeFile(wb, `Data_Master_Guru_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-  // Handle Excel Upload
+  // Handle Excel Upload Selection
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -226,19 +311,30 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
           return;
         }
 
-        const mappedRows = rawData.map((row) => ({
-          nip: String(row.NIP || row.nip || row.Nip || ''),
-          namaLengkap: String(row['Nama Lengkap'] || row.namaLengkap || row.Nama || row.nama || ''),
-          jabatan: String(row.Jabatan || row.jabatan || 'Guru Mata Pelajaran'),
-          mapel: String(row.Mapel || row.mapel || row['Mata Pelajaran'] || ''),
-          noHp: String(row['No. HP'] || row.noHp || row.NoHP || row.telepon || ''),
-          email: String(row.Email || row.email || ''),
-          keterangan: String(row.Keterangan || row.keterangan || 'Import Excel'),
-        }));
+        const mappedRows = rawData
+          .map((row) => ({
+            nip: String(row.NIP || row.nip || row.Nip || '').trim(),
+            namaLengkap: String(row['Nama Lengkap'] || row.namaLengkap || row.Nama || row.nama || '').trim(),
+            jabatan: String(row.Jabatan || row.jabatan || 'Guru Mata Pelajaran').trim(),
+            mapel: String(row.Mapel || row.mapel || row['Mata Pelajaran'] || '').trim(),
+            noHp: String(row['No. HP'] || row.noHp || row.NoHP || row.telepon || '').trim(),
+            email: String(row.Email || row.email || '').trim(),
+            keterangan: String(row.Keterangan || row.keterangan || 'Import Excel').trim(),
+          }))
+          .filter((row) => row.namaLengkap.length > 0);
 
-        const result = StorageService.importGuruBatch(mappedRows);
-        alert(`Berhasil mengimpor data guru!\n- Ditambahkan baru: ${result.added}\n- Diperbarui: ${result.updated}`);
-        onRefresh();
+        if (mappedRows.length === 0) {
+          alert('Tidak ada baris data guru dengan nama lengkap yang valid dalam file Excel tersebut.');
+          return;
+        }
+
+        // Open option modal for Overwrite vs Merge
+        setImportModal({
+          isOpen: true,
+          fileName: file.name,
+          rows: mappedRows,
+          mode: 'overwrite',
+        });
       } catch (err: any) {
         alert(`Gagal membaca file Excel: ${err?.message}`);
       } finally {
@@ -248,68 +344,118 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
     reader.readAsBinaryString(file);
   };
 
+  // Execute Excel Import based on selected mode
+  const handleExecuteImport = () => {
+    if (importModal.rows.length === 0) return;
+    const overwrite = importModal.mode === 'overwrite';
+    const result = StorageService.importGuruBatch(importModal.rows, importModal.mode);
+    setImportModal({ isOpen: false, fileName: '', rows: [], mode: 'overwrite' });
+    onRefresh();
+    alert(
+      `Sukses Impor Excel Data Guru & Staf!\n` +
+      `- Mode: ${overwrite ? 'Tindih / Ganti Semua Data Lama' : 'Gabungkan / Update Data'}\n` +
+      `- Data berhasil diimpor: ${result.added} guru\n` +
+      `- Total guru terdaftar saat ini: ${result.total} orang`
+    );
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        accept=".xlsx, .xls, .csv"
+        className="hidden"
+      />
+
       {/* Top Banner / Actions Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <span className="px-3 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-300 font-extrabold text-[11px] uppercase tracking-wider">
-              MANAJEMEN GURU & STAF
-            </span>
-            <span className="text-xs font-bold text-slate-500">Total: {db.masterGuru.length} Pendidik</span>
+      <div className="bg-gradient-to-r from-teal-700 via-teal-800 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-teal-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/30 text-teal-200 text-xs font-bold tracking-wide uppercase">
+                <Briefcase className="w-4 h-4 text-teal-300" />
+                MANAJEMEN PENDIDIK & STAF
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/30 text-emerald-200 text-xs font-bold">
+                <Users className="w-3.5 h-3.5" />
+                {db.masterGuru.length} Guru / Staf Terdaftar
+              </span>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+              Master Data Guru & Pegawai SMPN 7 Pasuruan
+            </h2>
+            <p className="text-teal-200 text-sm mt-1 max-w-2xl">
+              Kelola data seluruh guru dan staf pengajar. Unggah rekap Excel (.xlsx) dengan opsi tindih data lama, buat tabel di Supabase SQL, atau sinkronkan data cloud secara otomatis.
+            </p>
           </div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight font-display">
-            Master Data Guru & Pegawai SMPN 7 Pasuruan
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Kelola data guru, unggah rekap dari file Excel (.xlsx), edit, atau hapus data dengan mudah dan aman.
-          </p>
+
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={handleFetchFromSupabase}
+              disabled={isFetchingSupabase}
+              className="px-3.5 py-2 rounded-xl bg-teal-600/60 hover:bg-teal-600 text-white text-xs font-bold flex items-center gap-2 transition-all border border-teal-400/40 shadow-sm"
+              title="Tarik atau muat data guru terbaru dari Supabase"
+            >
+              <RefreshCw className={`w-4 h-4 text-amber-300 ${isFetchingSupabase ? 'animate-spin' : ''}`} />
+              <span>{isFetchingSupabase ? 'Memuat Supabase...' : 'Tarik dari Supabase'}</span>
+            </button>
+
+            <button
+              onClick={() => setIsSqlModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-amber-300 text-xs font-bold flex items-center gap-2 transition-all border border-amber-400/40 shadow-sm"
+              title="Lihat & Salin Coding SQL untuk tabel master_guru di Supabase"
+            >
+              <Code className="w-4 h-4 text-amber-400" />
+              <span>SQL Supabase</span>
+            </button>
+
+            <button
+              onClick={handleDownloadTemplate}
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-2 transition-all border border-white/20"
+              title="Unduh Template Excel Kosong"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+              <span>Template</span>
+            </button>
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-emerald-600/30"
+              title="Unggah data dari file Excel (Tindih/Gabung)"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Upload Excel</span>
+            </button>
+
+            <button
+              onClick={handleExportExcel}
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-2 transition-all border border-white/20"
+              title="Ekspor data saat ini ke Excel"
+            >
+              <Download className="w-4 h-4 text-cyan-300" />
+              <span>Export</span>
+            </button>
+
+            <button
+              onClick={handleOpenAddModal}
+              className="px-4 py-2 rounded-xl bg-white text-teal-900 hover:bg-teal-50 text-xs font-extrabold flex items-center gap-2 transition-all shadow-md"
+            >
+              <Plus className="w-4 h-4 text-teal-600" />
+              <span>Tambah Guru</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept=".xlsx, .xls, .csv"
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-2 hover:bg-emerald-100 transition-all shadow-2xs"
-            title="Unggah data dari file Excel"
-          >
-            <Upload className="w-4 h-4" />
-            <span>Upload Excel</span>
-          </button>
-
-          <button
-            onClick={handleDownloadTemplate}
-            className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-2 hover:bg-slate-200 transition-all shadow-2xs"
-            title="Unduh Template Excel Kosong"
-          >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Template .XLSX</span>
-          </button>
-
-          <button
-            onClick={handleExportExcel}
-            className="px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs font-bold flex items-center gap-2 hover:bg-blue-100 transition-all shadow-2xs"
-            title="Ekspor data saat ini ke Excel"
-          >
-            <Download className="w-4 h-4" />
-            <span>Ekspor Excel</span>
-          </button>
-
-          <button
-            onClick={handleOpenAddModal}
-            className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-2 shadow-md transition-all shadow-teal-600/20"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Guru</span>
-          </button>
-        </div>
+        {supabaseNotice && (
+          <div className="mt-4 p-3 bg-emerald-500/20 border border-emerald-400/40 rounded-xl text-emerald-200 text-xs flex items-center gap-2 animate-fadeIn">
+            <Check className="w-4 h-4 shrink-0 text-emerald-300" />
+            <span>{supabaseNotice}</span>
+          </div>
+        )}
       </div>
 
       {/* Search & Filter Toolbar */}
@@ -342,18 +488,41 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
           </div>
 
           {selectedIds.length > 0 && (
-            <button
-              onClick={handleOpenDeleteBulk}
-              className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 hover:bg-rose-100 transition-all"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Hapus Terpilih ({selectedIds.length})</span>
-            </button>
+            <>
+              <button
+                onClick={handleSaveSelected}
+                disabled={isSavingSelected}
+                className="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-teal-600/30 transition-all active:scale-95"
+                title="Simpan data guru yang dipilih"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Simpan ({selectedIds.length}) Terpilih</span>
+              </button>
+
+              <button
+                onClick={handleOpenDeleteBulk}
+                className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 hover:bg-rose-100 transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus Terpilih ({selectedIds.length})</span>
+              </button>
+            </>
           )}
+
+          <div className="text-xs font-semibold text-slate-500">
+            Menampilkan <span className="text-teal-600 dark:text-teal-400 font-bold">{filteredTeachers.length}</span> dari {db.masterGuru.length} guru
+          </div>
         </div>
       </div>
 
-      {/* Main Table Container (10 rows limit with vertical scroll & sticky header) */}
+      {saveNotice && (
+        <div className="p-3.5 bg-teal-50 dark:bg-teal-950/50 border border-teal-300 dark:border-teal-700 rounded-2xl text-teal-800 dark:text-teal-200 text-xs font-bold flex items-center gap-2.5 animate-fadeIn shadow-xs">
+          <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+          <span>{saveNotice}</span>
+        </div>
+      )}
+
+      {/* Main Table Container */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {filteredTeachers.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center">
@@ -413,7 +582,15 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
                         </span>
                       </td>
                       <td className="p-4">
-                        <div className="font-extrabold text-slate-900 dark:text-white">{g.namaLengkap}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-slate-900 dark:text-white">{g.namaLengkap}</span>
+                          {isSelected && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 text-teal-800 dark:bg-teal-950/90 dark:text-teal-300 border border-teal-300 dark:border-teal-700 shadow-2xs animate-in fade-in zoom-in-95 duration-200">
+                              <Check className="w-3 h-3 text-teal-600 dark:text-teal-400 stroke-[3]" />
+                              Tersimpan
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 font-bold border border-teal-200 dark:border-teal-800 text-[11px]">
@@ -604,6 +781,211 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
         </div>
       )}
 
+      {/* SQL Script Generator Modal */}
+      {isSqlModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/30">
+                  <Database className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                    Coding SQL Tabel Master Guru Supabase
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Jalankan script ini di menu <strong>SQL Editor</strong> pada dashboard Supabase Anda.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsSqlModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-3.5 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>Petunjuk Pembuatan Tabel di Supabase:</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-1 pl-1 text-[11px] text-amber-900 dark:text-amber-300">
+                  <li>Buka project Supabase Anda di <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="underline font-bold text-amber-700 dark:text-amber-300">supabase.com</a></li>
+                  <li>Buka menu <strong>SQL Editor</strong> di sidebar kiri</li>
+                  <li>Klik <strong>New Query</strong>, lalu paste coding SQL di bawah ini</li>
+                  <li>Klik tombol hijau <strong>Run</strong> untuk mengeksekusi</li>
+                  <li>Tabel <code className="font-mono font-bold">master_guru</code> akan terbuat lengkap dengan RLS policy aman!</li>
+                </ol>
+              </div>
+
+              <div className="relative">
+                <div className="flex items-center justify-between bg-slate-800 text-slate-300 text-[11px] font-mono px-4 py-2 rounded-t-xl border border-slate-700">
+                  <span>schema_master_guru.sql</span>
+                  <button
+                    onClick={handleCopySql}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition-all shadow-sm"
+                  >
+                    {isCopiedSql ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-200" />
+                        <span>Tersalin!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Salin SQL</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <pre className="bg-slate-950 text-emerald-400 p-4 rounded-b-xl border border-t-0 border-slate-800 font-mono text-xs overflow-x-auto max-h-72 leading-relaxed">
+                  {masterGuruSql}
+                </pre>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3">
+                <button
+                  onClick={() => setIsSqlModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all"
+                >
+                  Tutup
+                </button>
+                <button
+                  onClick={handleCopySql}
+                  className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-2 shadow-md transition-all"
+                >
+                  {isCopiedSql ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{isCopiedSql ? 'Sudah Tersalin ke Clipboard' : 'Salin Semua SQL'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Excel Import Staging / Option Modal */}
+      {importModal.isOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-950/30 dark:to-emerald-950/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/30">
+                  <Upload className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                    Opsi Impor Excel Data Guru & Staf
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    File: <span className="font-semibold text-teal-600 dark:text-teal-400">{importModal.fileName}</span> ({importModal.rows.length} data terdeteksi)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setImportModal({ isOpen: false, fileName: '', rows: [], mode: 'overwrite' })}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                Pilih bagaimana data dari file Excel ini akan dimasukkan ke database sistem:
+              </p>
+
+              <div className="space-y-3">
+                {/* Option 1: Overwrite (Tindih Semua) */}
+                <label
+                  onClick={() => setImportModal((prev) => ({ ...prev, mode: 'overwrite' }))}
+                  className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    importModal.mode === 'overwrite'
+                      ? 'border-teal-600 bg-teal-50/50 dark:bg-teal-950/30 shadow-sm'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="importModeGuru"
+                    checked={importModal.mode === 'overwrite'}
+                    onChange={() => setImportModal((prev) => ({ ...prev, mode: 'overwrite' }))}
+                    className="mt-1 text-teal-600 focus:ring-teal-500"
+                  />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                        Tindih / Ganti Semua Data Lama
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-teal-600 text-white text-[10px] font-bold">
+                        Rekomendasi
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Menghapus data contoh/lama dan menggantinya sepenuhnya dengan {importModal.rows.length} guru/staf dari file Excel Anda.
+                    </p>
+                  </div>
+                </label>
+
+                {/* Option 2: Merge (Gabungkan) */}
+                <label
+                  onClick={() => setImportModal((prev) => ({ ...prev, mode: 'merge' }))}
+                  className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    importModal.mode === 'merge'
+                      ? 'border-teal-600 bg-teal-50/50 dark:bg-teal-950/30 shadow-sm'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="importModeGuru"
+                    checked={importModal.mode === 'merge'}
+                    onChange={() => setImportModal((prev) => ({ ...prev, mode: 'merge' }))}
+                    className="mt-1 text-teal-600 focus:ring-teal-500"
+                  />
+                  <div>
+                    <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                      Gabungkan / Update Data (Merge)
+                    </span>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Tetap mempertahankan data yang sudah ada. Guru dengan NIP/Nama yang sama akan diperbarui, dan data baru akan ditambahkan.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3 text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Setelah impor selesai, jika Supabase terhubung dan tabel <code className="font-mono font-bold">master_guru</code> telah dibuat, data akan otomatis disinkronkan ke cloud.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setImportModal({ isOpen: false, fileName: '', rows: [], mode: 'overwrite' })}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteImport}
+                  className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-teal-600/30 transition-all"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Proses Impor ({importModal.rows.length} Guru)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteModal.isOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -641,3 +1023,4 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
     </div>
   );
 };
+

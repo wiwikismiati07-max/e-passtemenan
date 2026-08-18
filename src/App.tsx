@@ -118,6 +118,24 @@ export default function App() {
       refreshDb();
     };
     window.addEventListener('pass-temenan-db-updated', handleDbChange);
+
+    // Auto-fetch data from Supabase on startup if configured
+    const initialDb = StorageService.getDb();
+    if (initialDb.supabaseConfig?.url && initialDb.supabaseConfig?.anonKey) {
+      setIsSyncing(true);
+      setSyncStatusMsg('Memuat data dari Supabase...');
+      StorageService.fetchFromSupabase().then((res) => {
+        setIsSyncing(false);
+        if (res.success) {
+          refreshDb();
+          setSyncStatusMsg(res.message);
+          setTimeout(() => setSyncStatusMsg(''), 4000);
+        } else {
+          setSyncStatusMsg('');
+        }
+      });
+    }
+
     return () => window.removeEventListener('pass-temenan-db-updated', handleDbChange);
   }, []);
 
