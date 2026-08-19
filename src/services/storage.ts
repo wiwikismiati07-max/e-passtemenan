@@ -1743,7 +1743,7 @@ export class StorageService {
     return db.pejabatConfig;
   }
 
-  public static async syncClassAssignmentsToSupabase(): Promise<{ success: boolean; message: string }> {
+  public static async syncClassAssignmentsToSupabase(): Promise<{ success: boolean; message: string; isTableMissing?: boolean }> {
     const client = this.getSupabaseClient();
     if (!client) {
       return { success: false, message: 'Supabase client belum diatur.' };
@@ -1764,15 +1764,32 @@ export class StorageService {
       }));
 
       const { error } = await client.from('class_assignments').upsert(assignmentsList);
-      if (error) throw new Error(error.message);
+      if (error) {
+        const isMissing =
+          error.message?.includes('schema cache') ||
+          error.message?.includes('does not exist') ||
+          error.code === '42P01' ||
+          error.code === 'PGRST204';
+
+        if (isMissing) {
+          console.warn('Tabel class_assignments belum dibuat di Supabase. Data disimpan secara lokal di browser.');
+          return {
+            success: false,
+            isTableMissing: true,
+            message: 'Tabel "class_assignments" belum dibuat di database Supabase. Data tetap tersimpan aman di lokal browser. Silakan jalankan skrip SQL di menu Supabase.',
+          };
+        }
+        throw new Error(error.message);
+      }
 
       return {
         success: true,
         message: `Berhasil menyinkronkan data Zona Hijau ${assignmentsList.length} kelas ke Supabase Cloud!`,
       };
     } catch (e: any) {
-      console.error('Error syncing class assignments to Supabase:', e);
-      return { success: false, message: `Gagal sinkronisasi Zona Hijau kelas: ${e?.message || 'Error tidak diketahui'}` };
+      const errMsg = e?.message || 'Error tidak diketahui';
+      console.warn('Sync class assignments notice:', errMsg);
+      return { success: false, message: `Info sinkronisasi Zona Hijau: ${errMsg}` };
     }
   }
 
