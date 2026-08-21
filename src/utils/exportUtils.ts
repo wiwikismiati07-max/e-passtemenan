@@ -140,9 +140,11 @@ export function exportOfficialReportToWordDoc(
     kepalaNama: string;
     kepalaNip: string;
     kepalaJabatan: string;
+    kepalaTtd?: string;
     guruNama: string;
     guruNip: string;
     guruJabatan: string;
+    guruTtd?: string;
   }
 ) {
   const fieldsRowsHtml = fields
@@ -213,14 +215,27 @@ export function exportOfficialReportToWordDoc(
                 <td className="ttd-cell">
                   <p>Mengetahui,</p>
                   <p style="font-weight: bold;">${pejabat.kepalaJabatan}</p>
-                  <div className="ttd-space"></div>
+                  <div style="height: 75px; position: relative; margin: 6px auto; text-align: center;">
+                    ${
+                      pejabat.kepalaTtd && pejabat.kepalaTtd.startsWith('data:image')
+                        ? `<img src="${pejabat.kepalaTtd}" style="height: 65px; max-width: 140px;" />
+                           <img src="https://i.ibb.co.com/wrcwZdrK/STEMPEL.png" style="height: 75px; width: 75px; vertical-align: middle; margin-left: -50px; opacity: 0.85;" />`
+                        : `<div className="ttd-space"></div>`
+                    }
+                  </div>
                   <p style="font-weight: bold; text-decoration: underline;">${pejabat.kepalaNama}</p>
                   <p style="font-size: 9pt;">NIP. ${pejabat.kepalaNip}</p>
                 </td>
                 <td className="ttd-cell">
                   <p>Pasuruan, ${tanggalSurat || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                   <p style="font-weight: bold;">${pejabat.guruJabatan}</p>
-                  <div className="ttd-space"></div>
+                  <div style="height: 75px; margin: 6px auto; text-align: center;">
+                    ${
+                      pejabat.guruTtd && pejabat.guruTtd.startsWith('data:image')
+                        ? `<img src="${pejabat.guruTtd}" style="height: 65px; max-width: 140px;" />`
+                        : `<div className="ttd-space"></div>`
+                    }
+                  </div>
                   <p style="font-weight: bold; text-decoration: underline;">${pejabat.guruNama}</p>
                   <p style="font-size: 9pt;">NIP. ${pejabat.guruNip}</p>
                 </td>

@@ -201,9 +201,11 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
         kepalaNama: effectiveKepalaNama,
         kepalaNip: effectiveKepalaNip,
         kepalaJabatan: effectiveKepalaJabatan,
+        kepalaTtd: effectiveKepalaTtd,
         guruNama: effectiveGuruNama,
         guruNip: effectiveGuruNip,
         guruJabatan: effectiveGuruJabatan,
+        guruTtd: effectiveGuruTtd,
       }
     );
   };
@@ -435,15 +437,25 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                 <div className="relative group mx-auto w-full max-w-[200px]">
                   <div
                     onClick={() => handleOpenSignCanvas('kepala')}
-                    className="h-24 sm:h-28 mx-auto w-full border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-blue-400 transition-all bg-slate-50/40 dark:bg-slate-800/20 print:border-none print:bg-transparent"
+                    className="h-24 sm:h-28 mx-auto w-full border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-blue-400 transition-all bg-slate-50/40 dark:bg-slate-800/20 print:border-none print:bg-transparent relative overflow-visible"
                     title="Klik untuk TTD Kepala Sekolah"
                   >
                     {effectiveKepalaTtd && effectiveKepalaTtd.startsWith('data:image') ? (
-                      <img
-                        src={effectiveKepalaTtd}
-                        alt="Tanda Tangan Kepala Sekolah"
-                        className="max-h-full max-w-full object-contain filter dark:invert-0 print:filter-none"
-                      />
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        {/* Tanda Tangan Digital Kepala Sekolah */}
+                        <img
+                          src={effectiveKepalaTtd}
+                          alt="Tanda Tangan Kepala Sekolah"
+                          className="max-h-full max-w-full object-contain filter dark:invert-0 print:filter-none z-10 relative"
+                        />
+                        {/* Logo Stempel Sekolah Resmi UPT SMPN 7 Pasuruan (Hanya tampil setelah Kepala Sekolah TTD) */}
+                        <img
+                          src="https://i.ibb.co.com/wrcwZdrK/STEMPEL.png"
+                          alt="Stempel Resmi UPT SMPN 7 Pasuruan"
+                          className="absolute left-1/2 top-1/2 -translate-x-[65%] -translate-y-1/2 w-24 h-24 sm:w-28 sm:h-28 object-contain pointer-events-none opacity-85 z-20 mix-blend-multiply dark:mix-blend-normal print:mix-blend-multiply drop-shadow-xs select-none"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-1 text-slate-400 print:text-black">
                         <PenLine className="w-5 h-5 text-slate-400 print:hidden" />

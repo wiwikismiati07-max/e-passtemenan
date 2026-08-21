@@ -270,13 +270,41 @@ export const PejabatSettingsModal: React.FC<PejabatSettingsModalProps> = ({
                 height={130}
               />
             ) : (
-              <SignatureCanvas
-                label={`Tanda Tangan: ${kepalaNama} (Kepala Sekolah)`}
-                initialValue={kepalaTtd}
-                onSave={(dataUrl) => setKepalaTtd(dataUrl)}
-                onClear={() => setKepalaTtd('')}
-                height={130}
-              />
+              <div className="space-y-2">
+                <SignatureCanvas
+                  label={`Tanda Tangan: ${kepalaNama} (Kepala Sekolah)`}
+                  initialValue={kepalaTtd}
+                  onSave={(dataUrl) => setKepalaTtd(dataUrl)}
+                  onClear={() => setKepalaTtd('')}
+                  height={130}
+                />
+
+                {kepalaTtd && kepalaTtd.startsWith('data:image') && (
+                  <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl flex items-center gap-3">
+                    <div className="relative w-12 h-12 shrink-0 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1 overflow-hidden">
+                      <img
+                        src={kepalaTtd}
+                        alt="Preview TTD"
+                        className="max-h-full max-w-full object-contain relative z-10"
+                      />
+                      <img
+                        src="https://i.ibb.co.com/wrcwZdrK/STEMPEL.png"
+                        alt="Stempel Sekolah"
+                        className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-80 z-20 mix-blend-multiply dark:mix-blend-normal"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <div className="text-xs">
+                      <span className="font-bold text-blue-900 dark:text-blue-200 block">
+                        ✓ Logo Stempel Resmi Sekolah Terpasang
+                      </span>
+                      <p className="text-[11px] text-blue-700 dark:text-blue-300 mt-0.5">
+                        Stempel sekolah otomatis ditumpangkan di atas tanda tangan Kepala Sekolah pada seluruh format laporan resmi aplikasi.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
