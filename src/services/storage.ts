@@ -81,125 +81,14 @@ export const INITIAL_CUSTOM_LINKS: CustomLink[] = [
   },
 ];
 
-export const INITIAL_PIKET_HARIAN: PiketHarian[] = [
-  {
-    id: 'piket-1',
-    hariTanggal: 'Senin, 17 Agustus 2026',
-    waktu: '06.30 - 14.00 WIB',
-    namaAnggota: 'Ahmad Fauzi, Siti Nurhaliza, Budi Santoso',
-    kelas: 'Tim Pokja 7 & 8',
-    hasilTemuan: 'Seluruh area gerbang sekolah kondusif, penyambutan 5S (Senyum, Salam, Sapa, Sopan, Santun) berjalan tertib. Tidak ditemukan siswa terlambat.',
-    linkFoto: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80',
-    keterangan: 'Kegiatan piket pagi berjalan sesuai SOP Pass Temenan SPANJU.',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'piket-2',
-    hariTanggal: 'Selasa, 18 Agustus 2026',
-    waktu: '06.45 - 13.30 WIB',
-    namaAnggota: 'Rina Amelia, Dimas Prasetyo, Dewi Lestari',
-    kelas: 'Tim Sahabat Sebaya IX',
-    hasilTemuan: 'Area taman belakang dan kantin bersih, interaksi antar siswa saat istirahat terpantau sangat harmonis dan saling mendukung.',
-    linkFoto: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80',
-    keterangan: 'Semua sudut sekolah terbebas dari indikasi perundungan.',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-export const INITIAL_SABTU_TEH_CERI: SabtuBeliTehCeri[] = [
-  {
-    id: 'ceri-1',
-    hariTanggal: 'Sabtu, 15 Agustus 2026',
-    waktu: '08.00 - 10.30 WIB',
-    hasilTemuan1Minggu: 'Teridentifikasi peningkatan keaktifan pojok baca kelas dan penurunan konflik kecil saat jam istirahat berkat program Duta Temenan.',
-    evaluasiKegiatan: 'Forum diskusi mingguan dihadiri oleh seluruh perwakilan kelas VII-IX, komunikasi berjalan sangat terbuka dan konstruktif.',
-    rencanaInovasi: 'Meluncurkan kotak curhat digital dan pojok podcast mini "Cerita Temenan" untuk mengapresiasi siswa berprestasi.',
-    linkFoto: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80',
-    keterangan: 'Diskusi mingguan sukses menghasilkan 3 kesepakatan aksi kebersamaan.',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-export const INITIAL_KEBUN_BERSERI: KebunLuasBerseri[] = [
-  {
-    id: 'kebun-1',
-    hariTanggal: 'Kamis, 13 Agustus 2026',
-    waktu: '09.00 - 12.00 WIB',
-    evaluasiBerhasil: 'Program Duta Anti-Bullying telah terbentuk di 21 kelas. Seluruh siswa telah menandatangani komitmen anti kekerasan bersama.',
-    kendalaSolusi: 'Kendala: Sosialisasi daring belum maksimal. Solusi: Dibuatkan infografis cetak dan video reels pendek Pass Temenan.',
-    hasilInovasi: 'Pembuatan rubrik "Teman Inspiratif" bulanan di mading utama & Instagram resmi sekolah.',
-    produkKreatif: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=800&q=80',
-    rtlList: [
-      { id: 'rtl-1', pic: 'Ibu Rahmawati, S.Pd', target: 'Pencetakan Poster & Banner Anti Perundungan', deadline: '25 Agustus 2026' },
-      { id: 'rtl-2', pic: 'Bapak Hendra, M.Pd & OSIS', target: 'Workshop Peer-Counselor untuk Siswa', deadline: '30 Agustus 2026' },
-    ],
-    keterangan: 'Rapat pleno bulanan bersama Kepala Sekolah dan komite.',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-export const INITIAL_SENANDUNG_SERASI: SenandungSerasi[] = [
-  {
-    id: 'senandung-1',
-    hariTanggal: 'Jumat, 14 Agustus 2026',
-    waktu: '07.00 - 07.30 WIB',
-    pesanDisampaikan: '"Berteman bukan mencari siapa yang sempurna, melainkan saling melengkapi dan menjaga kehormatan sesama di SMPN 7 Pasuruan."',
-    keterangan: 'Disiarkan melalui pengeras suara sekolah pada sesi Apel Pagi Ramah Anak.',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'senandung-2',
-    hariTanggal: 'Senin, 10 Agustus 2026',
-    waktu: '06.45 - 07.15 WIB',
-    pesanDisampaikan: '"Satu kata santun darimu adalah pelindung bagi saudaramu. Jadilah pelopor kebaikan, stop perundungan sekarang juga!"',
-    keterangan: 'Pesan literasi dan penguatan karakter mingguan.',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-export const INITIAL_E_LAPOR: ELaporPerundungan[] = [
-  {
-    id: 'lapor-1',
-    hariTanggal: 'Rabu, 12 Agustus 2026',
-    waktuKejadian: '10.15 WIB (Saat Istirahat Pertama)',
-    namaSiswa: 'Siswa Kelas VIII-C (Nama Dirahasiakan)',
-    kelas: 'VIII C',
-    kronologi: 'Terdapat perbedaan pendapat saat bermain olahraga futsal yang memicu ejekan verbal antar kelompok kecil.',
-    penyadaran: 'Edukasi pentingnya sportivitas dan kontrol emosi melalui konseling sebaya.',
-    pencegahan: 'Pengawasan guru piket ditambah di area lapangan olahraga saat jam istirahat.',
-    penangananRespon: 'Guru BK dan Tim Pass Temenan langsung memanggil kedua belah pihak secara empatik.',
-    pelaporan: 'Tercatat dalam rekam penanganan Pass Temenan SPANJU dan telah diselesaikan dengan damai.',
-    tindakLanjut: 'Mediasi kekeluargaan dan saling berjabat tangan komitmen persahabatan.',
-    status: 'Selesai',
-    keterangan: 'Kasus terselesaikan dalam 1x24 jam tanpa eskalasi.',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-export const INITIAL_BUKU_TAMU: BukuTamu[] = [
-  {
-    id: 'tamu-1',
-    hariTanggal: 'Kamis, 13 Agustus 2026',
-    jamKedatangan: '09.30 WIB',
-    namaLengkap: 'Drs. H. Mulyono, M.Si',
-    nipNik: '197304151998031004',
-    jabatan: 'Pengawas Pembina Sekolah',
-    instansiAsal: 'Dinas Pendidikan dan Kebudayaan Kota Pasuruan',
-    tujuanKunjungan: 'Monitoring dan Evaluasi Implementasi Program Pencegahan Perundungan (Pass Temenan) SMPN 7 Pasuruan',
-    tandaTangan: '',
-    tindakLanjut: 'Apresiasi program dan saran penguatan sistem digitalisasi laporan.',
-    keterangan: 'Diterima langsung oleh Kepala SMPN 7 Pasuruan.',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+// Clean initial states for reports so only user inputs appear
+export const INITIAL_PIKET_HARIAN: PiketHarian[] = [];
+export const INITIAL_SABTU_TEH_CERI: SabtuBeliTehCeri[] = [];
+export const INITIAL_KEBUN_BERSERI: KebunLuasBerseri[] = [];
+export const INITIAL_SENANDUNG_SERASI: SenandungSerasi[] = [];
+export const INITIAL_E_LAPOR: ELaporPerundungan[] = [];
+export const INITIAL_BUKU_TAMU: BukuTamu[] = [];
+export const LEGACY_MOCK_IDS = new Set(['piket-1', 'piket-2', 'ceri-1', 'kebun-1', 'senandung-1', 'senandung-2', 'lapor-1', 'tamu-1']);
 
 export const INITIAL_MASTER_SISWA: SiswaItem[] = [
   {
@@ -411,20 +300,22 @@ export class StorageService {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       const deletedIds = this.getDeletedIds();
+      const isValidItem = (x: any) => x && x.id && !deletedIds.has(x.id) && !LEGACY_MOCK_IDS.has(x.id);
+
       if (stored) {
         const parsed = JSON.parse(stored);
         this.db = {
           ...DEFAULT_DATABASE,
           ...parsed,
-          customLinks: (Array.isArray(parsed.customLinks) ? parsed.customLinks : DEFAULT_DATABASE.customLinks).filter((x: any) => !deletedIds.has(x.id)),
-          piketHarian: (Array.isArray(parsed.piketHarian) ? parsed.piketHarian : DEFAULT_DATABASE.piketHarian).filter((x: any) => !deletedIds.has(x.id)),
-          sabtuBeliTehCeri: (Array.isArray(parsed.sabtuBeliTehCeri) ? parsed.sabtuBeliTehCeri : DEFAULT_DATABASE.sabtuBeliTehCeri).filter((x: any) => !deletedIds.has(x.id)),
-          kebunLuasBerseri: (Array.isArray(parsed.kebunLuasBerseri) ? parsed.kebunLuasBerseri : DEFAULT_DATABASE.kebunLuasBerseri).filter((x: any) => !deletedIds.has(x.id)),
-          senandungSerasi: (Array.isArray(parsed.senandungSerasi) ? parsed.senandungSerasi : DEFAULT_DATABASE.senandungSerasi).filter((x: any) => !deletedIds.has(x.id)),
-          eLaporPerundungan: (Array.isArray(parsed.eLaporPerundungan) ? parsed.eLaporPerundungan : DEFAULT_DATABASE.eLaporPerundungan).filter((x: any) => !deletedIds.has(x.id)),
-          bukuTamu: (Array.isArray(parsed.bukuTamu) ? parsed.bukuTamu : DEFAULT_DATABASE.bukuTamu).filter((x: any) => !deletedIds.has(x.id)),
-          masterSiswa: (Array.isArray(parsed.masterSiswa) ? parsed.masterSiswa : DEFAULT_DATABASE.masterSiswa).filter((x: any) => !deletedIds.has(x.id)),
-          masterGuru: (Array.isArray(parsed.masterGuru) ? parsed.masterGuru : DEFAULT_DATABASE.masterGuru).filter((x: any) => !deletedIds.has(x.id)),
+          customLinks: (Array.isArray(parsed.customLinks) ? parsed.customLinks : DEFAULT_DATABASE.customLinks).filter(isValidItem),
+          piketHarian: (Array.isArray(parsed.piketHarian) ? parsed.piketHarian : []).filter(isValidItem),
+          sabtuBeliTehCeri: (Array.isArray(parsed.sabtuBeliTehCeri) ? parsed.sabtuBeliTehCeri : []).filter(isValidItem),
+          kebunLuasBerseri: (Array.isArray(parsed.kebunLuasBerseri) ? parsed.kebunLuasBerseri : []).filter(isValidItem),
+          senandungSerasi: (Array.isArray(parsed.senandungSerasi) ? parsed.senandungSerasi : []).filter(isValidItem),
+          eLaporPerundungan: (Array.isArray(parsed.eLaporPerundungan) ? parsed.eLaporPerundungan : []).filter(isValidItem),
+          bukuTamu: (Array.isArray(parsed.bukuTamu) ? parsed.bukuTamu : []).filter(isValidItem),
+          masterSiswa: (Array.isArray(parsed.masterSiswa) ? parsed.masterSiswa : DEFAULT_DATABASE.masterSiswa).filter(isValidItem),
+          masterGuru: (Array.isArray(parsed.masterGuru) ? parsed.masterGuru : DEFAULT_DATABASE.masterGuru).filter(isValidItem),
           classAssignments: parsed.classAssignments || DEFAULT_DATABASE.classAssignments || {},
           supabaseConfig: { ...DEFAULT_DATABASE.supabaseConfig, ...(parsed.supabaseConfig || {}) },
           pejabatConfig: { ...DEFAULT_PEJABAT_CONFIG, ...(parsed.pejabatConfig || {}) },
@@ -432,15 +323,15 @@ export class StorageService {
       } else {
         this.db = {
           ...DEFAULT_DATABASE,
-          customLinks: DEFAULT_DATABASE.customLinks.filter((x) => !deletedIds.has(x.id)),
-          piketHarian: DEFAULT_DATABASE.piketHarian.filter((x) => !deletedIds.has(x.id)),
-          sabtuBeliTehCeri: DEFAULT_DATABASE.sabtuBeliTehCeri.filter((x) => !deletedIds.has(x.id)),
-          kebunLuasBerseri: DEFAULT_DATABASE.kebunLuasBerseri.filter((x) => !deletedIds.has(x.id)),
-          senandungSerasi: DEFAULT_DATABASE.senandungSerasi.filter((x) => !deletedIds.has(x.id)),
-          eLaporPerundungan: DEFAULT_DATABASE.eLaporPerundungan.filter((x) => !deletedIds.has(x.id)),
-          bukuTamu: DEFAULT_DATABASE.bukuTamu.filter((x) => !deletedIds.has(x.id)),
-          masterSiswa: DEFAULT_DATABASE.masterSiswa.filter((x) => !deletedIds.has(x.id)),
-          masterGuru: DEFAULT_DATABASE.masterGuru.filter((x) => !deletedIds.has(x.id)),
+          customLinks: DEFAULT_DATABASE.customLinks.filter(isValidItem),
+          piketHarian: [],
+          sabtuBeliTehCeri: [],
+          kebunLuasBerseri: [],
+          senandungSerasi: [],
+          eLaporPerundungan: [],
+          bukuTamu: [],
+          masterSiswa: DEFAULT_DATABASE.masterSiswa.filter(isValidItem),
+          masterGuru: DEFAULT_DATABASE.masterGuru.filter(isValidItem),
         };
         this.saveDb();
       }
@@ -505,16 +396,16 @@ export class StorageService {
     const map = new Map<string, T>();
     const remoteIdSet = new Set<string>();
 
-    // 1. Keep valid local items not deleted
+    // 1. Keep valid local items not deleted and not legacy mock
     (localList || []).forEach((item) => {
-      if (item && item.id && !deletedIds.has(item.id)) {
+      if (item && item.id && !deletedIds.has(item.id) && !LEGACY_MOCK_IDS.has(item.id)) {
         map.set(item.id, item);
       }
     });
 
     // 2. Merge remote items
     (remoteList || []).forEach((remoteItem) => {
-      if (!remoteItem || !remoteItem.id || deletedIds.has(remoteItem.id)) return;
+      if (!remoteItem || !remoteItem.id || deletedIds.has(remoteItem.id) || LEGACY_MOCK_IDS.has(remoteItem.id)) return;
       remoteIdSet.add(remoteItem.id);
 
       const existing = map.get(remoteItem.id);
@@ -535,7 +426,7 @@ export class StorageService {
       return timeB - timeA;
     });
 
-    const missingInRemote = Array.from(map.values()).filter((item) => !remoteIdSet.has(item.id));
+    const missingInRemote = Array.from(map.values()).filter((item) => !remoteIdSet.has(item.id) && !LEGACY_MOCK_IDS.has(item.id));
     return { merged, missingInRemote };
   }
 
@@ -744,7 +635,7 @@ export class StorageService {
             ).then(() => {});
           }
 
-          const toPurge = piketData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          const toPurge = piketData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
             client.from('piket_harian').delete().in('id', toPurge).then(() => {});
           }
@@ -798,7 +689,7 @@ export class StorageService {
             ).then(() => {});
           }
 
-          const toPurge = ceriData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          const toPurge = ceriData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
             client.from('sabtu_teh_ceri').delete().in('id', toPurge).then(() => {});
           }
@@ -854,7 +745,7 @@ export class StorageService {
             ).then(() => {});
           }
 
-          const toPurge = kebunData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          const toPurge = kebunData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
             client.from('kebun_luas_berseri').delete().in('id', toPurge).then(() => {});
           }
@@ -902,7 +793,7 @@ export class StorageService {
             ).then(() => {});
           }
 
-          const toPurge = senandungData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          const toPurge = senandungData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
             client.from('senandung_serasi').delete().in('id', toPurge).then(() => {});
           }
@@ -966,7 +857,7 @@ export class StorageService {
             ).then(() => {});
           }
 
-          const toPurge = laporData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          const toPurge = laporData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
             client.from('e_lapor_perundungan').delete().in('id', toPurge).then(() => {});
           }
@@ -1024,7 +915,7 @@ export class StorageService {
             ).then(() => {});
           }
 
-          const toPurge = tamuData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          const toPurge = tamuData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
             client.from('buku_tamu').delete().in('id', toPurge).then(() => {});
           }
