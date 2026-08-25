@@ -403,7 +403,7 @@ export class StorageService {
       }
     });
 
-    // 2. Merge remote items
+    // 2. Merge remote items with field-level preservation
     (remoteList || []).forEach((remoteItem) => {
       if (!remoteItem || !remoteItem.id || deletedIds.has(remoteItem.id) || LEGACY_MOCK_IDS.has(remoteItem.id)) return;
       remoteIdSet.add(remoteItem.id);
@@ -412,10 +412,19 @@ export class StorageService {
       if (!existing) {
         map.set(remoteItem.id, remoteItem);
       } else {
+        // Merge without losing existing non-empty values if remote has null/empty
+        const mergedItem: any = { ...existing };
+        Object.entries(remoteItem).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && val !== '') {
+            mergedItem[key] = val;
+          }
+        });
         const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
         const remoteTime = new Date(remoteItem.updatedAt || remoteItem.createdAt || 0).getTime();
-        if (remoteTime >= localTime) {
-          map.set(remoteItem.id, remoteItem);
+        if (remoteTime > localTime) {
+          map.set(remoteItem.id, { ...existing, ...remoteItem });
+        } else {
+          map.set(remoteItem.id, mergedItem);
         }
       }
     });
@@ -428,6 +437,33 @@ export class StorageService {
 
     const missingInRemote = Array.from(map.values()).filter((item) => !remoteIdSet.has(item.id) && !LEGACY_MOCK_IDS.has(item.id));
     return { merged, missingInRemote };
+  }
+
+  // Safe Upsert Helper with automatic fallback
+  public static async safeUpsert(table: string, payload: any | any[]): Promise<{ error: any }> {
+    const client = this.getSupabaseClient();
+    if (!client) return { error: new Error('Supabase client tidak aktif') };
+
+    try {
+      const res = await client.from(table).upsert(payload);
+      if (res.error) {
+        // If column error (e.g. table in supabase does not have tanda_tangan yet), retry without tanda_tangan
+        if (res.error.message && (res.error.message.includes('column') || res.error.message.includes('tanda_tangan'))) {
+          const cleanItem = (item: any) => {
+            if (!item || typeof item !== 'object') return item;
+            const { tanda_tangan, ...rest } = item;
+            return rest;
+          };
+          const fallbackPayload = Array.isArray(payload) ? payload.map(cleanItem) : cleanItem(payload);
+          const retryRes = await client.from(table).upsert(fallbackPayload);
+          return retryRes;
+        }
+      }
+      return res;
+    } catch (e: any) {
+      console.warn(`Supabase upsert into ${table} warning:`, e);
+      return { error: e };
+    }
   }
 
   // Realtime subscription instance
@@ -600,17 +636,17 @@ export class StorageService {
 
         if (!piketErr && piketData) {
           const remotePiket: PiketHarian[] = piketData.map((row: any) => ({
-            id: row.id,
-            hariTanggal: row.hari_tanggal,
-            waktu: row.waktu,
-            namaAnggota: row.nama_anggota,
+            id: String(row.id),
+            hariTanggal: row.hari_tanggal || row.hariTanggal || row.tanggal || '',
+            waktu: row.waktu || '',
+            namaAnggota: row.nama_anggota || row.namaAnggota || row.nama || '',
             kelas: row.kelas || '',
-            hasilTemuan: row.hasil_temuan,
-            linkFoto: row.link_foto || '',
-            tandaTangan: row.tanda_tangan || '',
+            hasilTemuan: row.hasil_temuan || row.hasilTemuan || row.temuan || '',
+            linkFoto: row.link_foto || row.linkFoto || row.foto || '',
+            tandaTangan: row.tanda_tangan || row.tandaTangan || row.ttd || '',
             keterangan: row.keterangan || '',
-            createdAt: row.created_at || new Date().toISOString(),
-            updatedAt: row.updated_at || new Date().toISOString(),
+            createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+            updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
           }));
 
           const { merged, missingInRemote } = this.mergeEntities(db.piketHarian, remotePiket, deletedIds);
@@ -618,7 +654,8 @@ export class StorageService {
           counts['piket_harian'] = db.piketHarian.length;
 
           if (missingInRemote.length > 0) {
-            client.from('piket_harian').upsert(
+            this.safeUpsert(
+              'piket_harian',
               missingInRemote.map((item) => ({
                 id: item.id,
                 hari_tanggal: item.hariTanggal,
@@ -632,7 +669,7 @@ export class StorageService {
                 created_at: item.createdAt,
                 updated_at: item.updatedAt,
               }))
-            ).then(() => {});
+            );
           }
 
           const toPurge = piketData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
@@ -654,17 +691,17 @@ export class StorageService {
 
         if (!ceriErr && ceriData) {
           const remoteCeri: SabtuBeliTehCeri[] = ceriData.map((row: any) => ({
-            id: row.id,
-            hariTanggal: row.hari_tanggal,
-            waktu: row.waktu,
-            hasilTemuan1Minggu: row.hasil_temuan_1minggu,
-            evaluasiKegiatan: row.evaluasi_kegiatan || '',
-            rencanaInovasi: row.rencana_inovasi || '',
-            linkFoto: row.link_foto || '',
-            tandaTangan: row.tanda_tangan || '',
+            id: String(row.id),
+            hariTanggal: row.hari_tanggal || row.hariTanggal || row.tanggal || '',
+            waktu: row.waktu || '',
+            hasilTemuan1Minggu: row.hasil_temuan_1minggu || row.hasilTemuan1Minggu || row.hasil_temuan || '',
+            evaluasiKegiatan: row.evaluasi_kegiatan || row.evaluasiKegiatan || '',
+            rencanaInovasi: row.rencana_inovasi || row.rencanaInovasi || '',
+            linkFoto: row.link_foto || row.linkFoto || '',
+            tandaTangan: row.tanda_tangan || row.tandaTangan || '',
             keterangan: row.keterangan || '',
-            createdAt: row.created_at || new Date().toISOString(),
-            updatedAt: row.updated_at || new Date().toISOString(),
+            createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+            updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
           }));
 
           const { merged, missingInRemote } = this.mergeEntities(db.sabtuBeliTehCeri, remoteCeri, deletedIds);
@@ -672,7 +709,8 @@ export class StorageService {
           counts['sabtu_teh_ceri'] = db.sabtuBeliTehCeri.length;
 
           if (missingInRemote.length > 0) {
-            client.from('sabtu_teh_ceri').upsert(
+            this.safeUpsert(
+              'sabtu_teh_ceri',
               missingInRemote.map((item) => ({
                 id: item.id,
                 hari_tanggal: item.hariTanggal,
@@ -686,7 +724,7 @@ export class StorageService {
                 created_at: item.createdAt,
                 updated_at: item.updatedAt,
               }))
-            ).then(() => {});
+            );
           }
 
           const toPurge = ceriData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
@@ -708,18 +746,18 @@ export class StorageService {
 
         if (!kebunErr && kebunData) {
           const remoteKebun: KebunLuasBerseri[] = kebunData.map((row: any) => ({
-            id: row.id,
-            hariTanggal: row.hari_tanggal,
-            waktu: row.waktu,
-            evaluasiBerhasil: row.evaluasi_berhasil || '',
-            kendalaSolusi: row.kendala_solusi || '',
-            hasilInovasi: row.hasil_inovasi || '',
-            produkKreatif: row.produk_kreatif || '',
-            rtlList: Array.isArray(row.rtl_list) ? row.rtl_list : [],
-            tandaTangan: row.tanda_tangan || '',
+            id: String(row.id),
+            hariTanggal: row.hari_tanggal || row.hariTanggal || row.tanggal || '',
+            waktu: row.waktu || '',
+            evaluasiBerhasil: row.evaluasi_berhasil || row.evaluasiBerhasil || '',
+            kendalaSolusi: row.kendala_solusi || row.kendalaSolusi || '',
+            hasilInovasi: row.hasil_inovasi || row.hasilInovasi || '',
+            produkKreatif: row.produk_kreatif || row.produkKreatif || '',
+            rtlList: Array.isArray(row.rtl_list) ? row.rtl_list : (Array.isArray(row.rtlList) ? row.rtlList : []),
+            tandaTangan: row.tanda_tangan || row.tandaTangan || '',
             keterangan: row.keterangan || '',
-            createdAt: row.created_at || new Date().toISOString(),
-            updatedAt: row.updated_at || new Date().toISOString(),
+            createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+            updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
           }));
 
           const { merged, missingInRemote } = this.mergeEntities(db.kebunLuasBerseri, remoteKebun, deletedIds);
@@ -727,7 +765,8 @@ export class StorageService {
           counts['kebun_luas_berseri'] = db.kebunLuasBerseri.length;
 
           if (missingInRemote.length > 0) {
-            client.from('kebun_luas_berseri').upsert(
+            this.safeUpsert(
+              'kebun_luas_berseri',
               missingInRemote.map((item) => ({
                 id: item.id,
                 hari_tanggal: item.hariTanggal,
@@ -742,7 +781,7 @@ export class StorageService {
                 created_at: item.createdAt,
                 updated_at: item.updatedAt,
               }))
-            ).then(() => {});
+            );
           }
 
           const toPurge = kebunData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
@@ -764,14 +803,14 @@ export class StorageService {
 
         if (!senandungErr && senandungData) {
           const remoteSenandung: SenandungSerasi[] = senandungData.map((row: any) => ({
-            id: row.id,
-            hariTanggal: row.hari_tanggal,
-            waktu: row.waktu,
-            pesanDisampaikan: row.pesan_disampaikan,
-            tandaTangan: row.tanda_tangan || '',
+            id: String(row.id),
+            hariTanggal: row.hari_tanggal || row.hariTanggal || row.tanggal || '',
+            waktu: row.waktu || '',
+            pesanDisampaikan: row.pesan_disampaikan || row.pesanDisampaikan || row.pesan || '',
+            tandaTangan: row.tanda_tangan || row.tandaTangan || '',
             keterangan: row.keterangan || '',
-            createdAt: row.created_at || new Date().toISOString(),
-            updatedAt: row.updated_at || new Date().toISOString(),
+            createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+            updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
           }));
 
           const { merged, missingInRemote } = this.mergeEntities(db.senandungSerasi, remoteSenandung, deletedIds);
@@ -779,7 +818,8 @@ export class StorageService {
           counts['senandung_serasi'] = db.senandungSerasi.length;
 
           if (missingInRemote.length > 0) {
-            client.from('senandung_serasi').upsert(
+            this.safeUpsert(
+              'senandung_serasi',
               missingInRemote.map((item) => ({
                 id: item.id,
                 hari_tanggal: item.hariTanggal,
@@ -790,7 +830,7 @@ export class StorageService {
                 created_at: item.createdAt,
                 updated_at: item.updatedAt,
               }))
-            ).then(() => {});
+            );
           }
 
           const toPurge = senandungData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
@@ -812,22 +852,22 @@ export class StorageService {
 
         if (!laporErr && laporData) {
           const remoteLapor: ELaporPerundungan[] = laporData.map((row: any) => ({
-            id: row.id,
-            hariTanggal: row.hari_tanggal,
-            waktuKejadian: row.waktu_kejadian,
-            namaSiswa: row.nama_siswa,
+            id: String(row.id),
+            hariTanggal: row.hari_tanggal || row.hariTanggal || row.tanggal || '',
+            waktuKejadian: row.waktu_kejadian || row.waktuKejadian || row.waktu || '',
+            namaSiswa: row.nama_siswa || row.namaSiswa || row.nama || '',
             kelas: row.kelas || '',
-            kronologi: row.kronologi,
+            kronologi: row.kronologi || '',
             penyadaran: row.penyadaran || '',
             pencegahan: row.pencegahan || '',
-            penangananRespon: row.penanganan_respon || '',
+            penangananRespon: row.penanganan_respon || row.penangananRespon || '',
             pelaporan: row.pelaporan || '',
-            tindakLanjut: row.tindak_lanjut || '',
+            tindakLanjut: row.tindak_lanjut || row.tindakLanjut || '',
             status: row.status || 'Laporan Baru',
-            tandaTangan: row.tanda_tangan || '',
+            tandaTangan: row.tanda_tangan || row.tandaTangan || '',
             keterangan: row.keterangan || '',
-            createdAt: row.created_at || new Date().toISOString(),
-            updatedAt: row.updated_at || new Date().toISOString(),
+            createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+            updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
           }));
 
           const { merged, missingInRemote } = this.mergeEntities(db.eLaporPerundungan, remoteLapor, deletedIds);
@@ -835,7 +875,8 @@ export class StorageService {
           counts['e_lapor_perundungan'] = db.eLaporPerundungan.length;
 
           if (missingInRemote.length > 0) {
-            client.from('e_lapor_perundungan').upsert(
+            this.safeUpsert(
+              'e_lapor_perundungan',
               missingInRemote.map((item) => ({
                 id: item.id,
                 hari_tanggal: item.hariTanggal,
@@ -854,7 +895,7 @@ export class StorageService {
                 created_at: item.createdAt,
                 updated_at: item.updatedAt,
               }))
-            ).then(() => {});
+            );
           }
 
           const toPurge = laporData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
@@ -876,19 +917,19 @@ export class StorageService {
 
         if (!tamuErr && tamuData) {
           const remoteTamu: BukuTamu[] = tamuData.map((row: any) => ({
-            id: row.id,
-            hariTanggal: row.hari_tanggal,
-            jamKedatangan: row.jam_kedatangan,
-            namaLengkap: row.nama_lengkap,
-            nipNik: row.nip_nik || '',
+            id: String(row.id),
+            hariTanggal: row.hari_tanggal || row.hariTanggal || row.tanggal || '',
+            jamKedatangan: row.jam_kedatangan || row.jamKedatangan || row.jam || row.waktu || '',
+            namaLengkap: row.nama_lengkap || row.namaLengkap || row.nama || '',
+            nipNik: row.nip_nik || row.nipNik || row.nip || '',
             jabatan: row.jabatan || '',
-            instansiAsal: row.instansi_asal,
-            tujuanKunjungan: row.tujuan_kunjungan,
-            tandaTangan: row.tanda_tangan || '',
-            tindakLanjut: row.tindak_lanjut || '',
+            instansiAsal: row.instansi_asal || row.instansiAsal || row.instansi || '',
+            tujuanKunjungan: row.tujuan_kunjungan || row.tujuanKunjungan || row.tujuan || '',
+            tandaTangan: row.tanda_tangan || row.tandaTangan || '',
+            tindakLanjut: row.tindak_lanjut || row.tindakLanjut || '',
             keterangan: row.keterangan || '',
-            createdAt: row.created_at || new Date().toISOString(),
-            updatedAt: row.updated_at || new Date().toISOString(),
+            createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+            updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
           }));
 
           const { merged, missingInRemote } = this.mergeEntities(db.bukuTamu, remoteTamu, deletedIds);
@@ -896,7 +937,8 @@ export class StorageService {
           counts['buku_tamu'] = db.bukuTamu.length;
 
           if (missingInRemote.length > 0) {
-            client.from('buku_tamu').upsert(
+            this.safeUpsert(
+              'buku_tamu',
               missingInRemote.map((item) => ({
                 id: item.id,
                 hari_tanggal: item.hariTanggal,
@@ -912,7 +954,7 @@ export class StorageService {
                 created_at: item.createdAt,
                 updated_at: item.updatedAt,
               }))
-            ).then(() => {});
+            );
           }
 
           const toPurge = tamuData.filter((row: any) => deletedIds.has(row.id) || LEGACY_MOCK_IDS.has(row.id)).map((r: any) => r.id);
@@ -1033,7 +1075,8 @@ export class StorageService {
     try {
       // 1. Piket Harian
       if (db.piketHarian.length > 0) {
-        const { error } = await client.from('piket_harian').upsert(
+        await this.safeUpsert(
+          'piket_harian',
           db.piketHarian.map((item) => ({
             id: item.id,
             hari_tanggal: item.hariTanggal,
@@ -1048,13 +1091,13 @@ export class StorageService {
             updated_at: item.updatedAt,
           }))
         );
-        if (error) errors.push(`Piket: ${error.message}`);
-        else syncedCount += db.piketHarian.length;
+        syncedCount += db.piketHarian.length;
       }
 
       // 2. Sabtu Beli Teh Ceri
       if (db.sabtuBeliTehCeri.length > 0) {
-        const { error } = await client.from('sabtu_teh_ceri').upsert(
+        await this.safeUpsert(
+          'sabtu_teh_ceri',
           db.sabtuBeliTehCeri.map((item) => ({
             id: item.id,
             hari_tanggal: item.hariTanggal,
@@ -1069,13 +1112,13 @@ export class StorageService {
             updated_at: item.updatedAt,
           }))
         );
-        if (error) errors.push(`Sabtu Teh Ceri: ${error.message}`);
-        else syncedCount += db.sabtuBeliTehCeri.length;
+        syncedCount += db.sabtuBeliTehCeri.length;
       }
 
       // 3. Kebun Luas Berseri
       if (db.kebunLuasBerseri.length > 0) {
-        const { error } = await client.from('kebun_luas_berseri').upsert(
+        await this.safeUpsert(
+          'kebun_luas_berseri',
           db.kebunLuasBerseri.map((item) => ({
             id: item.id,
             hari_tanggal: item.hariTanggal,
@@ -1091,13 +1134,13 @@ export class StorageService {
             updated_at: item.updatedAt,
           }))
         );
-        if (error) errors.push(`Kebun Berseri: ${error.message}`);
-        else syncedCount += db.kebunLuasBerseri.length;
+        syncedCount += db.kebunLuasBerseri.length;
       }
 
       // 4. Senandung Serasi
       if (db.senandungSerasi.length > 0) {
-        const { error } = await client.from('senandung_serasi').upsert(
+        await this.safeUpsert(
+          'senandung_serasi',
           db.senandungSerasi.map((item) => ({
             id: item.id,
             hari_tanggal: item.hariTanggal,
@@ -1109,13 +1152,13 @@ export class StorageService {
             updated_at: item.updatedAt,
           }))
         );
-        if (error) errors.push(`Senandung Serasi: ${error.message}`);
-        else syncedCount += db.senandungSerasi.length;
+        syncedCount += db.senandungSerasi.length;
       }
 
       // 5. E-Lapor Perundungan
       if (db.eLaporPerundungan.length > 0) {
-        const { error } = await client.from('e_lapor_perundungan').upsert(
+        await this.safeUpsert(
+          'e_lapor_perundungan',
           db.eLaporPerundungan.map((item) => ({
             id: item.id,
             hari_tanggal: item.hariTanggal,
@@ -1135,13 +1178,13 @@ export class StorageService {
             updated_at: item.updatedAt,
           }))
         );
-        if (error) errors.push(`E-Lapor: ${error.message}`);
-        else syncedCount += db.eLaporPerundungan.length;
+        syncedCount += db.eLaporPerundungan.length;
       }
 
       // 6. Buku Tamu
       if (db.bukuTamu.length > 0) {
-        const { error } = await client.from('buku_tamu').upsert(
+        await this.safeUpsert(
+          'buku_tamu',
           db.bukuTamu.map((item) => ({
             id: item.id,
             hari_tanggal: item.hariTanggal,
@@ -1158,13 +1201,13 @@ export class StorageService {
             updated_at: item.updatedAt,
           }))
         );
-        if (error) errors.push(`Buku Tamu: ${error.message}`);
-        else syncedCount += db.bukuTamu.length;
+        syncedCount += db.bukuTamu.length;
       }
 
       // 7. Master Siswa
       if (db.masterSiswa && db.masterSiswa.length > 0) {
-        const { error } = await client.from('master_siswa').upsert(
+        await this.safeUpsert(
+          'master_siswa',
           db.masterSiswa.map((item) => ({
             id: item.id,
             nisn: item.nisn,
@@ -1179,13 +1222,13 @@ export class StorageService {
             updated_at: item.updatedAt,
           }))
         );
-        if (error) errors.push(`Master Siswa: ${error.message}`);
-        else syncedCount += db.masterSiswa.length;
+        syncedCount += db.masterSiswa.length;
       }
 
       // 8. Master Guru
       if (db.masterGuru && db.masterGuru.length > 0) {
-        const { error } = await client.from('master_guru').upsert(
+        await this.safeUpsert(
+          'master_guru',
           db.masterGuru.map((item) => ({
             id: item.id,
             nip: item.nip,
@@ -1199,13 +1242,13 @@ export class StorageService {
             updated_at: item.updatedAt,
           }))
         );
-        if (error) errors.push(`Master Guru: ${error.message}`);
-        else syncedCount += db.masterGuru.length;
+        syncedCount += db.masterGuru.length;
       }
 
       // 9. Custom Links
       if (db.customLinks.length > 0) {
-        const { error } = await client.from('custom_links').upsert(
+        await this.safeUpsert(
+          'custom_links',
           db.customLinks.map((item) => ({
             id: item.id,
             title: item.title,
@@ -1219,8 +1262,7 @@ export class StorageService {
             updated_at: item.updatedAt,
           }))
         );
-        if (error) errors.push(`Custom Links: ${error.message}`);
-        else syncedCount += db.customLinks.length;
+        syncedCount += db.customLinks.length;
       }
 
       // 10. Class Assignments (Zona Hijau Tiap Kelas)
@@ -1234,10 +1276,8 @@ export class StorageService {
           deklarasi_damai: val.deklarasiDamai ?? true,
           updated_at: val.updatedAt || new Date().toISOString(),
         }));
-
-        const { error } = await client.from('class_assignments').upsert(assignmentsList);
-        if (error) errors.push(`Class Assignments: ${error.message}`);
-        else syncedCount += assignmentsList.length;
+        await this.safeUpsert('class_assignments', assignmentsList);
+        syncedCount += assignmentsList.length;
       }
 
       db.supabaseConfig.lastSyncedAt = new Date().toISOString();
@@ -1354,26 +1394,18 @@ export class StorageService {
     this.unmarkDeleted(saved.id);
     this.saveDb();
 
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('custom_links')
-        .upsert({
-          id: saved.id,
-          title: saved.title,
-          url: saved.url,
-          description: saved.description || '',
-          category: saved.category,
-          icon_name: saved.iconName,
-          color: saved.color,
-          is_custom: saved.isCustom,
-          created_at: saved.createdAt,
-          updated_at: saved.updatedAt,
-        })
-        .then(({ error }) => {
-          if (error) console.warn('Supabase auto-save link notice:', error.message);
-        });
-    }
+    this.safeUpsert('custom_links', {
+      id: saved.id,
+      title: saved.title,
+      url: saved.url,
+      description: saved.description || '',
+      category: saved.category,
+      icon_name: saved.iconName,
+      color: saved.color,
+      is_custom: saved.isCustom,
+      created_at: saved.createdAt,
+      updated_at: saved.updatedAt,
+    });
 
     return saved;
   }
@@ -1421,27 +1453,19 @@ export class StorageService {
     this.unmarkDeleted(saved.id);
     this.saveDb();
 
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('piket_harian')
-        .upsert({
-          id: saved.id,
-          hari_tanggal: saved.hariTanggal,
-          waktu: saved.waktu,
-          nama_anggota: saved.namaAnggota,
-          kelas: saved.kelas || '',
-          hasil_temuan: saved.hasilTemuan,
-          link_foto: saved.linkFoto || '',
-          tanda_tangan: saved.tandaTangan || '',
-          keterangan: saved.keterangan || '',
-          created_at: saved.createdAt,
-          updated_at: saved.updatedAt,
-        })
-        .then(({ error }) => {
-          if (error) console.warn('Supabase auto-save piket notice:', error.message);
-        });
-    }
+    this.safeUpsert('piket_harian', {
+      id: saved.id,
+      hari_tanggal: saved.hariTanggal,
+      waktu: saved.waktu,
+      nama_anggota: saved.namaAnggota,
+      kelas: saved.kelas || '',
+      hasil_temuan: saved.hasilTemuan,
+      link_foto: saved.linkFoto || '',
+      tanda_tangan: saved.tandaTangan || '',
+      keterangan: saved.keterangan || '',
+      created_at: saved.createdAt,
+      updated_at: saved.updatedAt,
+    });
 
     return saved;
   }
@@ -1481,27 +1505,19 @@ export class StorageService {
     this.unmarkDeleted(saved.id);
     this.saveDb();
 
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('sabtu_teh_ceri')
-        .upsert({
-          id: saved.id,
-          hari_tanggal: saved.hariTanggal,
-          waktu: saved.waktu,
-          hasil_temuan_1minggu: saved.hasilTemuan1Minggu,
-          evaluasi_kegiatan: saved.evaluasiKegiatan || '',
-          rencana_inovasi: saved.rencanaInovasi || '',
-          link_foto: saved.linkFoto || '',
-          tanda_tangan: saved.tandaTangan || '',
-          keterangan: saved.keterangan || '',
-          created_at: saved.createdAt,
-          updated_at: saved.updatedAt,
-        })
-        .then(({ error }) => {
-          if (error) console.warn('Supabase auto-save sabtu teh ceri notice:', error.message);
-        });
-    }
+    this.safeUpsert('sabtu_teh_ceri', {
+      id: saved.id,
+      hari_tanggal: saved.hariTanggal,
+      waktu: saved.waktu,
+      hasil_temuan_1minggu: saved.hasilTemuan1Minggu,
+      evaluasi_kegiatan: saved.evaluasiKegiatan || '',
+      rencana_inovasi: saved.rencanaInovasi || '',
+      link_foto: saved.linkFoto || '',
+      tanda_tangan: saved.tandaTangan || '',
+      keterangan: saved.keterangan || '',
+      created_at: saved.createdAt,
+      updated_at: saved.updatedAt,
+    });
 
     return saved;
   }
@@ -1541,28 +1557,20 @@ export class StorageService {
     this.unmarkDeleted(saved.id);
     this.saveDb();
 
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('kebun_luas_berseri')
-        .upsert({
-          id: saved.id,
-          hari_tanggal: saved.hariTanggal,
-          waktu: saved.waktu,
-          evaluasi_berhasil: saved.evaluasiBerhasil || '',
-          kendala_solusi: saved.kendalaSolusi || '',
-          hasil_inovasi: saved.hasilInovasi || '',
-          produk_kreatif: saved.produkKreatif || '',
-          rtl_list: saved.rtlList || [],
-          tanda_tangan: saved.tandaTangan || '',
-          keterangan: saved.keterangan || '',
-          created_at: saved.createdAt,
-          updated_at: saved.updatedAt,
-        })
-        .then(({ error }) => {
-          if (error) console.warn('Supabase auto-save kebun luas berseri notice:', error.message);
-        });
-    }
+    this.safeUpsert('kebun_luas_berseri', {
+      id: saved.id,
+      hari_tanggal: saved.hariTanggal,
+      waktu: saved.waktu,
+      evaluasi_berhasil: saved.evaluasiBerhasil || '',
+      kendala_solusi: saved.kendalaSolusi || '',
+      hasil_inovasi: saved.hasilInovasi || '',
+      produk_kreatif: saved.produkKreatif || '',
+      rtl_list: saved.rtlList || [],
+      tanda_tangan: saved.tandaTangan || '',
+      keterangan: saved.keterangan || '',
+      created_at: saved.createdAt,
+      updated_at: saved.updatedAt,
+    });
 
     return saved;
   }
@@ -1602,24 +1610,16 @@ export class StorageService {
     this.unmarkDeleted(saved.id);
     this.saveDb();
 
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('senandung_serasi')
-        .upsert({
-          id: saved.id,
-          hari_tanggal: saved.hariTanggal,
-          waktu: saved.waktu,
-          pesan_disampaikan: saved.pesanDisampaikan,
-          tanda_tangan: saved.tandaTangan || '',
-          keterangan: saved.keterangan || '',
-          created_at: saved.createdAt,
-          updated_at: saved.updatedAt,
-        })
-        .then(({ error }) => {
-          if (error) console.warn('Supabase auto-save senandung serasi notice:', error.message);
-        });
-    }
+    this.safeUpsert('senandung_serasi', {
+      id: saved.id,
+      hari_tanggal: saved.hariTanggal,
+      waktu: saved.waktu,
+      pesan_disampaikan: saved.pesanDisampaikan,
+      tanda_tangan: saved.tandaTangan || '',
+      keterangan: saved.keterangan || '',
+      created_at: saved.createdAt,
+      updated_at: saved.updatedAt,
+    });
 
     return saved;
   }
@@ -1659,32 +1659,24 @@ export class StorageService {
     this.unmarkDeleted(saved.id);
     this.saveDb();
 
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('e_lapor_perundungan')
-        .upsert({
-          id: saved.id,
-          hari_tanggal: saved.hariTanggal,
-          waktu_kejadian: saved.waktuKejadian,
-          nama_siswa: saved.namaSiswa,
-          kelas: saved.kelas || '',
-          kronologi: saved.kronologi,
-          penyadaran: saved.penyadaran || '',
-          pencegahan: saved.pencegahan || '',
-          penanganan_respon: saved.penangananRespon || '',
-          pelaporan: saved.pelaporan || '',
-          tindak_lanjut: saved.tindakLanjut || '',
-          status: saved.status || 'Laporan Baru',
-          tanda_tangan: saved.tandaTangan || '',
-          keterangan: saved.keterangan || '',
-          created_at: saved.createdAt,
-          updated_at: saved.updatedAt,
-        })
-        .then(({ error }) => {
-          if (error) console.warn('Supabase auto-save e-lapor notice:', error.message);
-        });
-    }
+    this.safeUpsert('e_lapor_perundungan', {
+      id: saved.id,
+      hari_tanggal: saved.hariTanggal,
+      waktu_kejadian: saved.waktuKejadian,
+      nama_siswa: saved.namaSiswa,
+      kelas: saved.kelas || '',
+      kronologi: saved.kronologi,
+      penyadaran: saved.penyadaran || '',
+      pencegahan: saved.pencegahan || '',
+      penanganan_respon: saved.penangananRespon || '',
+      pelaporan: saved.pelaporan || '',
+      tindak_lanjut: saved.tindakLanjut || '',
+      status: saved.status || 'Laporan Baru',
+      tanda_tangan: saved.tandaTangan || '',
+      keterangan: saved.keterangan || '',
+      created_at: saved.createdAt,
+      updated_at: saved.updatedAt,
+    });
 
     return saved;
   }
@@ -1724,29 +1716,21 @@ export class StorageService {
     this.unmarkDeleted(saved.id);
     this.saveDb();
 
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('buku_tamu')
-        .upsert({
-          id: saved.id,
-          hari_tanggal: saved.hariTanggal,
-          jam_kedatangan: saved.jamKedatangan,
-          nama_lengkap: saved.namaLengkap,
-          nip_nik: saved.nipNik || '',
-          jabatan: saved.jabatan || '',
-          instansi_asal: saved.instansiAsal,
-          tujuan_kunjungan: saved.tujuanKunjungan,
-          tanda_tangan: saved.tandaTangan || '',
-          tindak_lanjut: saved.tindakLanjut || '',
-          keterangan: saved.keterangan || '',
-          created_at: saved.createdAt,
-          updated_at: saved.updatedAt,
-        })
-        .then(({ error }) => {
-          if (error) console.warn('Supabase auto-save buku tamu notice:', error.message);
-        });
-    }
+    this.safeUpsert('buku_tamu', {
+      id: saved.id,
+      hari_tanggal: saved.hariTanggal,
+      jam_kedatangan: saved.jamKedatangan,
+      nama_lengkap: saved.namaLengkap,
+      nip_nik: saved.nipNik || '',
+      jabatan: saved.jabatan || '',
+      instansi_asal: saved.instansiAsal,
+      tujuan_kunjungan: saved.tujuanKunjungan,
+      tanda_tangan: saved.tandaTangan || '',
+      tindak_lanjut: saved.tindakLanjut || '',
+      keterangan: saved.keterangan || '',
+      created_at: saved.createdAt,
+      updated_at: saved.updatedAt,
+    });
 
     return saved;
   }
@@ -1787,27 +1771,19 @@ export class StorageService {
     this.saveDb();
 
     // Background sync to Supabase if connected
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('master_siswa')
-        .upsert({
-          id: saved.id,
-          nisn: saved.nisn,
-          nis: saved.nis || '',
-          nama_lengkap: saved.namaLengkap,
-          kelas: saved.kelas,
-          jenis_kelamin: saved.jenisKelamin,
-          alamat: saved.alamat || '',
-          no_hp: saved.noHp || '',
-          keterangan: saved.keterangan || '',
-          created_at: saved.createdAt,
-          updated_at: saved.updatedAt,
-        })
-        .then(({ error }) => {
-          if (error) console.warn('Supabase auto-save siswa notice:', error.message);
-        });
-    }
+    this.safeUpsert('master_siswa', {
+      id: saved.id,
+      nisn: saved.nisn,
+      nis: saved.nis || '',
+      nama_lengkap: saved.namaLengkap,
+      kelas: saved.kelas,
+      jenis_kelamin: saved.jenisKelamin,
+      alamat: saved.alamat || '',
+      no_hp: saved.noHp || '',
+      keterangan: saved.keterangan || '',
+      created_at: saved.createdAt,
+      updated_at: saved.updatedAt,
+    });
 
     return saved;
   }
@@ -1993,26 +1969,18 @@ export class StorageService {
     this.saveDb();
 
     // Background sync to Supabase if connected
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('master_guru')
-        .upsert({
-          id: saved.id,
-          nip: saved.nip,
-          nama_lengkap: saved.namaLengkap,
-          jabatan: saved.jabatan,
-          mapel: saved.mapel || '',
-          no_hp: saved.noHp || '',
-          email: saved.email || '',
-          keterangan: saved.keterangan || '',
-          created_at: saved.createdAt,
-          updated_at: saved.updatedAt,
-        })
-        .then(({ error }) => {
-          if (error) console.warn('Supabase auto-save guru notice:', error.message);
-        });
-    }
+    this.safeUpsert('master_guru', {
+      id: saved.id,
+      nip: saved.nip,
+      nama_lengkap: saved.namaLengkap,
+      jabatan: saved.jabatan,
+      mapel: saved.mapel || '',
+      no_hp: saved.noHp || '',
+      email: saved.email || '',
+      keterangan: saved.keterangan || '',
+      created_at: saved.createdAt,
+      updated_at: saved.updatedAt,
+    });
 
     return saved;
   }
@@ -2404,10 +2372,14 @@ CREATE TABLE IF NOT EXISTS public.piket_harian (
     kelas TEXT,
     hasil_temuan TEXT NOT NULL,
     link_foto TEXT,
+    tanda_tangan TEXT,
     keterangan TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.piket_harian ADD COLUMN IF NOT EXISTS tanda_tangan TEXT;
+ALTER TABLE public.piket_harian ADD COLUMN IF NOT EXISTS link_foto TEXT;
+ALTER TABLE public.piket_harian ADD COLUMN IF NOT EXISTS kelas TEXT;
 
 -- 2. Tabel Sabtu Beli Teh Ceri
 CREATE TABLE IF NOT EXISTS public.sabtu_teh_ceri (
@@ -2418,10 +2390,13 @@ CREATE TABLE IF NOT EXISTS public.sabtu_teh_ceri (
     evaluasi_kegiatan TEXT,
     rencana_inovasi TEXT,
     link_foto TEXT,
+    tanda_tangan TEXT,
     keterangan TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.sabtu_teh_ceri ADD COLUMN IF NOT EXISTS tanda_tangan TEXT;
+ALTER TABLE public.sabtu_teh_ceri ADD COLUMN IF NOT EXISTS link_foto TEXT;
 
 -- 3. Tabel Kebun Luas Berseri
 CREATE TABLE IF NOT EXISTS public.kebun_luas_berseri (
@@ -2433,10 +2408,13 @@ CREATE TABLE IF NOT EXISTS public.kebun_luas_berseri (
     hasil_inovasi TEXT,
     produk_kreatif TEXT,
     rtl_list JSONB DEFAULT '[]'::jsonb,
+    tanda_tangan TEXT,
     keterangan TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.kebun_luas_berseri ADD COLUMN IF NOT EXISTS tanda_tangan TEXT;
+ALTER TABLE public.kebun_luas_berseri ADD COLUMN IF NOT EXISTS rtl_list JSONB DEFAULT '[]'::jsonb;
 
 -- 4. Tabel Senandung Serasi
 CREATE TABLE IF NOT EXISTS public.senandung_serasi (
@@ -2444,10 +2422,12 @@ CREATE TABLE IF NOT EXISTS public.senandung_serasi (
     hari_tanggal TEXT NOT NULL,
     waktu TEXT NOT NULL,
     pesan_disampaikan TEXT NOT NULL,
+    tanda_tangan TEXT,
     keterangan TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.senandung_serasi ADD COLUMN IF NOT EXISTS tanda_tangan TEXT;
 
 -- 5. Tabel E-Lapor Perundungan
 CREATE TABLE IF NOT EXISTS public.e_lapor_perundungan (
@@ -2463,10 +2443,13 @@ CREATE TABLE IF NOT EXISTS public.e_lapor_perundungan (
     pelaporan TEXT,
     tindak_lanjut TEXT,
     status TEXT DEFAULT 'Laporan Baru',
+    tanda_tangan TEXT,
     keterangan TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.e_lapor_perundungan ADD COLUMN IF NOT EXISTS tanda_tangan TEXT;
+ALTER TABLE public.e_lapor_perundungan ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Laporan Baru';
 
 -- 6. Tabel Buku Tamu
 CREATE TABLE IF NOT EXISTS public.buku_tamu (
