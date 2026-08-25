@@ -9,7 +9,6 @@ import {
   EyeOff,
   AlertCircle,
   GraduationCap,
-  UserCog,
   Sparkles,
 } from 'lucide-react';
 
@@ -169,30 +168,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </button>
           </form>
 
-          {/* Account Credentials Info Box */}
+          {/* Account Credentials Info Box (Hanya Akses Siswa / Pengguna) */}
           <div className="p-4 rounded-2xl bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs space-y-2.5">
             <div className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300">
               <KeyRound className="w-3.5 h-3.5 text-amber-500" />
-              <span>Panduan Akun Masuk (Manual):</span>
+              <span>Panduan Akun Masuk Siswa:</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-              {/* Akun Siswa */}
-              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-1">
-                <p className="font-sans font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                  <GraduationCap className="w-3.5 h-3.5" /> Siswa
+            {/* Akun Siswa */}
+            <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-1.5">
+              <p className="font-sans font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 text-xs">
+                <GraduationCap className="w-4 h-4" /> Akses Siswa SPANJU
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-0.5">
+                <p className="text-slate-600 dark:text-slate-300">
+                  User: <span className="font-bold text-slate-900 dark:text-white">passtemenan</span>
                 </p>
-                <p className="text-slate-600 dark:text-slate-300 font-mono">User: <span className="font-bold text-slate-900 dark:text-white">passtemenan</span></p>
-                <p className="text-slate-600 dark:text-slate-300 font-mono">Pass: <span className="font-bold text-slate-900 dark:text-white">smpn7</span></p>
-              </div>
-
-              {/* Akun Admin / Operator */}
-              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-1">
-                <p className="font-sans font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                  <UserCog className="w-3.5 h-3.5" /> Admin / Operator
+                <p className="text-slate-600 dark:text-slate-300">
+                  Pass: <span className="font-bold text-slate-900 dark:text-white">smpn7</span>
                 </p>
-                <p className="text-slate-600 dark:text-slate-300 font-mono">User: <span className="font-bold text-slate-900 dark:text-white">admin</span> / <span className="font-bold text-slate-900 dark:text-white">operator</span></p>
-                <p className="text-slate-600 dark:text-slate-300 font-mono">Pass: <span className="font-bold text-slate-900 dark:text-white">admin123</span></p>
               </div>
             </div>
           </div>
