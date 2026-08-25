@@ -119,11 +119,13 @@ export default function App() {
     };
     window.addEventListener('pass-temenan-db-updated', handleDbChange);
 
-    // Auto-fetch data from Supabase on startup if configured
+    // 1. Initialize Realtime subscription and startup sync
     const initialDb = StorageService.getDb();
+    let cleanupRealtime: (() => void) | undefined;
+
     if (initialDb.supabaseConfig?.url && initialDb.supabaseConfig?.anonKey) {
       setIsSyncing(true);
-      setSyncStatusMsg('Memuat data dari Supabase...');
+      setSyncStatusMsg('Menyinkronkan data Cloud Supabase...');
       StorageService.fetchFromSupabase().then((res) => {
         setIsSyncing(false);
         if (res.success) {
@@ -134,9 +136,37 @@ export default function App() {
           setSyncStatusMsg('');
         }
       });
+
+      cleanupRealtime = StorageService.initRealtimeSubscription();
     }
 
-    return () => window.removeEventListener('pass-temenan-db-updated', handleDbChange);
+    // 2. Auto-sync on window focus or visibility change (e.g., when switching between HP and Laptop or switching tabs)
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible' && StorageService.getSupabaseClient()) {
+        StorageService.fetchFromSupabase().then((res) => {
+          if (res.success) refreshDb();
+        });
+      }
+    };
+    window.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    // 3. Periodic lightweight sync poll (every 7 seconds)
+    const syncInterval = setInterval(() => {
+      if (StorageService.getSupabaseClient()) {
+        StorageService.fetchFromSupabase().then((res) => {
+          if (res.success) refreshDb();
+        });
+      }
+    }, 7000);
+
+    return () => {
+      window.removeEventListener('pass-temenan-db-updated', handleDbChange);
+      window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      clearInterval(syncInterval);
+      if (cleanupRealtime) cleanupRealtime();
+    };
   }, []);
 
   // Sync dark mode class with root html

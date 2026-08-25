@@ -496,6 +496,83 @@ export class StorageService {
     }
   }
 
+  // --- MERGE HELPER FOR ROBUST CROSS-DEVICE SYNC ---
+  private static mergeEntities<T extends { id: string; updatedAt?: string; createdAt?: string }>(
+    localList: T[],
+    remoteList: T[],
+    deletedIds: Set<string>
+  ): { merged: T[]; missingInRemote: T[] } {
+    const map = new Map<string, T>();
+    const remoteIdSet = new Set<string>();
+
+    // 1. Keep valid local items not deleted
+    (localList || []).forEach((item) => {
+      if (item && item.id && !deletedIds.has(item.id)) {
+        map.set(item.id, item);
+      }
+    });
+
+    // 2. Merge remote items
+    (remoteList || []).forEach((remoteItem) => {
+      if (!remoteItem || !remoteItem.id || deletedIds.has(remoteItem.id)) return;
+      remoteIdSet.add(remoteItem.id);
+
+      const existing = map.get(remoteItem.id);
+      if (!existing) {
+        map.set(remoteItem.id, remoteItem);
+      } else {
+        const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+        const remoteTime = new Date(remoteItem.updatedAt || remoteItem.createdAt || 0).getTime();
+        if (remoteTime >= localTime) {
+          map.set(remoteItem.id, remoteItem);
+        }
+      }
+    });
+
+    const merged = Array.from(map.values()).sort((a, b) => {
+      const timeA = new Date(a.createdAt || a.updatedAt || 0).getTime();
+      const timeB = new Date(b.createdAt || b.updatedAt || 0).getTime();
+      return timeB - timeA;
+    });
+
+    const missingInRemote = Array.from(map.values()).filter((item) => !remoteIdSet.has(item.id));
+    return { merged, missingInRemote };
+  }
+
+  // Realtime subscription instance
+  private static realtimeChannel: any = null;
+
+  public static initRealtimeSubscription(): () => void {
+    const client = this.getSupabaseClient();
+    if (!client) return () => {};
+
+    try {
+      if (this.realtimeChannel) {
+        client.removeChannel(this.realtimeChannel);
+        this.realtimeChannel = null;
+      }
+
+      this.realtimeChannel = client
+        .channel('pass-temenan-cloud-sync')
+        .on('postgres_changes', { event: '*', schema: 'public' }, (_payload) => {
+          this.fetchFromSupabase().then(() => {
+            window.dispatchEvent(new Event('pass-temenan-db-updated'));
+          });
+        })
+        .subscribe();
+
+      return () => {
+        if (this.realtimeChannel) {
+          client.removeChannel(this.realtimeChannel);
+          this.realtimeChannel = null;
+        }
+      };
+    } catch (e) {
+      console.warn('Realtime subscription warning:', e);
+      return () => {};
+    }
+  }
+
   public static async fetchFromSupabase(): Promise<{ success: boolean; message: string; counts?: Record<string, number> }> {
     const client = this.getSupabaseClient();
     if (!client) {
@@ -508,7 +585,7 @@ export class StorageService {
     const errors: string[] = [];
 
     try {
-      // 1. Fetch Master Siswa (Range 0 - 4999 to cover all 772+ students)
+      // 1. Fetch Master Siswa
       try {
         const { data: siswaData, error: siswaErr } = await client
           .from('master_siswa')
@@ -520,8 +597,7 @@ export class StorageService {
             errors.push(`Master Siswa: ${siswaErr.message}`);
           }
         } else if (siswaData) {
-          const filtered = siswaData.filter((row: any) => !deletedIds.has(row.id));
-          db.masterSiswa = filtered.map((row: any) => ({
+          const remoteSiswa: SiswaItem[] = siswaData.map((row: any) => ({
             id: row.id || ('sis-' + Math.random().toString(36).substring(2, 9)),
             nisn: String(row.nisn || ''),
             nis: String(row.nis || ''),
@@ -534,9 +610,31 @@ export class StorageService {
             createdAt: row.created_at || new Date().toISOString(),
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
+
+          const { merged, missingInRemote } = this.mergeEntities(db.masterSiswa, remoteSiswa, deletedIds);
+          db.masterSiswa = merged;
           counts['master_siswa'] = db.masterSiswa.length;
 
-          // Purge deleted rows from Supabase if returned
+          // Push missing local items to Supabase
+          if (missingInRemote.length > 0) {
+            client.from('master_siswa').upsert(
+              missingInRemote.map((item) => ({
+                id: item.id,
+                nisn: item.nisn,
+                nis: item.nis || '',
+                nama_lengkap: item.namaLengkap,
+                kelas: item.kelas,
+                jenis_kelamin: item.jenisKelamin,
+                alamat: item.alamat || '',
+                no_hp: item.noHp || '',
+                keterangan: item.keterangan || '',
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            ).then(() => {});
+          }
+
+          // Purge deleted rows from Supabase
           const toPurge = siswaData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
             client.from('master_siswa').delete().in('id', toPurge).then(() => {});
@@ -558,8 +656,7 @@ export class StorageService {
             errors.push(`Master Guru: ${guruErr.message}`);
           }
         } else if (guruData) {
-          const filtered = guruData.filter((row: any) => !deletedIds.has(row.id));
-          db.masterGuru = filtered.map((row: any) => ({
+          const remoteGuru: GuruItem[] = guruData.map((row: any) => ({
             id: row.id || ('guru-' + Math.random().toString(36).substring(2, 9)),
             nip: String(row.nip || ''),
             namaLengkap: String(row.nama_lengkap || row.namaLengkap || ''),
@@ -571,7 +668,27 @@ export class StorageService {
             createdAt: row.created_at || new Date().toISOString(),
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
+
+          const { merged, missingInRemote } = this.mergeEntities(db.masterGuru, remoteGuru, deletedIds);
+          db.masterGuru = merged;
           counts['master_guru'] = db.masterGuru.length;
+
+          if (missingInRemote.length > 0) {
+            client.from('master_guru').upsert(
+              missingInRemote.map((item) => ({
+                id: item.id,
+                nip: item.nip,
+                nama_lengkap: item.namaLengkap,
+                jabatan: item.jabatan,
+                mapel: item.mapel || '',
+                no_hp: item.noHp || '',
+                email: item.email || '',
+                keterangan: item.keterangan || '',
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            ).then(() => {});
+          }
 
           const toPurge = guruData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
@@ -591,8 +708,7 @@ export class StorageService {
           .range(0, 999);
 
         if (!piketErr && piketData) {
-          const filtered = piketData.filter((row: any) => !deletedIds.has(row.id));
-          db.piketHarian = filtered.map((row: any) => ({
+          const remotePiket: PiketHarian[] = piketData.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             waktu: row.waktu,
@@ -605,7 +721,28 @@ export class StorageService {
             createdAt: row.created_at || new Date().toISOString(),
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
+
+          const { merged, missingInRemote } = this.mergeEntities(db.piketHarian, remotePiket, deletedIds);
+          db.piketHarian = merged;
           counts['piket_harian'] = db.piketHarian.length;
+
+          if (missingInRemote.length > 0) {
+            client.from('piket_harian').upsert(
+              missingInRemote.map((item) => ({
+                id: item.id,
+                hari_tanggal: item.hariTanggal,
+                waktu: item.waktu,
+                nama_anggota: item.namaAnggota,
+                kelas: item.kelas || '',
+                hasil_temuan: item.hasilTemuan,
+                link_foto: item.linkFoto || '',
+                tanda_tangan: item.tandaTangan || '',
+                keterangan: item.keterangan || '',
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            ).then(() => {});
+          }
 
           const toPurge = piketData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
@@ -613,7 +750,7 @@ export class StorageService {
           }
         }
       } catch (e: any) {
-        // silently handle
+        // Silently handle
       }
 
       // 4. Fetch Sabtu Beli Teh Ceri
@@ -625,8 +762,7 @@ export class StorageService {
           .range(0, 999);
 
         if (!ceriErr && ceriData) {
-          const filtered = ceriData.filter((row: any) => !deletedIds.has(row.id));
-          db.sabtuBeliTehCeri = filtered.map((row: any) => ({
+          const remoteCeri: SabtuBeliTehCeri[] = ceriData.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             waktu: row.waktu,
@@ -639,7 +775,28 @@ export class StorageService {
             createdAt: row.created_at || new Date().toISOString(),
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
+
+          const { merged, missingInRemote } = this.mergeEntities(db.sabtuBeliTehCeri, remoteCeri, deletedIds);
+          db.sabtuBeliTehCeri = merged;
           counts['sabtu_teh_ceri'] = db.sabtuBeliTehCeri.length;
+
+          if (missingInRemote.length > 0) {
+            client.from('sabtu_teh_ceri').upsert(
+              missingInRemote.map((item) => ({
+                id: item.id,
+                hari_tanggal: item.hariTanggal,
+                waktu: item.waktu,
+                hasil_temuan_1minggu: item.hasilTemuan1Minggu,
+                evaluasi_kegiatan: item.evaluasiKegiatan || '',
+                rencana_inovasi: item.rencanaInovasi || '',
+                link_foto: item.linkFoto || '',
+                tanda_tangan: item.tandaTangan || '',
+                keterangan: item.keterangan || '',
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            ).then(() => {});
+          }
 
           const toPurge = ceriData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
@@ -647,7 +804,7 @@ export class StorageService {
           }
         }
       } catch (e: any) {
-        // silently handle
+        // Silently handle
       }
 
       // 5. Fetch Kebun Luas Berseri
@@ -659,8 +816,7 @@ export class StorageService {
           .range(0, 999);
 
         if (!kebunErr && kebunData) {
-          const filtered = kebunData.filter((row: any) => !deletedIds.has(row.id));
-          db.kebunLuasBerseri = filtered.map((row: any) => ({
+          const remoteKebun: KebunLuasBerseri[] = kebunData.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             waktu: row.waktu,
@@ -674,7 +830,29 @@ export class StorageService {
             createdAt: row.created_at || new Date().toISOString(),
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
+
+          const { merged, missingInRemote } = this.mergeEntities(db.kebunLuasBerseri, remoteKebun, deletedIds);
+          db.kebunLuasBerseri = merged;
           counts['kebun_luas_berseri'] = db.kebunLuasBerseri.length;
+
+          if (missingInRemote.length > 0) {
+            client.from('kebun_luas_berseri').upsert(
+              missingInRemote.map((item) => ({
+                id: item.id,
+                hari_tanggal: item.hariTanggal,
+                waktu: item.waktu,
+                evaluasi_berhasil: item.evaluasiBerhasil || '',
+                kendala_solusi: item.kendalaSolusi || '',
+                hasil_inovasi: item.hasilInovasi || '',
+                produk_kreatif: item.produkKreatif || '',
+                rtl_list: item.rtlList || [],
+                tanda_tangan: item.tandaTangan || '',
+                keterangan: item.keterangan || '',
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            ).then(() => {});
+          }
 
           const toPurge = kebunData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
@@ -682,7 +860,7 @@ export class StorageService {
           }
         }
       } catch (e: any) {
-        // silently handle
+        // Silently handle
       }
 
       // 6. Fetch Senandung Serasi
@@ -694,8 +872,7 @@ export class StorageService {
           .range(0, 999);
 
         if (!senandungErr && senandungData) {
-          const filtered = senandungData.filter((row: any) => !deletedIds.has(row.id));
-          db.senandungSerasi = filtered.map((row: any) => ({
+          const remoteSenandung: SenandungSerasi[] = senandungData.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             waktu: row.waktu,
@@ -705,7 +882,25 @@ export class StorageService {
             createdAt: row.created_at || new Date().toISOString(),
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
+
+          const { merged, missingInRemote } = this.mergeEntities(db.senandungSerasi, remoteSenandung, deletedIds);
+          db.senandungSerasi = merged;
           counts['senandung_serasi'] = db.senandungSerasi.length;
+
+          if (missingInRemote.length > 0) {
+            client.from('senandung_serasi').upsert(
+              missingInRemote.map((item) => ({
+                id: item.id,
+                hari_tanggal: item.hariTanggal,
+                waktu: item.waktu,
+                pesan_disampaikan: item.pesanDisampaikan,
+                tanda_tangan: item.tandaTangan || '',
+                keterangan: item.keterangan || '',
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            ).then(() => {});
+          }
 
           const toPurge = senandungData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
@@ -713,7 +908,7 @@ export class StorageService {
           }
         }
       } catch (e: any) {
-        // silently handle
+        // Silently handle
       }
 
       // 7. Fetch E-Lapor
@@ -725,8 +920,7 @@ export class StorageService {
           .range(0, 999);
 
         if (!laporErr && laporData) {
-          const filtered = laporData.filter((row: any) => !deletedIds.has(row.id));
-          db.eLaporPerundungan = filtered.map((row: any) => ({
+          const remoteLapor: ELaporPerundungan[] = laporData.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             waktuKejadian: row.waktu_kejadian,
@@ -744,7 +938,33 @@ export class StorageService {
             createdAt: row.created_at || new Date().toISOString(),
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
+
+          const { merged, missingInRemote } = this.mergeEntities(db.eLaporPerundungan, remoteLapor, deletedIds);
+          db.eLaporPerundungan = merged;
           counts['e_lapor_perundungan'] = db.eLaporPerundungan.length;
+
+          if (missingInRemote.length > 0) {
+            client.from('e_lapor_perundungan').upsert(
+              missingInRemote.map((item) => ({
+                id: item.id,
+                hari_tanggal: item.hariTanggal,
+                waktu_kejadian: item.waktuKejadian,
+                nama_siswa: item.namaSiswa,
+                kelas: item.kelas || '',
+                kronologi: item.kronologi,
+                penyadaran: item.penyadaran || '',
+                pencegahan: item.pencegahan || '',
+                penanganan_respon: item.penangananRespon || '',
+                pelaporan: item.pelaporan || '',
+                tindak_lanjut: item.tindakLanjut || '',
+                status: item.status,
+                tanda_tangan: item.tandaTangan || '',
+                keterangan: item.keterangan || '',
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            ).then(() => {});
+          }
 
           const toPurge = laporData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
@@ -752,7 +972,7 @@ export class StorageService {
           }
         }
       } catch (e: any) {
-        // silently handle
+        // Silently handle
       }
 
       // 8. Fetch Buku Tamu
@@ -764,8 +984,7 @@ export class StorageService {
           .range(0, 999);
 
         if (!tamuErr && tamuData) {
-          const filtered = tamuData.filter((row: any) => !deletedIds.has(row.id));
-          db.bukuTamu = filtered.map((row: any) => ({
+          const remoteTamu: BukuTamu[] = tamuData.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             jamKedatangan: row.jam_kedatangan,
@@ -780,7 +999,30 @@ export class StorageService {
             createdAt: row.created_at || new Date().toISOString(),
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
+
+          const { merged, missingInRemote } = this.mergeEntities(db.bukuTamu, remoteTamu, deletedIds);
+          db.bukuTamu = merged;
           counts['buku_tamu'] = db.bukuTamu.length;
+
+          if (missingInRemote.length > 0) {
+            client.from('buku_tamu').upsert(
+              missingInRemote.map((item) => ({
+                id: item.id,
+                hari_tanggal: item.hariTanggal,
+                jam_kedatangan: item.jamKedatangan,
+                nama_lengkap: item.namaLengkap,
+                nip_nik: item.nipNik,
+                jabatan: item.jabatan,
+                instansi_asal: item.instansiAsal,
+                tujuan_kunjungan: item.tujuanKunjungan,
+                tanda_tangan: item.tandaTangan,
+                tindak_lanjut: item.tindakLanjut,
+                keterangan: item.keterangan,
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            ).then(() => {});
+          }
 
           const toPurge = tamuData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
@@ -788,7 +1030,7 @@ export class StorageService {
           }
         }
       } catch (e: any) {
-        // silently handle
+        // Silently handle
       }
 
       // 9. Fetch Custom Links
@@ -799,8 +1041,7 @@ export class StorageService {
           .range(0, 999);
 
         if (!linkErr && linkData) {
-          const filtered = linkData.filter((row: any) => !deletedIds.has(row.id));
-          db.customLinks = filtered.map((row: any) => ({
+          const remoteLinks: CustomLink[] = linkData.map((row: any) => ({
             id: row.id,
             title: row.title,
             url: row.url,
@@ -812,7 +1053,27 @@ export class StorageService {
             createdAt: row.created_at || new Date().toISOString(),
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
+
+          const { merged, missingInRemote } = this.mergeEntities(db.customLinks, remoteLinks, deletedIds);
+          db.customLinks = merged;
           counts['custom_links'] = db.customLinks.length;
+
+          if (missingInRemote.length > 0) {
+            client.from('custom_links').upsert(
+              missingInRemote.map((item) => ({
+                id: item.id,
+                title: item.title,
+                url: item.url,
+                description: item.description || '',
+                category: item.category,
+                icon_name: item.iconName,
+                color: item.color,
+                is_custom: item.isCustom ?? true,
+                created_at: item.createdAt,
+                updated_at: item.updatedAt,
+              }))
+            ).then(() => {});
+          }
 
           const toPurge = linkData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
           if (toPurge.length > 0) {
@@ -820,7 +1081,7 @@ export class StorageService {
           }
         }
       } catch (e: any) {
-        // silently handle
+        // Silently handle
       }
 
       // 10. Fetch Class Assignments (Zona Hijau Tiap Kelas)
@@ -847,7 +1108,7 @@ export class StorageService {
           counts['class_assignments'] = classData.length;
         }
       } catch (e: any) {
-        // silently handle
+        // Silently handle
       }
 
       db.supabaseConfig.lastSyncedAt = new Date().toISOString();
