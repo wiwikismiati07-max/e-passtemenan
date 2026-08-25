@@ -3,13 +3,10 @@ import {
   ShieldCheck,
   Lock,
   User,
-  KeyRound,
   LogIn,
   Eye,
   EyeOff,
   AlertCircle,
-  GraduationCap,
-  Sparkles,
 } from 'lucide-react';
 
 export interface UserSession {
@@ -54,7 +51,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           displayName: cleanUsername === 'operator' ? 'Operator SPANJU' : 'Administrator SPANJU',
         });
       } else {
-        setErrorMessage('Username atau Password yang Anda ketik tidak sesuai!');
+        setErrorMessage('Username atau Password yang Anda masukkan tidak sesuai!');
         setIsLoading(false);
       }
     }, 350);
@@ -118,7 +115,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   autoComplete="off"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Ketik username akun Anda..."
+                  placeholder="Masukkan username..."
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
                 />
               </div>
@@ -137,7 +134,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   autoComplete="off"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Ketik password akun Anda..."
+                  placeholder="Masukkan password..."
                   className="w-full pl-4 pr-11 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
                 />
                 <button
@@ -155,7 +152,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <button
               type="submit"
               disabled={isLoading || !username || !password}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isLoading ? (
                 <span>Memverifikasi Akses...</span>
@@ -168,31 +165,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </button>
           </form>
 
-          {/* Account Credentials Info Box (Hanya Akses Siswa / Pengguna) */}
-          <div className="p-4 rounded-2xl bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs space-y-2.5">
-            <div className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300">
-              <KeyRound className="w-3.5 h-3.5 text-amber-500" />
-              <span>Panduan Akun Masuk Siswa:</span>
-            </div>
-
-            {/* Akun Siswa */}
-            <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-1.5">
-              <p className="font-sans font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 text-xs">
-                <GraduationCap className="w-4 h-4" /> Akses Siswa SPANJU
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-0.5">
-                <p className="text-slate-600 dark:text-slate-300">
-                  User: <span className="font-bold text-slate-900 dark:text-white">passtemenan</span>
-                </p>
-                <p className="text-slate-600 dark:text-slate-300">
-                  Pass: <span className="font-bold text-slate-900 dark:text-white">smpn7</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Footer note */}
-          <div className="text-center text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+          <div className="text-center text-[11px] text-slate-400 dark:text-slate-500 font-medium pt-1">
             &copy; {new Date().getFullYear()} Satgas Anti Perundungan UPT SMPN 7 Pasuruan
           </div>
         </div>
