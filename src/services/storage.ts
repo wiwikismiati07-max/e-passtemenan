@@ -16,6 +16,7 @@ import {
 import { INITIAL_CLASS_ZONE_DATA } from '../data/classZoneData';
 
 const STORAGE_KEY = 'PASS_TEMENAN_SPANJU_DB_V1';
+const DELETED_IDS_STORAGE_KEY = 'PASS_TEMENAN_DELETED_IDS_V1';
 
 export const INITIAL_CUSTOM_LINKS: CustomLink[] = [
   {
@@ -355,30 +356,92 @@ export class StorageService {
   private static db: AppDatabase | null = null;
   private static supabaseClient: SupabaseClient | null = null;
 
+  public static getDeletedIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem(DELETED_IDS_STORAGE_KEY);
+      if (raw) {
+        return new Set(JSON.parse(raw));
+      }
+    } catch (e) {
+      console.error('Error reading deleted IDs', e);
+    }
+    return new Set<string>();
+  }
+
+  public static markAsDeleted(id: string): void {
+    if (!id) return;
+    try {
+      const deleted = this.getDeletedIds();
+      deleted.add(id);
+      localStorage.setItem(DELETED_IDS_STORAGE_KEY, JSON.stringify(Array.from(deleted)));
+    } catch (e) {
+      console.error('Error saving deleted IDs', e);
+    }
+  }
+
+  public static unmarkDeleted(id: string): void {
+    if (!id) return;
+    try {
+      const deleted = this.getDeletedIds();
+      if (deleted.has(id)) {
+        deleted.delete(id);
+        localStorage.setItem(DELETED_IDS_STORAGE_KEY, JSON.stringify(Array.from(deleted)));
+      }
+    } catch (e) {
+      console.error('Error removing deleted ID', e);
+    }
+  }
+
+  public static async deleteFromSupabase(table: string, id: string): Promise<void> {
+    if (!id) return;
+    const client = this.getSupabaseClient();
+    if (!client) return;
+    try {
+      const { error } = await client.from(table).delete().eq('id', id);
+      if (error) {
+        console.warn(`Supabase delete from ${table} notice:`, error.message);
+      }
+    } catch (e) {
+      console.warn(`Supabase delete exception on ${table}:`, e);
+    }
+  }
+
   public static getDb(): AppDatabase {
     if (this.db) return this.db;
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
+      const deletedIds = this.getDeletedIds();
       if (stored) {
         const parsed = JSON.parse(stored);
         this.db = {
           ...DEFAULT_DATABASE,
           ...parsed,
-          customLinks: parsed.customLinks || DEFAULT_DATABASE.customLinks,
-          piketHarian: parsed.piketHarian || DEFAULT_DATABASE.piketHarian,
-          sabtuBeliTehCeri: parsed.sabtuBeliTehCeri || DEFAULT_DATABASE.sabtuBeliTehCeri,
-          kebunLuasBerseri: parsed.kebunLuasBerseri || DEFAULT_DATABASE.kebunLuasBerseri,
-          senandungSerasi: parsed.senandungSerasi || DEFAULT_DATABASE.senandungSerasi,
-          eLaporPerundungan: parsed.eLaporPerundungan || DEFAULT_DATABASE.eLaporPerundungan,
-          bukuTamu: parsed.bukuTamu || DEFAULT_DATABASE.bukuTamu,
-          masterSiswa: parsed.masterSiswa || DEFAULT_DATABASE.masterSiswa,
-          masterGuru: parsed.masterGuru || DEFAULT_DATABASE.masterGuru,
+          customLinks: (Array.isArray(parsed.customLinks) ? parsed.customLinks : DEFAULT_DATABASE.customLinks).filter((x: any) => !deletedIds.has(x.id)),
+          piketHarian: (Array.isArray(parsed.piketHarian) ? parsed.piketHarian : DEFAULT_DATABASE.piketHarian).filter((x: any) => !deletedIds.has(x.id)),
+          sabtuBeliTehCeri: (Array.isArray(parsed.sabtuBeliTehCeri) ? parsed.sabtuBeliTehCeri : DEFAULT_DATABASE.sabtuBeliTehCeri).filter((x: any) => !deletedIds.has(x.id)),
+          kebunLuasBerseri: (Array.isArray(parsed.kebunLuasBerseri) ? parsed.kebunLuasBerseri : DEFAULT_DATABASE.kebunLuasBerseri).filter((x: any) => !deletedIds.has(x.id)),
+          senandungSerasi: (Array.isArray(parsed.senandungSerasi) ? parsed.senandungSerasi : DEFAULT_DATABASE.senandungSerasi).filter((x: any) => !deletedIds.has(x.id)),
+          eLaporPerundungan: (Array.isArray(parsed.eLaporPerundungan) ? parsed.eLaporPerundungan : DEFAULT_DATABASE.eLaporPerundungan).filter((x: any) => !deletedIds.has(x.id)),
+          bukuTamu: (Array.isArray(parsed.bukuTamu) ? parsed.bukuTamu : DEFAULT_DATABASE.bukuTamu).filter((x: any) => !deletedIds.has(x.id)),
+          masterSiswa: (Array.isArray(parsed.masterSiswa) ? parsed.masterSiswa : DEFAULT_DATABASE.masterSiswa).filter((x: any) => !deletedIds.has(x.id)),
+          masterGuru: (Array.isArray(parsed.masterGuru) ? parsed.masterGuru : DEFAULT_DATABASE.masterGuru).filter((x: any) => !deletedIds.has(x.id)),
           classAssignments: parsed.classAssignments || DEFAULT_DATABASE.classAssignments || {},
           supabaseConfig: { ...DEFAULT_DATABASE.supabaseConfig, ...(parsed.supabaseConfig || {}) },
           pejabatConfig: { ...DEFAULT_PEJABAT_CONFIG, ...(parsed.pejabatConfig || {}) },
         };
       } else {
-        this.db = { ...DEFAULT_DATABASE };
+        this.db = {
+          ...DEFAULT_DATABASE,
+          customLinks: DEFAULT_DATABASE.customLinks.filter((x) => !deletedIds.has(x.id)),
+          piketHarian: DEFAULT_DATABASE.piketHarian.filter((x) => !deletedIds.has(x.id)),
+          sabtuBeliTehCeri: DEFAULT_DATABASE.sabtuBeliTehCeri.filter((x) => !deletedIds.has(x.id)),
+          kebunLuasBerseri: DEFAULT_DATABASE.kebunLuasBerseri.filter((x) => !deletedIds.has(x.id)),
+          senandungSerasi: DEFAULT_DATABASE.senandungSerasi.filter((x) => !deletedIds.has(x.id)),
+          eLaporPerundungan: DEFAULT_DATABASE.eLaporPerundungan.filter((x) => !deletedIds.has(x.id)),
+          bukuTamu: DEFAULT_DATABASE.bukuTamu.filter((x) => !deletedIds.has(x.id)),
+          masterSiswa: DEFAULT_DATABASE.masterSiswa.filter((x) => !deletedIds.has(x.id)),
+          masterGuru: DEFAULT_DATABASE.masterGuru.filter((x) => !deletedIds.has(x.id)),
+        };
         this.saveDb();
       }
     } catch (e) {
@@ -440,6 +503,7 @@ export class StorageService {
     }
 
     const db = this.getDb();
+    const deletedIds = this.getDeletedIds();
     const counts: Record<string, number> = {};
     const errors: string[] = [];
 
@@ -455,8 +519,9 @@ export class StorageService {
           if (!siswaErr.message.includes('relation "master_siswa" does not exist')) {
             errors.push(`Master Siswa: ${siswaErr.message}`);
           }
-        } else if (siswaData && siswaData.length > 0) {
-          db.masterSiswa = siswaData.map((row: any) => ({
+        } else if (siswaData) {
+          const filtered = siswaData.filter((row: any) => !deletedIds.has(row.id));
+          db.masterSiswa = filtered.map((row: any) => ({
             id: row.id || ('sis-' + Math.random().toString(36).substring(2, 9)),
             nisn: String(row.nisn || ''),
             nis: String(row.nis || ''),
@@ -470,6 +535,12 @@ export class StorageService {
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
           counts['master_siswa'] = db.masterSiswa.length;
+
+          // Purge deleted rows from Supabase if returned
+          const toPurge = siswaData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          if (toPurge.length > 0) {
+            client.from('master_siswa').delete().in('id', toPurge).then(() => {});
+          }
         }
       } catch (e: any) {
         errors.push(`Master Siswa: ${e?.message}`);
@@ -486,8 +557,9 @@ export class StorageService {
           if (!guruErr.message.includes('relation "master_guru" does not exist')) {
             errors.push(`Master Guru: ${guruErr.message}`);
           }
-        } else if (guruData && guruData.length > 0) {
-          db.masterGuru = guruData.map((row: any) => ({
+        } else if (guruData) {
+          const filtered = guruData.filter((row: any) => !deletedIds.has(row.id));
+          db.masterGuru = filtered.map((row: any) => ({
             id: row.id || ('guru-' + Math.random().toString(36).substring(2, 9)),
             nip: String(row.nip || ''),
             namaLengkap: String(row.nama_lengkap || row.namaLengkap || ''),
@@ -500,6 +572,11 @@ export class StorageService {
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
           counts['master_guru'] = db.masterGuru.length;
+
+          const toPurge = guruData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          if (toPurge.length > 0) {
+            client.from('master_guru').delete().in('id', toPurge).then(() => {});
+          }
         }
       } catch (e: any) {
         errors.push(`Master Guru: ${e?.message}`);
@@ -513,8 +590,9 @@ export class StorageService {
           .order('created_at', { ascending: false })
           .range(0, 999);
 
-        if (!piketErr && piketData && piketData.length > 0) {
-          db.piketHarian = piketData.map((row: any) => ({
+        if (!piketErr && piketData) {
+          const filtered = piketData.filter((row: any) => !deletedIds.has(row.id));
+          db.piketHarian = filtered.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             waktu: row.waktu,
@@ -528,6 +606,11 @@ export class StorageService {
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
           counts['piket_harian'] = db.piketHarian.length;
+
+          const toPurge = piketData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          if (toPurge.length > 0) {
+            client.from('piket_harian').delete().in('id', toPurge).then(() => {});
+          }
         }
       } catch (e: any) {
         // silently handle
@@ -541,8 +624,9 @@ export class StorageService {
           .order('created_at', { ascending: false })
           .range(0, 999);
 
-        if (!ceriErr && ceriData && ceriData.length > 0) {
-          db.sabtuBeliTehCeri = ceriData.map((row: any) => ({
+        if (!ceriErr && ceriData) {
+          const filtered = ceriData.filter((row: any) => !deletedIds.has(row.id));
+          db.sabtuBeliTehCeri = filtered.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             waktu: row.waktu,
@@ -556,6 +640,11 @@ export class StorageService {
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
           counts['sabtu_teh_ceri'] = db.sabtuBeliTehCeri.length;
+
+          const toPurge = ceriData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          if (toPurge.length > 0) {
+            client.from('sabtu_teh_ceri').delete().in('id', toPurge).then(() => {});
+          }
         }
       } catch (e: any) {
         // silently handle
@@ -569,8 +658,9 @@ export class StorageService {
           .order('created_at', { ascending: false })
           .range(0, 999);
 
-        if (!kebunErr && kebunData && kebunData.length > 0) {
-          db.kebunLuasBerseri = kebunData.map((row: any) => ({
+        if (!kebunErr && kebunData) {
+          const filtered = kebunData.filter((row: any) => !deletedIds.has(row.id));
+          db.kebunLuasBerseri = filtered.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             waktu: row.waktu,
@@ -585,6 +675,11 @@ export class StorageService {
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
           counts['kebun_luas_berseri'] = db.kebunLuasBerseri.length;
+
+          const toPurge = kebunData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          if (toPurge.length > 0) {
+            client.from('kebun_luas_berseri').delete().in('id', toPurge).then(() => {});
+          }
         }
       } catch (e: any) {
         // silently handle
@@ -598,8 +693,9 @@ export class StorageService {
           .order('created_at', { ascending: false })
           .range(0, 999);
 
-        if (!senandungErr && senandungData && senandungData.length > 0) {
-          db.senandungSerasi = senandungData.map((row: any) => ({
+        if (!senandungErr && senandungData) {
+          const filtered = senandungData.filter((row: any) => !deletedIds.has(row.id));
+          db.senandungSerasi = filtered.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             waktu: row.waktu,
@@ -610,6 +706,11 @@ export class StorageService {
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
           counts['senandung_serasi'] = db.senandungSerasi.length;
+
+          const toPurge = senandungData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          if (toPurge.length > 0) {
+            client.from('senandung_serasi').delete().in('id', toPurge).then(() => {});
+          }
         }
       } catch (e: any) {
         // silently handle
@@ -623,8 +724,9 @@ export class StorageService {
           .order('created_at', { ascending: false })
           .range(0, 999);
 
-        if (!laporErr && laporData && laporData.length > 0) {
-          db.eLaporPerundungan = laporData.map((row: any) => ({
+        if (!laporErr && laporData) {
+          const filtered = laporData.filter((row: any) => !deletedIds.has(row.id));
+          db.eLaporPerundungan = filtered.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             waktuKejadian: row.waktu_kejadian,
@@ -643,6 +745,11 @@ export class StorageService {
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
           counts['e_lapor_perundungan'] = db.eLaporPerundungan.length;
+
+          const toPurge = laporData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          if (toPurge.length > 0) {
+            client.from('e_lapor_perundungan').delete().in('id', toPurge).then(() => {});
+          }
         }
       } catch (e: any) {
         // silently handle
@@ -656,8 +763,9 @@ export class StorageService {
           .order('created_at', { ascending: false })
           .range(0, 999);
 
-        if (!tamuErr && tamuData && tamuData.length > 0) {
-          db.bukuTamu = tamuData.map((row: any) => ({
+        if (!tamuErr && tamuData) {
+          const filtered = tamuData.filter((row: any) => !deletedIds.has(row.id));
+          db.bukuTamu = filtered.map((row: any) => ({
             id: row.id,
             hariTanggal: row.hari_tanggal,
             jamKedatangan: row.jam_kedatangan,
@@ -673,6 +781,11 @@ export class StorageService {
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
           counts['buku_tamu'] = db.bukuTamu.length;
+
+          const toPurge = tamuData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          if (toPurge.length > 0) {
+            client.from('buku_tamu').delete().in('id', toPurge).then(() => {});
+          }
         }
       } catch (e: any) {
         // silently handle
@@ -685,8 +798,9 @@ export class StorageService {
           .select('*')
           .range(0, 999);
 
-        if (!linkErr && linkData && linkData.length > 0) {
-          db.customLinks = linkData.map((row: any) => ({
+        if (!linkErr && linkData) {
+          const filtered = linkData.filter((row: any) => !deletedIds.has(row.id));
+          db.customLinks = filtered.map((row: any) => ({
             id: row.id,
             title: row.title,
             url: row.url,
@@ -699,6 +813,11 @@ export class StorageService {
             updatedAt: row.updated_at || new Date().toISOString(),
           }));
           counts['custom_links'] = db.customLinks.length;
+
+          const toPurge = linkData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
+          if (toPurge.length > 0) {
+            client.from('custom_links').delete().in('id', toPurge).then(() => {});
+          }
         }
       } catch (e: any) {
         // silently handle
@@ -1080,7 +1199,30 @@ export class StorageService {
       };
       db.customLinks.push(saved);
     }
+    this.unmarkDeleted(saved.id);
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('custom_links')
+        .upsert({
+          id: saved.id,
+          title: saved.title,
+          url: saved.url,
+          description: saved.description || '',
+          category: saved.category,
+          icon_name: saved.iconName,
+          color: saved.color,
+          is_custom: saved.isCustom,
+          created_at: saved.createdAt,
+          updated_at: saved.updatedAt,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase auto-save link notice:', error.message);
+        });
+    }
+
     return saved;
   }
 
@@ -1089,9 +1231,11 @@ export class StorageService {
   }
 
   public static deleteCustomLink(id: string): void {
+    this.markAsDeleted(id);
     const db = this.getDb();
     db.customLinks = db.customLinks.filter((l) => l.id !== id);
     this.saveDb();
+    this.deleteFromSupabase('custom_links', id);
   }
 
   public static deleteLink(id: string): void {
@@ -1122,14 +1266,40 @@ export class StorageService {
       };
       db.piketHarian.unshift(saved);
     }
+    this.unmarkDeleted(saved.id);
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('piket_harian')
+        .upsert({
+          id: saved.id,
+          hari_tanggal: saved.hariTanggal,
+          waktu: saved.waktu,
+          nama_anggota: saved.namaAnggota,
+          kelas: saved.kelas || '',
+          hasil_temuan: saved.hasilTemuan,
+          link_foto: saved.linkFoto || '',
+          tanda_tangan: saved.tandaTangan || '',
+          keterangan: saved.keterangan || '',
+          created_at: saved.createdAt,
+          updated_at: saved.updatedAt,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase auto-save piket notice:', error.message);
+        });
+    }
+
     return saved;
   }
 
   public static deletePiketHarian(id: string): void {
+    this.markAsDeleted(id);
     const db = this.getDb();
     db.piketHarian = db.piketHarian.filter((p) => p.id !== id);
     this.saveDb();
+    this.deleteFromSupabase('piket_harian', id);
   }
 
   // 3. Sabtu Beli Teh Ceri
@@ -1156,14 +1326,40 @@ export class StorageService {
       };
       db.sabtuBeliTehCeri.unshift(saved);
     }
+    this.unmarkDeleted(saved.id);
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('sabtu_teh_ceri')
+        .upsert({
+          id: saved.id,
+          hari_tanggal: saved.hariTanggal,
+          waktu: saved.waktu,
+          hasil_temuan_1minggu: saved.hasilTemuan1Minggu,
+          evaluasi_kegiatan: saved.evaluasiKegiatan || '',
+          rencana_inovasi: saved.rencanaInovasi || '',
+          link_foto: saved.linkFoto || '',
+          tanda_tangan: saved.tandaTangan || '',
+          keterangan: saved.keterangan || '',
+          created_at: saved.createdAt,
+          updated_at: saved.updatedAt,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase auto-save sabtu teh ceri notice:', error.message);
+        });
+    }
+
     return saved;
   }
 
   public static deleteSabtuBeliTehCeri(id: string): void {
+    this.markAsDeleted(id);
     const db = this.getDb();
     db.sabtuBeliTehCeri = db.sabtuBeliTehCeri.filter((p) => p.id !== id);
     this.saveDb();
+    this.deleteFromSupabase('sabtu_teh_ceri', id);
   }
 
   // 4. Kebun Luas Berseri
@@ -1190,14 +1386,41 @@ export class StorageService {
       };
       db.kebunLuasBerseri.unshift(saved);
     }
+    this.unmarkDeleted(saved.id);
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('kebun_luas_berseri')
+        .upsert({
+          id: saved.id,
+          hari_tanggal: saved.hariTanggal,
+          waktu: saved.waktu,
+          evaluasi_berhasil: saved.evaluasiBerhasil || '',
+          kendala_solusi: saved.kendalaSolusi || '',
+          hasil_inovasi: saved.hasilInovasi || '',
+          produk_kreatif: saved.produkKreatif || '',
+          rtl_list: saved.rtlList || [],
+          tanda_tangan: saved.tandaTangan || '',
+          keterangan: saved.keterangan || '',
+          created_at: saved.createdAt,
+          updated_at: saved.updatedAt,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase auto-save kebun luas berseri notice:', error.message);
+        });
+    }
+
     return saved;
   }
 
   public static deleteKebunLuasBerseri(id: string): void {
+    this.markAsDeleted(id);
     const db = this.getDb();
     db.kebunLuasBerseri = db.kebunLuasBerseri.filter((p) => p.id !== id);
     this.saveDb();
+    this.deleteFromSupabase('kebun_luas_berseri', id);
   }
 
   // 5. Senandung Serasi
@@ -1224,14 +1447,37 @@ export class StorageService {
       };
       db.senandungSerasi.unshift(saved);
     }
+    this.unmarkDeleted(saved.id);
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('senandung_serasi')
+        .upsert({
+          id: saved.id,
+          hari_tanggal: saved.hariTanggal,
+          waktu: saved.waktu,
+          pesan_disampaikan: saved.pesanDisampaikan,
+          tanda_tangan: saved.tandaTangan || '',
+          keterangan: saved.keterangan || '',
+          created_at: saved.createdAt,
+          updated_at: saved.updatedAt,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase auto-save senandung serasi notice:', error.message);
+        });
+    }
+
     return saved;
   }
 
   public static deleteSenandungSerasi(id: string): void {
+    this.markAsDeleted(id);
     const db = this.getDb();
     db.senandungSerasi = db.senandungSerasi.filter((p) => p.id !== id);
     this.saveDb();
+    this.deleteFromSupabase('senandung_serasi', id);
   }
 
   // 6. E-Lapor Perundungan
@@ -1258,14 +1504,45 @@ export class StorageService {
       };
       db.eLaporPerundungan.unshift(saved);
     }
+    this.unmarkDeleted(saved.id);
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('e_lapor_perundungan')
+        .upsert({
+          id: saved.id,
+          hari_tanggal: saved.hariTanggal,
+          waktu_kejadian: saved.waktuKejadian,
+          nama_siswa: saved.namaSiswa,
+          kelas: saved.kelas || '',
+          kronologi: saved.kronologi,
+          penyadaran: saved.penyadaran || '',
+          pencegahan: saved.pencegahan || '',
+          penanganan_respon: saved.penangananRespon || '',
+          pelaporan: saved.pelaporan || '',
+          tindak_lanjut: saved.tindakLanjut || '',
+          status: saved.status || 'Laporan Baru',
+          tanda_tangan: saved.tandaTangan || '',
+          keterangan: saved.keterangan || '',
+          created_at: saved.createdAt,
+          updated_at: saved.updatedAt,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase auto-save e-lapor notice:', error.message);
+        });
+    }
+
     return saved;
   }
 
   public static deleteELapor(id: string): void {
+    this.markAsDeleted(id);
     const db = this.getDb();
     db.eLaporPerundungan = db.eLaporPerundungan.filter((p) => p.id !== id);
     this.saveDb();
+    this.deleteFromSupabase('e_lapor_perundungan', id);
   }
 
   // 7. Buku Tamu
@@ -1292,14 +1569,42 @@ export class StorageService {
       };
       db.bukuTamu.unshift(saved);
     }
+    this.unmarkDeleted(saved.id);
     this.saveDb();
+
+    const client = this.getSupabaseClient();
+    if (client) {
+      client
+        .from('buku_tamu')
+        .upsert({
+          id: saved.id,
+          hari_tanggal: saved.hariTanggal,
+          jam_kedatangan: saved.jamKedatangan,
+          nama_lengkap: saved.namaLengkap,
+          nip_nik: saved.nipNik || '',
+          jabatan: saved.jabatan || '',
+          instansi_asal: saved.instansiAsal,
+          tujuan_kunjungan: saved.tujuanKunjungan,
+          tanda_tangan: saved.tandaTangan || '',
+          tindak_lanjut: saved.tindakLanjut || '',
+          keterangan: saved.keterangan || '',
+          created_at: saved.createdAt,
+          updated_at: saved.updatedAt,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Supabase auto-save buku tamu notice:', error.message);
+        });
+    }
+
     return saved;
   }
 
   public static deleteBukuTamu(id: string): void {
+    this.markAsDeleted(id);
     const db = this.getDb();
     db.bukuTamu = db.bukuTamu.filter((p) => p.id !== id);
     this.saveDb();
+    this.deleteFromSupabase('buku_tamu', id);
   }
 
   // --- MASTER SISWA CRUD & EXCEL IMPORT ---
@@ -1326,6 +1631,7 @@ export class StorageService {
       };
       db.masterSiswa.unshift(saved);
     }
+    this.unmarkDeleted(saved.id);
     this.saveDb();
 
     // Background sync to Supabase if connected
@@ -1355,23 +1661,15 @@ export class StorageService {
   }
 
   public static deleteSiswa(id: string): void {
+    this.markAsDeleted(id);
     const db = this.getDb();
     db.masterSiswa = db.masterSiswa.filter((s) => s.id !== id);
     this.saveDb();
-
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('master_siswa')
-        .delete()
-        .eq('id', id)
-        .then(({ error }) => {
-          if (error) console.warn('Supabase delete siswa notice:', error.message);
-        });
-    }
+    this.deleteFromSupabase('master_siswa', id);
   }
 
   public static deleteMultipleSiswa(ids: string[]): void {
+    ids.forEach((id) => this.markAsDeleted(id));
     const db = this.getDb();
     db.masterSiswa = db.masterSiswa.filter((s) => !ids.includes(s.id));
     this.saveDb();
@@ -1539,6 +1837,7 @@ export class StorageService {
       };
       db.masterGuru.unshift(saved);
     }
+    this.unmarkDeleted(saved.id);
     this.saveDb();
 
     // Background sync to Supabase if connected
@@ -1567,23 +1866,15 @@ export class StorageService {
   }
 
   public static deleteGuru(id: string): void {
+    this.markAsDeleted(id);
     const db = this.getDb();
     db.masterGuru = db.masterGuru.filter((g) => g.id !== id);
     this.saveDb();
-
-    const client = this.getSupabaseClient();
-    if (client) {
-      client
-        .from('master_guru')
-        .delete()
-        .eq('id', id)
-        .then(({ error }) => {
-          if (error) console.warn('Supabase delete guru notice:', error.message);
-        });
-    }
+    this.deleteFromSupabase('master_guru', id);
   }
 
   public static deleteMultipleGuru(ids: string[]): void {
+    ids.forEach((id) => this.markAsDeleted(id));
     const db = this.getDb();
     db.masterGuru = db.masterGuru.filter((g) => !ids.includes(g.id));
     this.saveDb();

@@ -7,6 +7,8 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  Key,
+  GraduationCap,
 } from 'lucide-react';
 
 export interface UserSession {
@@ -177,6 +179,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               )}
             </button>
           </form>
+
+          {/* Panduan Akun Masuk (Manual) */}
+          <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200">
+              <Key className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>Panduan Akun Masuk (Manual)</span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+              <div className="flex items-center gap-1.5 text-xs font-black text-indigo-600 dark:text-indigo-400 pb-1.5">
+                <GraduationCap className="w-4 h-4" />
+                <span>Siswa</span>
+              </div>
+              <div className="font-mono text-xs text-slate-600 dark:text-slate-300 space-y-1 pl-5">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 dark:text-slate-500 w-10">User:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">passtemenan</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 dark:text-slate-500 w-10">Pass:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">smpn7</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Footer note */}
           <div className="text-center text-[11px] text-slate-400 dark:text-slate-500 font-medium pt-1">
