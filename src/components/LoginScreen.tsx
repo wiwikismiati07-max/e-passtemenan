@@ -24,8 +24,8 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('passtemenan');
-  const [password, setPassword] = useState('smpn7');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +35,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     setErrorMessage('');
     setIsLoading(true);
 
-    const cleanUsername = username.trim();
+    const cleanUsername = username.trim().toLowerCase();
     const cleanPassword = password.trim();
 
     setTimeout(() => {
@@ -45,23 +45,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           role: 'siswa',
           displayName: 'Siswa SPANJU',
         });
-      } else if (cleanUsername === 'admin' && cleanPassword === 'admin123') {
+      } else if (
+        (cleanUsername === 'admin' && (cleanPassword === 'admin123' || cleanPassword === 'admin')) ||
+        (cleanUsername === 'operator' && (cleanPassword === 'operator123' || cleanPassword === 'operator' || cleanPassword === 'admin123'))
+      ) {
         onLoginSuccess({
-          username: 'admin',
+          username: cleanUsername,
           role: 'admin',
-          displayName: 'Administrator SPANJU',
+          displayName: cleanUsername === 'operator' ? 'Operator SPANJU' : 'Administrator SPANJU',
         });
       } else {
-        setErrorMessage('Username atau Password yang Anda masukkan tidak sesuai!');
+        setErrorMessage('Username atau Password yang Anda ketik tidak sesuai!');
         setIsLoading(false);
       }
-    }, 400);
-  };
-
-  const handleQuickFill = () => {
-    setErrorMessage('');
-    setUsername('passtemenan');
-    setPassword('smpn7');
+    }, 350);
   };
 
   return (
@@ -99,18 +96,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Quick Preset Button */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={handleQuickFill}
-              className="w-full px-3 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-            >
-              <GraduationCap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span>Isi Akses Siswa</span>
-            </button>
-          </div>
-
           {/* Error Message Alert */}
           {errorMessage && (
             <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-start gap-2.5 animate-shake">
@@ -120,7 +105,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
             {/* Username Input */}
             <div className="space-y-1.5">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
@@ -131,9 +116,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Masukkan username..."
+                  placeholder="Ketik username akun Anda..."
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
                 />
               </div>
@@ -149,9 +135,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="off"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Masukkan password..."
+                  placeholder="Ketik password akun Anda..."
                   className="w-full pl-4 pr-11 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
                 />
                 <button
@@ -168,11 +155,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
+              disabled={isLoading || !username || !password}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
-                <span>Memproses Login...</span>
+                <span>Memverifikasi Akses...</span>
               ) : (
                 <>
                   <LogIn className="w-4 h-4 stroke-[3]" />
@@ -183,18 +170,29 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </form>
 
           {/* Account Credentials Info Box */}
-          <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs space-y-2">
+          <div className="p-4 rounded-2xl bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs space-y-2.5">
             <div className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300">
               <KeyRound className="w-3.5 h-3.5 text-amber-500" />
-              <span>Daftar Akun Resmi:</span>
+              <span>Panduan Akun Masuk (Manual):</span>
             </div>
-            <div className="text-[11px] font-mono">
-              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-0.5">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+              {/* Akun Siswa */}
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-1">
                 <p className="font-sans font-extrabold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                  <GraduationCap className="w-3 h-3" /> Siswa (Akses Input & Edit)
+                  <GraduationCap className="w-3.5 h-3.5" /> Siswa
                 </p>
-                <p className="text-slate-600 dark:text-slate-300">User: <span className="font-extrabold text-slate-900 dark:text-white">passtemenan</span></p>
-                <p className="text-slate-600 dark:text-slate-300">Pass: <span className="font-extrabold text-slate-900 dark:text-white">smpn7</span></p>
+                <p className="text-slate-600 dark:text-slate-300 font-mono">User: <span className="font-bold text-slate-900 dark:text-white">passtemenan</span></p>
+                <p className="text-slate-600 dark:text-slate-300 font-mono">Pass: <span className="font-bold text-slate-900 dark:text-white">smpn7</span></p>
+              </div>
+
+              {/* Akun Admin / Operator */}
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-1">
+                <p className="font-sans font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <UserCog className="w-3.5 h-3.5" /> Admin / Operator
+                </p>
+                <p className="text-slate-600 dark:text-slate-300 font-mono">User: <span className="font-bold text-slate-900 dark:text-white">admin</span> / <span className="font-bold text-slate-900 dark:text-white">operator</span></p>
+                <p className="text-slate-600 dark:text-slate-300 font-mono">Pass: <span className="font-bold text-slate-900 dark:text-white">admin123</span></p>
               </div>
             </div>
           </div>
