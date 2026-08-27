@@ -387,6 +387,185 @@ export class StorageService {
     }
   }
 
+  // --- SUPABASE STORAGE BUCKET UPLOAD FOR ALL MENUS ---
+  public static async uploadPhotoToSupabase(
+    fileOrBlob: Blob | File,
+    folder: string = 'dokumentasi'
+  ): Promise<{ url: string | null; error: string | null }> {
+    const client = this.getSupabaseClient();
+    if (!client) {
+      return { url: null, error: 'Koneksi Supabase belum aktif atau URL/Key belum diatur.' };
+    }
+
+    const bucketName = 'foto_kegiatan';
+
+    try {
+      // Determine extension
+      let ext = 'jpg';
+      if (fileOrBlob.type) {
+        const match = fileOrBlob.type.match(/image\/([a-zA-Z0-9]+)/);
+        if (match && match[1]) {
+          ext = match[1].replace('jpeg', 'jpg');
+        }
+      }
+
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      const cleanFolder = folder.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filePath = `${cleanFolder}/${timestamp}_${randomStr}.${ext}`;
+
+      // Upload to Supabase Storage Bucket
+      const { data, error } = await client.storage
+        .from(bucketName)
+        .upload(filePath, fileOrBlob, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: fileOrBlob.type || 'image/jpeg',
+        });
+
+      if (error) {
+        console.warn('Supabase storage upload error:', error.message);
+        return { url: null, error: error.message };
+      }
+
+      // Get public URL
+      const { data: urlData } = client.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+
+      if (urlData?.publicUrl) {
+        return { url: urlData.publicUrl, error: null };
+      }
+
+      return { url: null, error: 'Gagal mendapatkan URL publik dari Supabase Storage.' };
+    } catch (err: any) {
+      console.error('Exception during Supabase storage upload:', err);
+      return { url: null, error: err?.message || 'Gagal mengunggah foto ke Supabase Storage.' };
+    }
+  }
+
+  // Convert Base64 data URL to Blob and upload to Supabase Storage
+  public static async uploadBase64ToSupabase(
+    base64Data: string,
+    folder: string = 'dokumentasi'
+  ): Promise<{ url: string | null; error: string | null }> {
+    if (!base64Data) return { url: null, error: 'Data foto kosong' };
+    if (!base64Data.startsWith('data:')) {
+      // Already an online URL
+      return { url: base64Data, error: null };
+    }
+    try {
+      const arr = base64Data.split(',');
+      const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const blob = new Blob([u8arr], { type: mime });
+      return await this.uploadPhotoToSupabase(blob, folder);
+    } catch (e: any) {
+      return { url: null, error: e?.message || 'Gagal memproses gambar base64' };
+    }
+  }
+
+  // Batch migrate any local base64 photos across all menus into Supabase Storage
+  public static async migrateLocalPhotosToSupabase(): Promise<{ totalMigrated: number; failed: number; message: string }> {
+    const db = this.getDb();
+    let totalMigrated = 0;
+    let failed = 0;
+
+    // 1. Piket Harian
+    for (const item of db.piketHarian) {
+      if (item.linkFoto && item.linkFoto.startsWith('data:')) {
+        const res = await this.uploadBase64ToSupabase(item.linkFoto, 'piket_harian');
+        if (res.url) {
+          item.linkFoto = res.url;
+          totalMigrated++;
+        } else {
+          failed++;
+        }
+      }
+    }
+
+    // 2. Sabtu Beli Teh Ceri
+    for (const item of db.sabtuBeliTehCeri) {
+      if (item.linkFoto && item.linkFoto.startsWith('data:')) {
+        const res = await this.uploadBase64ToSupabase(item.linkFoto, 'sabtu_teh_ceri');
+        if (res.url) {
+          item.linkFoto = res.url;
+          totalMigrated++;
+        } else {
+          failed++;
+        }
+      }
+    }
+
+    // 3. Kebun Luas Berseri
+    for (const item of db.kebunLuasBerseri) {
+      if (item.linkFoto && item.linkFoto.startsWith('data:')) {
+        const res = await this.uploadBase64ToSupabase(item.linkFoto, 'kebun_luas_berseri');
+        if (res.url) {
+          item.linkFoto = res.url;
+          totalMigrated++;
+        } else {
+          failed++;
+        }
+      }
+    }
+
+    // 4. Senandung Serasi
+    for (const item of db.senandungSerasi) {
+      if (item.linkFoto && item.linkFoto.startsWith('data:')) {
+        const res = await this.uploadBase64ToSupabase(item.linkFoto, 'senandung_serasi');
+        if (res.url) {
+          item.linkFoto = res.url;
+          totalMigrated++;
+        } else {
+          failed++;
+        }
+      }
+    }
+
+    // 5. E-Lapor Perundungan
+    for (const item of db.eLaporPerundungan) {
+      if (item.linkFoto && item.linkFoto.startsWith('data:')) {
+        const res = await this.uploadBase64ToSupabase(item.linkFoto, 'e_lapor');
+        if (res.url) {
+          item.linkFoto = res.url;
+          totalMigrated++;
+        } else {
+          failed++;
+        }
+      }
+    }
+
+    // 6. Buku Tamu
+    for (const item of db.bukuTamu) {
+      if (item.linkFoto && item.linkFoto.startsWith('data:')) {
+        const res = await this.uploadBase64ToSupabase(item.linkFoto, 'buku_tamu');
+        if (res.url) {
+          item.linkFoto = res.url;
+          totalMigrated++;
+        } else {
+          failed++;
+        }
+      }
+    }
+
+    if (totalMigrated > 0) {
+      this.saveDb();
+      await this.syncToSupabase();
+    }
+
+    return {
+      totalMigrated,
+      failed,
+      message: `Migrasi selesai: ${totalMigrated} foto berhasil diunggah ke Supabase Storage.${failed > 0 ? ` (${failed} gagal)` : ''}`,
+    };
+  }
+
   // --- MERGE HELPER FOR ROBUST CROSS-DEVICE SYNC ---
   private static mergeEntities<T extends { id: string; updatedAt?: string; createdAt?: string }>(
     localList: T[],
@@ -754,6 +933,7 @@ export class StorageService {
             hasilInovasi: row.hasil_inovasi || row.hasilInovasi || '',
             produkKreatif: row.produk_kreatif || row.produkKreatif || '',
             rtlList: Array.isArray(row.rtl_list) ? row.rtl_list : (Array.isArray(row.rtlList) ? row.rtlList : []),
+            linkFoto: row.link_foto || row.linkFoto || '',
             tandaTangan: row.tanda_tangan || row.tandaTangan || '',
             keterangan: row.keterangan || '',
             createdAt: row.created_at || row.createdAt || new Date().toISOString(),
@@ -776,6 +956,7 @@ export class StorageService {
                 hasil_inovasi: item.hasilInovasi || '',
                 produk_kreatif: item.produkKreatif || '',
                 rtl_list: item.rtlList || [],
+                link_foto: item.linkFoto || '',
                 tanda_tangan: item.tandaTangan || '',
                 keterangan: item.keterangan || '',
                 created_at: item.createdAt,
@@ -866,6 +1047,7 @@ export class StorageService {
             pelaporan: row.pelaporan || '',
             tindakLanjut: row.tindak_lanjut || row.tindakLanjut || '',
             status: row.status || 'Laporan Baru',
+            linkFoto: row.link_foto || row.linkFoto || '',
             tandaTangan: row.tanda_tangan || row.tandaTangan || '',
             keterangan: row.keterangan || '',
             createdAt: row.created_at || row.createdAt || new Date().toISOString(),
@@ -892,6 +1074,7 @@ export class StorageService {
                 pelaporan: item.pelaporan || '',
                 tindak_lanjut: item.tindakLanjut || '',
                 status: item.status,
+                link_foto: item.linkFoto || '',
                 tanda_tangan: item.tandaTangan || '',
                 keterangan: item.keterangan || '',
                 created_at: item.createdAt,
@@ -927,6 +1110,7 @@ export class StorageService {
             jabatan: row.jabatan || '',
             instansiAsal: row.instansi_asal || row.instansiAsal || row.instansi || '',
             tujuanKunjungan: row.tujuan_kunjungan || row.tujuanKunjungan || row.tujuan || '',
+            linkFoto: row.link_foto || row.linkFoto || '',
             tandaTangan: row.tanda_tangan || row.tandaTangan || '',
             tindakLanjut: row.tindak_lanjut || row.tindakLanjut || '',
             keterangan: row.keterangan || '',
@@ -950,6 +1134,7 @@ export class StorageService {
                 jabatan: item.jabatan,
                 instansi_asal: item.instansiAsal,
                 tujuan_kunjungan: item.tujuanKunjungan,
+                link_foto: item.linkFoto || '',
                 tanda_tangan: item.tandaTangan,
                 tindak_lanjut: item.tindakLanjut,
                 keterangan: item.keterangan,
@@ -1130,6 +1315,7 @@ export class StorageService {
             hasil_inovasi: item.hasilInovasi,
             produk_kreatif: item.produkKreatif,
             rtl_list: item.rtlList,
+            link_foto: item.linkFoto || null,
             tanda_tangan: item.tandaTangan || null,
             keterangan: item.keterangan,
             created_at: item.createdAt,
@@ -1175,6 +1361,7 @@ export class StorageService {
             pelaporan: item.pelaporan,
             tindak_lanjut: item.tindakLanjut,
             status: item.status,
+            link_foto: item.linkFoto || null,
             tanda_tangan: item.tandaTangan || null,
             keterangan: item.keterangan,
             created_at: item.createdAt,
@@ -1197,6 +1384,7 @@ export class StorageService {
             jabatan: item.jabatan,
             instansi_asal: item.instansiAsal,
             tujuan_kunjungan: item.tujuanKunjungan,
+            link_foto: item.linkFoto || null,
             tanda_tangan: item.tandaTangan,
             tindak_lanjut: item.tindakLanjut,
             keterangan: item.keterangan,
@@ -1569,6 +1757,7 @@ export class StorageService {
       hasil_inovasi: saved.hasilInovasi || '',
       produk_kreatif: saved.produkKreatif || '',
       rtl_list: saved.rtlList || [],
+      link_foto: saved.linkFoto || '',
       tanda_tangan: saved.tandaTangan || '',
       keterangan: saved.keterangan || '',
       created_at: saved.createdAt,
@@ -1676,6 +1865,7 @@ export class StorageService {
       pelaporan: saved.pelaporan || '',
       tindak_lanjut: saved.tindakLanjut || '',
       status: saved.status || 'Laporan Baru',
+      link_foto: saved.linkFoto || '',
       tanda_tangan: saved.tandaTangan || '',
       keterangan: saved.keterangan || '',
       created_at: saved.createdAt,
@@ -1729,6 +1919,7 @@ export class StorageService {
       jabatan: saved.jabatan || '',
       instansi_asal: saved.instansiAsal,
       tujuan_kunjungan: saved.tujuanKunjungan,
+      link_foto: saved.linkFoto || '',
       tanda_tangan: saved.tandaTangan || '',
       tindak_lanjut: saved.tindakLanjut || '',
       keterangan: saved.keterangan || '',
@@ -2417,6 +2608,7 @@ CREATE TABLE IF NOT EXISTS public.kebun_luas_berseri (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.kebun_luas_berseri ADD COLUMN IF NOT EXISTS link_foto TEXT;
 ALTER TABLE public.kebun_luas_berseri ADD COLUMN IF NOT EXISTS tanda_tangan TEXT;
 ALTER TABLE public.kebun_luas_berseri ADD COLUMN IF NOT EXISTS rtl_list JSONB DEFAULT '[]'::jsonb;
 
@@ -2449,11 +2641,13 @@ CREATE TABLE IF NOT EXISTS public.e_lapor_perundungan (
     pelaporan TEXT,
     tindak_lanjut TEXT,
     status TEXT DEFAULT 'Laporan Baru',
+    link_foto TEXT,
     tanda_tangan TEXT,
     keterangan TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.e_lapor_perundungan ADD COLUMN IF NOT EXISTS link_foto TEXT;
 ALTER TABLE public.e_lapor_perundungan ADD COLUMN IF NOT EXISTS tanda_tangan TEXT;
 ALTER TABLE public.e_lapor_perundungan ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Laporan Baru';
 
@@ -2467,12 +2661,14 @@ CREATE TABLE IF NOT EXISTS public.buku_tamu (
     jabatan TEXT,
     instansi_asal TEXT NOT NULL,
     tujuan_kunjungan TEXT NOT NULL,
+    link_foto TEXT,
     tanda_tangan TEXT,
     tindak_lanjut TEXT,
     keterangan TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.buku_tamu ADD COLUMN IF NOT EXISTS link_foto TEXT;
 
 -- 7. Tabel Master Siswa
 CREATE TABLE IF NOT EXISTS public.master_siswa (
@@ -2590,6 +2786,17 @@ CREATE POLICY "Public Read All" ON public.class_assignments FOR SELECT USING (tr
 CREATE POLICY "Public Insert All" ON public.class_assignments FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Update All" ON public.class_assignments FOR UPDATE USING (true);
 CREATE POLICY "Public Delete All" ON public.class_assignments FOR DELETE USING (true);
+
+-- 11. Konfigurasi Supabase Storage Bucket untuk Foto Dokumentasi Online
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('foto_kegiatan', 'foto_kegiatan', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Kebijakan Akses Publik Storage Foto Kegiatan
+CREATE POLICY "Public Storage Select" ON storage.objects FOR SELECT USING (bucket_id = 'foto_kegiatan');
+CREATE POLICY "Public Storage Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'foto_kegiatan');
+CREATE POLICY "Public Storage Update" ON storage.objects FOR UPDATE USING (bucket_id = 'foto_kegiatan');
+CREATE POLICY "Public Storage Delete" ON storage.objects FOR DELETE USING (bucket_id = 'foto_kegiatan');
 `;
   }
 }

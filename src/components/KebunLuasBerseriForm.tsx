@@ -67,6 +67,7 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
   const [rtlList, setRtlList] = useState<RTLItem[]>([
     { id: '1', pic: '', target: '', deadline: '' },
   ]);
+  const [linkFoto, setLinkFoto] = useState('');
   const [tandaTangan, setTandaTangan] = useState('');
   const [keterangan, setKeterangan] = useState('');
 
@@ -109,6 +110,7 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
     setHasilInovasi('');
     setProdukKreatif('');
     setRtlList([{ id: '1', pic: '', target: '', deadline: '' }]);
+    setLinkFoto('');
     setTandaTangan('');
     setKeterangan('');
     setEditingItem(null);
@@ -149,6 +151,7 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
         ? item.rtlList
         : [{ id: '1', pic: '', target: '', deadline: '' }]
     );
+    setLinkFoto(item.linkFoto || '');
     setTandaTangan(item.tandaTangan || '');
     setKeterangan(item.keterangan);
     setActiveTab('form');
@@ -247,6 +250,7 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
       hasilInovasi: hasilInovasi.trim(),
       produkKreatif: produkKreatif.trim(),
       rtlList: rtlList.filter((r) => r.pic.trim() || r.target.trim()),
+      linkFoto: linkFoto.trim(),
       tandaTangan: tandaTangan.trim(),
       keterangan: keterangan.trim(),
     });
@@ -512,6 +516,17 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
               </div>
             </div>
 
+            {/* Upload Foto Kegiatan Kebun Luas Berseri */}
+            <div className="pt-2">
+              <PhotoUploadArea
+                label="Upload / Foto Dokumentasi Inovasi & Kegiatan Kebun Luas Berseri (Simpan Online Supabase)"
+                value={linkFoto}
+                onChange={(val) => setLinkFoto(val)}
+                folder="kebun_luas_berseri"
+                maxSizeMB={15}
+              />
+            </div>
+
             {/* Tanda Tangan Digital pada Layar Sentuh / Mouse */}
             <div className="pt-2">
               <SignatureCanvas
@@ -727,7 +742,7 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
           nomorSurat={`421.3/KLB-${viewItem.id.slice(-6).toUpperCase()}/SPANJU/2026`}
           tanggalSurat={viewItem.hariTanggal}
           jabatanPenandatangan="Guru Pendamping / Guru BK"
-          linkFoto={viewItem.produkKreatif}
+          linkFoto={viewItem.linkFoto || (viewItem.produkKreatif?.startsWith('data:') || viewItem.produkKreatif?.startsWith('http') ? viewItem.produkKreatif : undefined)}
           tandaTangan={viewItem.tandaTangan}
           catatanUtama={
             viewItem.hasilInovasi

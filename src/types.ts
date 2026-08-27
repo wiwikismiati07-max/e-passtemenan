@@ -55,6 +55,7 @@ export interface KebunLuasBerseri {
   hasilInovasi: string;
   produkKreatif: string;
   rtlList: RTLItem[];
+  linkFoto?: string; // Online Supabase Storage photo URL
   tandaTangan?: string; // Digital touchscreen / mouse signature data URL
   keterangan: string;
   createdAt: string;
@@ -66,7 +67,7 @@ export interface SenandungSerasi {
   hariTanggal: string;
   waktu: string;
   pesanDisampaikan: string;
-  linkFoto?: string; // URL or base64 photo documentation
+  linkFoto?: string; // Online Supabase Storage photo URL
   tandaTangan?: string; // Digital touchscreen / mouse signature data URL
   keterangan: string;
   createdAt: string;
@@ -88,6 +89,7 @@ export interface ELaporPerundungan {
   pelaporan: string;
   tindakLanjut: string;
   status: StatusLaporan;
+  linkFoto?: string; // Online Supabase Storage photo URL
   tandaTangan?: string; // Digital touchscreen / mouse signature data URL
   keterangan: string;
   createdAt: string;
@@ -103,6 +105,7 @@ export interface BukuTamu {
   jabatan: string;
   instansiAsal: string;
   tujuanKunjungan: string;
+  linkFoto?: string; // Online Supabase Storage photo URL
   tandaTangan: string; // Base64 png data URL
   tindakLanjut: string;
   keterangan: string;

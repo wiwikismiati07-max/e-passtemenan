@@ -30,6 +30,7 @@ import { ELaporPerundungan, StatusLaporan } from '../types';
 import { StorageService } from '../services/storage';
 import { KopSurat } from './KopSurat';
 import { SignatureCanvas } from './SignatureCanvas';
+import { PhotoUploadArea } from './PhotoUploadArea';
 import { OfficialReportModal } from './OfficialReportModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import confetti from 'canvas-confetti';
@@ -64,6 +65,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({ userRole = 'admin' }) =
   const [pelaporan, setPelaporan] = useState('');
   const [tindakLanjut, setTindakLanjut] = useState('');
   const [status, setStatus] = useState<StatusLaporan>('Laporan Baru');
+  const [linkFoto, setLinkFoto] = useState('');
   const [tandaTangan, setTandaTangan] = useState('');
   const [keterangan, setKeterangan] = useState('');
 
@@ -90,6 +92,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({ userRole = 'admin' }) =
     setPelaporan('');
     setTindakLanjut('');
     setStatus('Laporan Baru');
+    setLinkFoto('');
     setTandaTangan('');
     setKeterangan('');
     setEditingItem(null);
@@ -117,6 +120,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({ userRole = 'admin' }) =
     setPelaporan(item.pelaporan);
     setTindakLanjut(item.tindakLanjut);
     setStatus(item.status);
+    setLinkFoto(item.linkFoto || '');
     setTandaTangan(item.tandaTangan || '');
     setKeterangan(item.keterangan);
     setIsFormOpen(true);
@@ -158,6 +162,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({ userRole = 'admin' }) =
       pelaporan: pelaporan.trim(),
       tindakLanjut: tindakLanjut.trim(),
       status,
+      linkFoto: linkFoto.trim(),
       tandaTangan: tandaTangan.trim(),
       keterangan: keterangan.trim(),
     });
@@ -545,6 +550,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({ userRole = 'admin' }) =
           tanggalSurat={viewItem.hariTanggal}
           namaPenandatangan="Tim Penanganan Kekerasan SPANJU"
           jabatanPenandatangan="Guru BK / Satgas TPPK SMPN 7 Pasuruan"
+          linkFoto={viewItem.linkFoto}
           tandaTangan={viewItem.tandaTangan}
           catatanUtama={{
             judul: 'Kronologi Kejadian / Konflik',
@@ -791,6 +797,17 @@ export const ELaporPerundunganForm: React.FC<Props> = ({ userRole = 'admin' }) =
                   onChange={(e) => setKeterangan(e.target.value)}
                   placeholder="Catatan tambahan penanganan"
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                />
+              </div>
+
+              {/* Upload Foto Dokumentasi Online Supabase */}
+              <div className="pt-2">
+                <PhotoUploadArea
+                  label="Upload / Foto Dokumentasi Penanganan Kasus (Simpan Online Supabase)"
+                  value={linkFoto}
+                  onChange={(val) => setLinkFoto(val)}
+                  folder="e_lapor"
+                  maxSizeMB={15}
                 />
               </div>
 

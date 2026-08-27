@@ -11,12 +11,19 @@ import {
   Sparkles,
   AlertCircle,
   FolderOpen,
+  Cloud,
+  CloudUpload,
+  ExternalLink,
+  Check,
+  Copy,
 } from 'lucide-react';
+import { StorageService } from '../services/storage';
 
 interface PhotoUploadAreaProps {
   label?: string;
   value?: string;
   onChange: (dataUrlOrUrl: string) => void;
+  folder?: string;
   maxSizeMB?: number;
   className?: string;
 }
@@ -53,9 +60,10 @@ const SAMPLE_PHOTOS = [
 ];
 
 export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
-  label = 'Upload Foto Kegiatan (Opsional)',
+  label = 'Upload Foto Kegiatan (Simpan Online di Supabase)',
   value = '',
   onChange,
+  folder = 'dokumentasi',
   maxSizeMB = 15,
   className = '',
 }) => {
@@ -65,9 +73,11 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
   const [isUrlMode, setIsUrlMode] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState('Memproses foto...');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [imgLoadError, setImgLoadError] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   // Reset image load error when value changes
   useEffect(() => {
@@ -93,8 +103,8 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
     return () => window.removeEventListener('paste', handlePaste);
   }, []);
 
-  // Compress & read image to base64
-  const processImageFile = (file: File) => {
+  // Process image: optimize resolution then upload to Supabase Storage Bucket
+  const processImageFile = async (file: File) => {
     setErrorMsg(null);
     setImgLoadError(false);
 
@@ -109,56 +119,132 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
     }
 
     setIsLoading(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (!result) {
-        setIsLoading(false);
-        return;
-      }
+    setLoadingStatus('Mengoptimalkan resolusi foto...');
 
-      // Automatically scale down super-huge phone camera images to save memory
-      const img = new Image();
-      img.onload = () => {
-        const maxWidth = 1600;
-        const maxHeight = 1600;
-        let width = img.width;
-        let height = img.height;
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        if (!result) {
+          setIsLoading(false);
+          return;
+        }
 
-        if (width > maxWidth || height > maxHeight) {
-          if (width > height) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          } else {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
+        const img = new Image();
+        img.onload = async () => {
+          const maxWidth = 1600;
+          const maxHeight = 1600;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
           }
+
           const canvas = document.createElement('canvas');
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const compressed = canvas.toDataURL('image/jpeg', 0.85);
-            onChange(compressed);
-            setIsLoading(false);
+          
+          if (!ctx) {
+            // Fallback to uploading direct file
+            await performUpload(file);
             return;
           }
-        }
-        onChange(result);
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert canvas to Blob
+          canvas.toBlob(
+            async (blob) => {
+              if (blob) {
+                await performUpload(blob);
+              } else {
+                await performUpload(file);
+              }
+            },
+            'image/jpeg',
+            0.85
+          );
+        };
+        img.onerror = async () => {
+          await performUpload(file);
+        };
+        img.src = result;
+      };
+      reader.onerror = () => {
+        setErrorMsg('Gagal membaca file gambar.');
         setIsLoading(false);
       };
-      img.onerror = () => {
-        onChange(result);
-        setIsLoading(false);
-      };
-      img.src = result;
-    };
-    reader.onerror = () => {
-      setErrorMsg('Gagal membaca file gambar.');
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setErrorMsg(`Terjadi kesalahan: ${err?.message || 'Gagal memproses foto.'}`);
       setIsLoading(false);
-    };
-    reader.readAsDataURL(file);
+    }
+  };
+
+  const performUpload = async (fileOrBlob: Blob | File) => {
+    setLoadingStatus('Mengunggah foto online ke Supabase Cloud Storage...');
+    
+    // Check if Supabase client is configured
+    const client = StorageService.getSupabaseClient();
+    if (!client) {
+      // Supabase is not connected yet, offer base64 preview with notice
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const base64 = evt.target?.result as string;
+        if (base64) {
+          onChange(base64);
+          setErrorMsg('Koneksi Supabase belum aktif di Pengaturan. Foto disimpan sementara di memori.');
+        }
+        setIsLoading(false);
+      };
+      reader.readAsDataURL(fileOrBlob);
+      return;
+    }
+
+    const uploadRes = await StorageService.uploadPhotoToSupabase(fileOrBlob, folder);
+
+    if (uploadRes.url) {
+      onChange(uploadRes.url);
+      setErrorMsg(null);
+      setIsLoading(false);
+    } else {
+      console.warn('Supabase storage upload failed:', uploadRes.error);
+      // If error (e.g. bucket does not exist or policy violation), provide fallback base64 & actionable guide
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const base64 = evt.target?.result as string;
+        if (base64) {
+          onChange(base64);
+        }
+        setErrorMsg(
+          `Supabase Storage: ${uploadRes.error || 'Bucket "foto_kegiatan" belum dibuat di Supabase.'}. Silakan jalankan Skrip SQL di Pengaturan Cloud.`
+        );
+        setIsLoading(false);
+      };
+      reader.readAsDataURL(fileOrBlob);
+    }
+  };
+
+  const handleMigrateCurrentToOnline = async () => {
+    if (!value || !value.startsWith('data:')) return;
+    setIsLoading(true);
+    setLoadingStatus('Mengunggah foto lokal ke Supabase Cloud Storage...');
+    const res = await StorageService.uploadBase64ToSupabase(value, folder);
+    if (res.url) {
+      onChange(res.url);
+      setErrorMsg(null);
+    } else {
+      setErrorMsg(`Gagal mengunggah online: ${res.error}`);
+    }
+    setIsLoading(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,6 +279,7 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
     onChange('');
     setUrlInput('');
     setImgLoadError(false);
+    setErrorMsg(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
@@ -206,6 +293,16 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
     }
   };
 
+  const handleCopyUrl = () => {
+    if (!value) return;
+    navigator.clipboard.writeText(value);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
+  };
+
+  const isOnlineUrl = Boolean(value && (value.startsWith('http://') || value.startsWith('https://')));
+  const isSupabaseStorageUrl = Boolean(value && value.includes('supabase.co/storage/'));
+
   return (
     <div className={`space-y-2 ${className}`}>
       {/* Label with Green Camera Icon matching theme */}
@@ -213,6 +310,10 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
         <label className="text-xs font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1.5 cursor-pointer">
           <Camera className="w-4 h-4 text-emerald-500" />
           <span>{label}</span>
+          <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold flex items-center gap-0.5 border border-emerald-300 dark:border-emerald-800">
+            <Cloud className="w-2.5 h-2.5" />
+            <span>Online Supabase</span>
+          </span>
         </label>
         
         {/* Toggle Mode URL/Upload */}
@@ -232,7 +333,7 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
       {isUrlMode ? (
         <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
           <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-            Tempel Tautan Foto (Mendukung Google Drive, Imgur, Dropbox, dll):
+            Tempel Tautan Foto Online (Supabase Storage, Google Drive, Imgur, dll):
           </label>
           <div className="flex gap-2">
             <input
@@ -245,7 +346,7 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
                   handleApplyUrl();
                 }
               }}
-              placeholder="Contoh: https://drive.google.com/file/d/... atau https://i.ibb.co/..."
+              placeholder="Contoh: https://...supabase.co/storage/v1/object/public/... atau https://drive.google.com/..."
               className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-teal-500"
             />
             <button
@@ -265,7 +366,7 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
               onClick={() => setIsUrlMode(false)}
               className="text-[11px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             >
-              Kembali ke Mode File
+              Kembali ke Mode Unggah File
             </button>
           </div>
         </div>
@@ -298,13 +399,47 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
           </div>
 
           <div className="flex-1 text-center sm:text-left space-y-1.5 w-full">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 justify-center sm:justify-start">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 justify-center sm:justify-start">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Foto Kegiatan Berhasil Dimuat & Siap Tampil</span>
+              <span>Foto Kegiatan Berhasil Dimuat</span>
+              {isSupabaseStorageUrl ? (
+                <span className="px-2 py-0.5 rounded-full bg-teal-600 text-white text-[10px] font-extrabold flex items-center gap-1 shadow-sm">
+                  <Cloud className="w-3 h-3" />
+                  <span>Online Supabase Cloud Storage</span>
+                </span>
+              ) : isOnlineUrl ? (
+                <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-extrabold flex items-center gap-1">
+                  <ExternalLink className="w-3 h-3" />
+                  <span>Online Cloud URL</span>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleMigrateCurrentToOnline}
+                  className="px-2 py-0.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-extrabold flex items-center gap-1 transition-all shadow-sm"
+                  title="Klik untuk mengunggah foto lokal ini ke Supabase Cloud Storage"
+                >
+                  <CloudUpload className="w-3 h-3" />
+                  <span>Unggah ke Supabase Online</span>
+                </button>
+              )}
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 break-all">
-              {value.startsWith('data:') ? 'Foto terkompresi tersimpan di database lokal & cloud' : value}
-            </p>
+
+            <div className="flex items-center gap-1 justify-center sm:justify-start">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs sm:max-w-md font-mono bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800">
+                {value.startsWith('data:') ? 'Lokal Base64 (Klik tombol kuning untuk simpan Online ke Supabase)' : value}
+              </p>
+              {isOnlineUrl && (
+                <button
+                  type="button"
+                  onClick={handleCopyUrl}
+                  className="p-1 text-slate-500 hover:text-teal-600 rounded"
+                  title="Salin Link Foto"
+                >
+                  {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              )}
+            </div>
 
             <div className="flex flex-wrap items-center gap-2 pt-1 justify-center sm:justify-start">
               <button
@@ -313,7 +448,7 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
                 className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-[11px] font-semibold flex items-center gap-1 transition-colors border border-slate-200 dark:border-slate-700"
               >
                 <FolderOpen className="w-3 h-3 text-teal-600" />
-                <span>Pilih Galeri</span>
+                <span>Ganti Galeri</span>
               </button>
               <button
                 type="button"
@@ -349,20 +484,21 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
           {isLoading ? (
             <div className="flex flex-col items-center gap-2 text-teal-600 py-4">
               <RefreshCw className="w-7 h-7 animate-spin" />
-              <span className="text-xs font-bold">Mengompres & Memproses Foto...</span>
+              <span className="text-xs font-bold">{loadingStatus}</span>
+              <span className="text-[10px] text-slate-400">Menyimpan langsung ke Supabase Cloud Storage (Online)</span>
             </div>
           ) : (
             <div className="space-y-3 w-full max-w-md">
               <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-500 mx-auto flex items-center justify-center">
-                <Upload className="w-6 h-6" />
+                <CloudUpload className="w-6 h-6" />
               </div>
 
               <div>
                 <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                  Unggah Foto Dokumentasi Kegiatan
+                  Unggah Foto Dokumentasi Kegiatan (Simpan Online)
                 </p>
                 <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                  Mendukung Kamera HP, File Galeri, Drag & Drop, atau Paste (Ctrl+V)
+                  Foto langsung disimpan online di <b>Supabase Cloud Storage</b> (tidak membebani memori lokal)
                 </p>
               </div>
 
@@ -421,10 +557,13 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
       />
 
       {errorMsg && (
-        <p className="text-[11px] text-rose-500 font-medium flex items-center gap-1">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-          <span>{errorMsg}</span>
-        </p>
+        <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-200 space-y-1">
+          <div className="flex items-center gap-1.5 font-bold">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+            <span>Pemberitahuan Supabase Storage</span>
+          </div>
+          <p className="pl-5 leading-relaxed">{errorMsg}</p>
+        </div>
       )}
 
       {/* Fullscreen Photo Lightbox Modal */}
@@ -443,17 +582,29 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
               className="max-h-[75vh] w-auto object-contain rounded-xl"
               referrerPolicy="no-referrer"
             />
-            <div className="w-full flex items-center justify-between pt-3 px-2">
-              <span className="text-xs text-slate-300 font-medium">
-                Pratinjau Foto Dokumentasi Kegiatan
+            <div className="w-full flex items-center justify-between pt-3 px-2 flex-wrap gap-2">
+              <span className="text-xs text-slate-300 font-medium truncate max-w-sm">
+                {isSupabaseStorageUrl ? '✓ Foto Tersimpan Online di Supabase Cloud Storage' : 'Pratinjau Foto Dokumentasi Kegiatan'}
               </span>
-              <button
-                type="button"
-                onClick={() => setShowPreviewModal(false)}
-                className="px-3 py-1 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-semibold"
-              >
-                Tutup
-              </button>
+              <div className="flex items-center gap-2">
+                {isOnlineUrl && (
+                  <button
+                    type="button"
+                    onClick={handleCopyUrl}
+                    className="px-2.5 py-1 rounded-lg bg-teal-600 text-white text-xs font-semibold flex items-center gap-1"
+                  >
+                    {copiedUrl ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedUrl ? 'Tersalin!' : 'Salin URL'}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPreviewModal(false)}
+                  className="px-3 py-1 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-semibold"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -461,4 +612,3 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
     </div>
   );
 };
-

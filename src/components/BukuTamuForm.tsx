@@ -21,6 +21,7 @@ import {
 import { BukuTamu } from '../types';
 import { StorageService } from '../services/storage';
 import { SignatureCanvas } from './SignatureCanvas';
+import { PhotoUploadArea } from './PhotoUploadArea';
 import { KopSurat } from './KopSurat';
 import { OfficialReportModal } from './OfficialReportModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
@@ -53,6 +54,7 @@ export const BukuTamuForm: React.FC<Props> = ({ userRole = 'admin' }) => {
   const [jabatan, setJabatan] = useState('');
   const [instansiAsal, setInstansiAsal] = useState('');
   const [tujuanKunjungan, setTujuanKunjungan] = useState('');
+  const [linkFoto, setLinkFoto] = useState('');
   const [tandaTangan, setTandaTangan] = useState('');
   const [tindakLanjut, setTindakLanjut] = useState('');
   const [keterangan, setKeterangan] = useState('');
@@ -76,6 +78,7 @@ export const BukuTamuForm: React.FC<Props> = ({ userRole = 'admin' }) => {
     setJabatan('');
     setInstansiAsal('');
     setTujuanKunjungan('');
+    setLinkFoto('');
     setTandaTangan('');
     setTindakLanjut('');
     setKeterangan('');
@@ -100,6 +103,7 @@ export const BukuTamuForm: React.FC<Props> = ({ userRole = 'admin' }) => {
     setJabatan(item.jabatan);
     setInstansiAsal(item.instansiAsal);
     setTujuanKunjungan(item.tujuanKunjungan);
+    setLinkFoto(item.linkFoto || '');
     setTandaTangan(item.tandaTangan);
     setTindakLanjut(item.tindakLanjut);
     setKeterangan(item.keterangan);
@@ -138,6 +142,7 @@ export const BukuTamuForm: React.FC<Props> = ({ userRole = 'admin' }) => {
       jabatan: jabatan.trim(),
       instansiAsal: instansiAsal.trim(),
       tujuanKunjungan: tujuanKunjungan.trim(),
+      linkFoto: linkFoto.trim(),
       tandaTangan,
       tindakLanjut: tindakLanjut.trim(),
       keterangan: keterangan.trim(),
@@ -472,6 +477,7 @@ export const BukuTamuForm: React.FC<Props> = ({ userRole = 'admin' }) => {
           tanggalSurat={viewItem.hariTanggal}
           namaPenandatangan={viewItem.namaLengkap}
           jabatanPenandatangan={viewItem.jabatan ? `${viewItem.jabatan} - ${viewItem.instansiAsal}` : `Tamu Kunjungan (${viewItem.instansiAsal})`}
+          linkFoto={viewItem.linkFoto}
           tandaTangan={viewItem.tandaTangan}
           catatanUtama={{
             judul: 'Maksud dan Tujuan Kunjungan',
@@ -667,6 +673,17 @@ export const BukuTamuForm: React.FC<Props> = ({ userRole = 'admin' }) => {
                   onChange={(e) => setKeterangan(e.target.value)}
                   placeholder="Catatan tambahan penerima tamu"
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              {/* Upload Foto Dokumentasi Tamu Online Supabase */}
+              <div className="pt-2">
+                <PhotoUploadArea
+                  label="Upload / Foto Dokumentasi Kunjungan Tamu (Simpan Online Supabase)"
+                  value={linkFoto}
+                  onChange={(val) => setLinkFoto(val)}
+                  folder="buku_tamu"
+                  maxSizeMB={15}
                 />
               </div>
 
