@@ -807,6 +807,7 @@ export class StorageService {
             hariTanggal: row.hari_tanggal || row.hariTanggal || row.tanggal || '',
             waktu: row.waktu || '',
             pesanDisampaikan: row.pesan_disampaikan || row.pesanDisampaikan || row.pesan || '',
+            linkFoto: row.link_foto || row.linkFoto || row.foto || '',
             tandaTangan: row.tanda_tangan || row.tandaTangan || '',
             keterangan: row.keterangan || '',
             createdAt: row.created_at || row.createdAt || new Date().toISOString(),
@@ -825,6 +826,7 @@ export class StorageService {
                 hari_tanggal: item.hariTanggal,
                 waktu: item.waktu,
                 pesan_disampaikan: item.pesanDisampaikan,
+                link_foto: item.linkFoto || '',
                 tanda_tangan: item.tandaTangan || '',
                 keterangan: item.keterangan || '',
                 created_at: item.createdAt,
@@ -1146,6 +1148,7 @@ export class StorageService {
             hari_tanggal: item.hariTanggal,
             waktu: item.waktu,
             pesan_disampaikan: item.pesanDisampaikan,
+            link_foto: item.linkFoto || null,
             tanda_tangan: item.tandaTangan || null,
             keterangan: item.keterangan,
             created_at: item.createdAt,
@@ -1615,6 +1618,7 @@ export class StorageService {
       hari_tanggal: saved.hariTanggal,
       waktu: saved.waktu,
       pesan_disampaikan: saved.pesanDisampaikan,
+      link_foto: saved.linkFoto || '',
       tanda_tangan: saved.tandaTangan || '',
       keterangan: saved.keterangan || '',
       created_at: saved.createdAt,
@@ -2422,11 +2426,13 @@ CREATE TABLE IF NOT EXISTS public.senandung_serasi (
     hari_tanggal TEXT NOT NULL,
     waktu TEXT NOT NULL,
     pesan_disampaikan TEXT NOT NULL,
+    link_foto TEXT,
     tanda_tangan TEXT,
     keterangan TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.senandung_serasi ADD COLUMN IF NOT EXISTS link_foto TEXT;
 ALTER TABLE public.senandung_serasi ADD COLUMN IF NOT EXISTS tanda_tangan TEXT;
 
 -- 5. Tabel E-Lapor Perundungan

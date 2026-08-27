@@ -66,6 +66,7 @@ export interface SenandungSerasi {
   hariTanggal: string;
   waktu: string;
   pesanDisampaikan: string;
+  linkFoto?: string; // URL or base64 photo documentation
   tandaTangan?: string; // Digital touchscreen / mouse signature data URL
   keterangan: string;
   createdAt: string;

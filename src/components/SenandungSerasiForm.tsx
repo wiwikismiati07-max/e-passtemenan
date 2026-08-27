@@ -21,6 +21,8 @@ import {
   PenLine,
   FileText,
   FileSpreadsheet,
+  Image as ImageIcon,
+  ExternalLink,
 } from 'lucide-react';
 import { exportToExcel, exportToWord } from '../utils/exportUtils';
 import { SenandungSerasi } from '../types';
@@ -28,6 +30,7 @@ import { StorageService } from '../services/storage';
 import { RencanaInovasiModal } from './RencanaInovasiModal';
 import { KopSurat } from './KopSurat';
 import { SignatureCanvas } from './SignatureCanvas';
+import { PhotoUploadArea } from './PhotoUploadArea';
 import { OfficialReportModal } from './OfficialReportModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import confetti from 'canvas-confetti';
@@ -54,6 +57,7 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
   const [hariTanggal, setHariTanggal] = useState(() => getRealtimeFullFormattedDate());
   const [waktu, setWaktu] = useState(() => getRealtimeTimeString());
   const [pesanDisampaikan, setPesanDisampaikan] = useState('');
+  const [linkFoto, setLinkFoto] = useState('');
   const [tandaTangan, setTandaTangan] = useState('');
   const [keterangan, setKeterangan] = useState('');
 
@@ -72,6 +76,7 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
     setHariTanggal(getRealtimeFullFormattedDate());
     setWaktu(getRealtimeTimeString());
     setPesanDisampaikan('');
+    setLinkFoto('');
     setTandaTangan('');
     setKeterangan('');
     setEditingItem(null);
@@ -91,6 +96,7 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
     setHariTanggal(item.hariTanggal);
     setWaktu(item.waktu);
     setPesanDisampaikan(item.pesanDisampaikan);
+    setLinkFoto(item.linkFoto || '');
     setTandaTangan(item.tandaTangan || '');
     setKeterangan(item.keterangan);
     setIsFormOpen(true);
@@ -124,6 +130,7 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
       hariTanggal: hariTanggal.trim(),
       waktu: waktu.trim(),
       pesanDisampaikan: pesanDisampaikan.trim(),
+      linkFoto: linkFoto.trim(),
       tandaTangan: tandaTangan.trim(),
       keterangan: keterangan.trim(),
     });
@@ -144,11 +151,12 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
 
   const handleExportCSV = () => {
     if (dataList.length === 0) return;
-    const headers = ['Hari/Tanggal', 'Waktu', 'Pesan Yang Disampaikan', 'Keterangan'];
+    const headers = ['Hari/Tanggal', 'Waktu', 'Pesan Yang Disampaikan', 'Foto Dokumentasi', 'Keterangan'];
     const rows = dataList.map((d) => [
       `"${d.hariTanggal}"`,
       `"${d.waktu}"`,
       `"${d.pesanDisampaikan.replace(/"/g, '""')}"`,
+      `"${d.linkFoto ? (d.linkFoto.startsWith('data:') ? 'Foto Terlampir (Base64)' : d.linkFoto) : '-'}"`,
       `"${d.keterangan.replace(/"/g, '""')}"`,
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -163,12 +171,13 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
 
   const handleExportExcel = () => {
     if (dataList.length === 0) return;
-    const headers = ['No', 'Hari/Tanggal', 'Waktu', 'Pesan Yang Disampaikan / Materi Siaran', 'Keterangan / Sasaran'];
+    const headers = ['No', 'Hari/Tanggal', 'Waktu', 'Pesan Yang Disampaikan / Materi Siaran', 'Foto Dokumentasi', 'Keterangan / Sasaran'];
     const rows = dataList.map((d, i) => [
       i + 1,
       d.hariTanggal,
       d.waktu,
       d.pesanDisampaikan,
+      d.linkFoto ? (d.linkFoto.startsWith('data:') ? 'Foto Terlampir' : d.linkFoto) : '-',
       d.keterangan || '-',
     ]);
     exportToExcel(`rekap-senandung-serasi-${Date.now()}`, 'Senandung Serasi', headers, rows);
@@ -176,12 +185,13 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
 
   const handleExportWord = () => {
     if (dataList.length === 0) return;
-    const headers = ['No', 'Hari/Tanggal', 'Waktu', 'Pesan Yang Disampaikan / Materi Siaran', 'Keterangan / Sasaran'];
+    const headers = ['No', 'Hari/Tanggal', 'Waktu', 'Pesan Yang Disampaikan / Materi Siaran', 'Foto Dokumentasi', 'Keterangan / Sasaran'];
     const rows = dataList.map((d, i) => [
       i + 1,
       d.hariTanggal,
       d.waktu,
       d.pesanDisampaikan,
+      d.linkFoto ? (d.linkFoto.startsWith('data:') ? 'Foto Terlampir' : d.linkFoto) : '-',
       d.keterangan || '-',
     ]);
     exportToWord(
@@ -317,6 +327,27 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
                 </p>
               </div>
 
+              {/* Photo Documentation Preview */}
+              {item.linkFoto && (
+                <div className="mt-3 rounded-xl overflow-hidden border border-purple-500/20 bg-slate-950 max-h-48 flex items-center justify-center relative group/img cursor-pointer"
+                  onClick={() => setViewItem(item)}
+                  title="Klik untuk melihat foto dalam laporan lengkap"
+                >
+                  <img
+                    src={item.linkFoto}
+                    alt="Foto Dokumentasi Senandung Serasi"
+                    className="w-full h-36 object-cover transition-transform duration-300 group-hover/img:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity flex items-end p-2.5">
+                    <span className="text-[11px] text-purple-200 font-semibold flex items-center gap-1.5 drop-shadow-md">
+                      <ImageIcon className="w-3.5 h-3.5 text-purple-400" />
+                      Dokumentasi Siaran & Kegiatan
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {item.keterangan && (
                 <div className="mt-3 text-[11px] text-slate-400 flex items-center gap-1.5">
                   <BookOpen className="w-3.5 h-3.5 text-slate-500 shrink-0" />
@@ -408,6 +439,7 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
           tanggalSurat={viewItem.hariTanggal}
           jabatanPenandatangan="Guru Pendamping / Guru BK"
           tandaTangan={viewItem.tandaTangan}
+          linkFoto={viewItem.linkFoto}
           catatanUtama={{
             judul: 'Naskah Pesan & Afirmasi Karakter Yang Disiarkan',
             isi: `"${viewItem.pesanDisampaikan}"`,
@@ -416,6 +448,7 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
             { label: 'Hari & Tanggal', value: viewItem.hariTanggal },
             { label: 'Waktu Penyiaran', value: viewItem.waktu },
             { label: 'Media Penyiaran / Tempat', value: viewItem.keterangan || 'Audio Sentral Sekolah & Apel Pagi', fullWidth: true },
+            { label: 'Dokumentasi Foto', value: viewItem.linkFoto ? 'Tersedia & Terlampir di bawah' : 'Tidak Ada Foto', fullWidth: false },
           ]}
         />
       )}
@@ -516,6 +549,16 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
                   onChange={(e) => setKeterangan(e.target.value)}
                   placeholder="Contoh: Disiarkan via Audio Sentral Sekolah saat Apel Ramah Anak"
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* Upload Foto Dokumentasi Kegiatan Senandung Serasi */}
+              <div className="pt-2">
+                <PhotoUploadArea
+                  label="Upload / Foto Dokumentasi Kegiatan Senandung Serasi (Kamera HP / File Galeri / Link URL)"
+                  value={linkFoto}
+                  onChange={(val) => setLinkFoto(val)}
+                  maxSizeMB={15}
                 />
               </div>
 
