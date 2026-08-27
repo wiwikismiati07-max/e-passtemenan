@@ -491,13 +491,33 @@ export class StorageService {
       const filePath = `${cleanFolder}/${timestamp}_${randomStr}.jpg`;
 
       // Upload to Supabase Storage Bucket
-      const { data, error } = await client.storage
+      let { data, error } = await client.storage
         .from(bucketName)
         .upload(filePath, uploadTarget, {
           cacheControl: '3600',
           upsert: true,
           contentType: 'image/jpeg',
         });
+
+      if (error) {
+        // Attempt automatic bucket creation if not found
+        if (error.message?.toLowerCase().includes('not found') || error.message?.toLowerCase().includes('bucket')) {
+          try {
+            await client.storage.createBucket(bucketName, { public: true });
+            const retryRes = await client.storage
+              .from(bucketName)
+              .upload(filePath, uploadTarget, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType: 'image/jpeg',
+              });
+            data = retryRes.data;
+            error = retryRes.error;
+          } catch (createErr) {
+            console.warn('Bucket creation attempt notice:', createErr);
+          }
+        }
+      }
 
       if (error) {
         console.warn('Supabase storage upload error:', error.message);
@@ -1737,6 +1757,17 @@ export class StorageService {
       updated_at: saved.updatedAt,
     });
 
+    // If photo is in Base64 format, automatically upload to permanent Supabase Storage
+    if (saved.linkFoto && saved.linkFoto.startsWith('data:')) {
+      this.uploadBase64ToSupabase(saved.linkFoto, 'piket_harian').then((res) => {
+        if (res.url) {
+          saved.linkFoto = res.url;
+          this.saveDb();
+          this.safeUpsert('piket_harian', { id: saved.id, link_foto: res.url });
+        }
+      });
+    }
+
     return saved;
   }
 
@@ -1788,6 +1819,16 @@ export class StorageService {
       created_at: saved.createdAt,
       updated_at: saved.updatedAt,
     });
+
+    if (saved.linkFoto && saved.linkFoto.startsWith('data:')) {
+      this.uploadBase64ToSupabase(saved.linkFoto, 'sabtu_teh_ceri').then((res) => {
+        if (res.url) {
+          saved.linkFoto = res.url;
+          this.saveDb();
+          this.safeUpsert('sabtu_teh_ceri', { id: saved.id, link_foto: res.url });
+        }
+      });
+    }
 
     return saved;
   }
@@ -1843,6 +1884,26 @@ export class StorageService {
       updated_at: saved.updatedAt,
     });
 
+    if (saved.linkFoto && saved.linkFoto.startsWith('data:')) {
+      this.uploadBase64ToSupabase(saved.linkFoto, 'kebun_luas_berseri').then((res) => {
+        if (res.url) {
+          saved.linkFoto = res.url;
+          this.saveDb();
+          this.safeUpsert('kebun_luas_berseri', { id: saved.id, link_foto: res.url });
+        }
+      });
+    }
+
+    if (saved.produkKreatif && saved.produkKreatif.startsWith('data:')) {
+      this.uploadBase64ToSupabase(saved.produkKreatif, 'kebun_produk_kreatif').then((res) => {
+        if (res.url) {
+          saved.produkKreatif = res.url;
+          this.saveDb();
+          this.safeUpsert('kebun_luas_berseri', { id: saved.id, produk_kreatif: res.url });
+        }
+      });
+    }
+
     return saved;
   }
 
@@ -1892,6 +1953,16 @@ export class StorageService {
       created_at: saved.createdAt,
       updated_at: saved.updatedAt,
     });
+
+    if (saved.linkFoto && saved.linkFoto.startsWith('data:')) {
+      this.uploadBase64ToSupabase(saved.linkFoto, 'senandung_serasi').then((res) => {
+        if (res.url) {
+          saved.linkFoto = res.url;
+          this.saveDb();
+          this.safeUpsert('senandung_serasi', { id: saved.id, link_foto: res.url });
+        }
+      });
+    }
 
     return saved;
   }
@@ -1951,6 +2022,16 @@ export class StorageService {
       updated_at: saved.updatedAt,
     });
 
+    if (saved.linkFoto && saved.linkFoto.startsWith('data:')) {
+      this.uploadBase64ToSupabase(saved.linkFoto, 'e_lapor').then((res) => {
+        if (res.url) {
+          saved.linkFoto = res.url;
+          this.saveDb();
+          this.safeUpsert('e_lapor_perundungan', { id: saved.id, link_foto: res.url });
+        }
+      });
+    }
+
     return saved;
   }
 
@@ -2005,6 +2086,16 @@ export class StorageService {
       created_at: saved.createdAt,
       updated_at: saved.updatedAt,
     });
+
+    if (saved.linkFoto && saved.linkFoto.startsWith('data:')) {
+      this.uploadBase64ToSupabase(saved.linkFoto, 'buku_tamu').then((res) => {
+        if (res.url) {
+          saved.linkFoto = res.url;
+          this.saveDb();
+          this.safeUpsert('buku_tamu', { id: saved.id, link_foto: res.url });
+        }
+      });
+    }
 
     return saved;
   }

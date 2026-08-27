@@ -135,6 +135,12 @@ export default function App() {
         } else {
           setSyncStatusMsg('');
         }
+        // Seamlessly migrate any local base64 photos to permanent Supabase Storage
+        StorageService.migrateLocalPhotosToSupabase().then((migRes) => {
+          if (migRes.totalMigrated > 0) {
+            refreshDb();
+          }
+        });
       });
 
       cleanupRealtime = StorageService.initRealtimeSubscription();
