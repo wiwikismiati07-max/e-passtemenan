@@ -410,7 +410,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
         </div>
 
         {/* Printable Document Area */}
-        <div id="official-report-printable-area" className="p-4 sm:p-8 space-y-6 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 print:p-0 print:text-black">
+        <div id="official-report-printable-area" className="p-3 sm:p-8 space-y-4 sm:space-y-6 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 print:p-0 print:space-y-3 print:text-black">
           {/* 1. KOP SURAT RESMI SMPN 7 PASURUAN */}
           <KopSurat
             judulLaporan={judulLaporan}
@@ -418,78 +418,84 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
             tanggalSurat={tanggalSurat}
           />
 
-          {/* 2. TABEL DATA LAPORAN */}
-          <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden print:border-black">
-            <div className="bg-slate-50 dark:bg-slate-800/60 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 print:bg-slate-100 print:border-black">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 print:text-black">
-                Rincian Informasi & Data Laporan
-              </h4>
-            </div>
-
-            <div className="divide-y divide-slate-200 dark:divide-slate-800 text-xs print:divide-black">
-              {fields.map((field, idx) => {
-                const isPhotoField =
-                  field.label.toLowerCase().includes('foto') ||
-                  field.label.toLowerCase().includes('dokumentasi');
-
-                let displayValue = field.value;
-                if (isPhotoField) {
-                  displayValue = localPhotoUrl ? (
-                    <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Tersedia & Terlampir di bawah</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
-                      <span>Belum Terlampir</span>
-                      {onUpdatePhoto && (
-                        <button
-                          type="button"
-                          onClick={handleOpenPhotoModal}
-                          className="text-teal-600 dark:text-teal-400 underline font-bold print:hidden"
-                        >
-                          (Klik untuk melampirkan)
-                        </button>
-                      )}
-                    </span>
-                  );
-                }
-
-                return (
-                  <div
-                    key={idx}
-                    className={`grid ${field.fullWidth ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'} p-3 gap-1 sm:gap-4`}
+          {/* 2. TABEL DATA LAPORAN RESMI */}
+          <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden print:border-black print:rounded-none print:break-inside-avoid shadow-xs">
+            <table className="w-full text-xs print:text-[9pt] border-collapse border-none">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 print:bg-slate-100 print:border-black">
+                  <th
+                    colSpan={2}
+                    className="px-3 sm:px-4 py-2 print:py-1 text-left text-xs print:text-[9pt] font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 print:text-black"
                   >
-                    <span className="font-bold text-slate-600 dark:text-slate-400 sm:col-span-1 print:text-black">
-                      {field.label}
-                    </span>
-                    <div className="text-slate-900 dark:text-slate-100 sm:col-span-2 font-medium print:text-black whitespace-pre-wrap">
-                      {displayValue || '-'}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    Rincian Informasi & Data Laporan
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 print:divide-black">
+                {fields.map((field, idx) => {
+                  const isPhotoField =
+                    field.label.toLowerCase().includes('foto') ||
+                    field.label.toLowerCase().includes('dokumentasi');
+
+                  let displayValue = field.value;
+                  if (isPhotoField) {
+                    displayValue = localPhotoUrl ? (
+                      <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold print:text-black">
+                        <CheckCircle2 className="w-3.5 h-3.5 print:hidden" />
+                        <span>Tersedia & Terlampir di bawah</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium print:text-black">
+                        <span>Belum Terlampir</span>
+                        {onUpdatePhoto && (
+                          <button
+                            type="button"
+                            onClick={handleOpenPhotoModal}
+                            className="text-teal-600 dark:text-teal-400 underline font-bold print:hidden"
+                          >
+                            (Klik untuk melampirkan)
+                          </button>
+                        )}
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <tr
+                      key={idx}
+                      className="hover:bg-slate-50/40 dark:hover:bg-slate-800/20 print:hover:bg-transparent"
+                    >
+                      <td className="w-[38%] sm:w-[32%] print:w-[32%] px-3 sm:px-4 py-2 print:px-2 print:py-1 font-bold text-slate-600 dark:text-slate-300 print:text-black align-top bg-slate-50/30 dark:bg-slate-900/30 print:bg-transparent border-r border-slate-200 dark:border-slate-800 print:border-black">
+                        {field.label}
+                      </td>
+                      <td className="px-3 sm:px-4 py-2 print:px-2 print:py-1 text-slate-900 dark:text-slate-100 print:text-black align-top font-medium whitespace-pre-wrap leading-relaxed">
+                        {displayValue || '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           {/* 3. CATATAN / URAIAN UTAMA */}
           {catatanUtama && (
-            <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-1.5 text-xs print:bg-white print:border-black">
+            <div className="p-3 sm:p-4 print:p-2 rounded-2xl print:rounded-none border border-slate-200 dark:border-slate-800 print:border-black bg-slate-50/50 dark:bg-slate-800/40 print:bg-transparent space-y-1 text-xs print:text-[9pt] print:break-inside-avoid">
               <h4 className="font-bold text-slate-800 dark:text-slate-200 uppercase print:text-black">
                 {catatanUtama.judul}
               </h4>
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap print:text-black">
+              <p className="text-slate-700 dark:text-slate-300 print:text-black leading-relaxed whitespace-pre-wrap">
                 {catatanUtama.isi}
               </p>
             </div>
           )}
 
-          {/* 4. DOKUMENTASI FOTO (RESPONSIF DI HP & LAPTOP) */}
+          {/* 4. DOKUMENTASI FOTO (RESPONSIF DI HP, LAPTOP & PRINT) */}
           {localPhotoUrl ? (
-            <div className="space-y-2 text-xs">
+            <div className="space-y-1.5 text-xs print:text-[9pt] print:break-inside-avoid">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-slate-800 dark:text-slate-200 uppercase print:text-black flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5 text-teal-600" />
+                  <Camera className="w-3.5 h-3.5 text-teal-600 print:hidden" />
                   <span>Lampiran Dokumentasi Kegiatan:</span>
                 </h4>
                 <div className="flex items-center gap-2 print:hidden">
@@ -529,12 +535,12 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
 
               <div
                 onClick={() => setShowFullscreenPhoto(true)}
-                className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 max-h-80 sm:max-h-96 print:max-h-72 flex items-center justify-center bg-slate-950/90 cursor-pointer group relative shadow-inner"
+                className="rounded-2xl print:rounded-md overflow-hidden border border-slate-200 dark:border-slate-800 print:border-slate-300 max-h-72 sm:max-h-80 print:max-h-52 flex items-center justify-center bg-slate-950/90 print:bg-transparent cursor-pointer group relative shadow-inner mx-auto text-center"
               >
                 <img
                   src={normalizeImageUrl(localPhotoUrl)}
                   alt="Dokumentasi Kegiatan"
-                  className="max-h-80 sm:max-h-96 w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+                  className="max-h-72 sm:max-h-80 print:max-h-48 w-auto max-w-full object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.02] print:rounded-sm"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center print:hidden">
@@ -570,151 +576,154 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
           )}
 
           {/* 5. TANDA TANGAN DIGITAL RESMI PADA DUA SISI */}
-          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 print:border-black">
-            <div className="grid grid-cols-2 gap-6 text-xs text-center">
-              
-              {/* Kolom Kiri: Mengetahui, Kepala UPT SMP Negeri 7 Pasuruan */}
-              <div className="space-y-1">
-                <p className="text-slate-600 dark:text-slate-400 print:text-black">Mengetahui,</p>
-                <p className="font-bold text-slate-900 dark:text-slate-100 print:text-black">
-                  {effectiveKepalaJabatan}
-                </p>
+          <div className="pt-3 sm:pt-4 border-t border-slate-200 dark:border-slate-800 print:border-black print:break-inside-avoid">
+            <table className="w-full border-none border-collapse text-xs print:text-[9pt] text-center table-fixed m-0 p-0 select-none">
+              <tbody>
+                <tr>
+                  {/* Kolom Kiri: Mengetahui, Kepala UPT SMP Negeri 7 Pasuruan */}
+                  <td className="w-1/2 align-top p-1 sm:p-2 print:p-1">
+                    <p className="text-slate-600 dark:text-slate-400 print:text-black m-0">Mengetahui,</p>
+                    <p className="font-bold text-slate-900 dark:text-slate-100 print:text-black m-0 leading-tight">
+                      {effectiveKepalaJabatan}
+                    </p>
 
-                {/* Signature Box for Kepala Sekolah */}
-                <div className="relative group mx-auto w-full max-w-[200px]">
-                  <div
-                    onClick={() => handleOpenSignCanvas('kepala')}
-                    className="h-24 sm:h-28 mx-auto w-full border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-blue-400 transition-all bg-slate-50/40 dark:bg-slate-800/20 print:border-none print:bg-transparent relative overflow-visible"
-                    title="Klik untuk TTD Kepala Sekolah"
-                  >
-                    {effectiveKepalaTtd && effectiveKepalaTtd.startsWith('data:image') ? (
-                      <div className="relative w-full h-full flex items-center justify-center">
-                        {/* Tanda Tangan Digital Kepala Sekolah */}
-                        <img
-                          src={effectiveKepalaTtd}
-                          alt="Tanda Tangan Kepala Sekolah"
-                          className="max-h-full max-w-full object-contain filter dark:invert-0 print:filter-none z-10 relative"
-                        />
-                        {/* Logo Stempel Sekolah Resmi UPT SMPN 7 Pasuruan (Hanya tampil setelah Kepala Sekolah TTD) */}
-                        <img
-                          src="https://i.ibb.co.com/wrcwZdrK/STEMPEL.png"
-                          alt="Stempel Resmi UPT SMPN 7 Pasuruan"
-                          className="absolute left-1/2 top-1/2 -translate-x-[65%] -translate-y-1/2 w-24 h-24 sm:w-28 sm:h-28 object-contain pointer-events-none opacity-85 z-20 mix-blend-multiply dark:mix-blend-normal print:mix-blend-multiply drop-shadow-xs select-none"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center gap-1 text-slate-400 print:text-black">
-                        <PenLine className="w-5 h-5 text-slate-400 print:hidden" />
-                        <span className="text-[11px] font-medium print:text-[10px]">
-                          (Klik untuk TTD)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action buttons on hover/touch */}
-                  {effectiveKepalaTtd && effectiveKepalaTtd.startsWith('data:image') && (
-                    <div className="flex items-center justify-center gap-1.5 mt-1.5 print:hidden">
-                      <button
-                        type="button"
+                    {/* Signature Box for Kepala Sekolah */}
+                    <div className="relative group mx-auto w-full max-w-[180px] my-1 sm:my-1.5">
+                      <div
                         onClick={() => handleOpenSignCanvas('kepala')}
-                        className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 hover:bg-blue-100 text-[10px] font-bold border border-blue-200 dark:border-blue-800 flex items-center gap-1"
-                        title="Ubah tanda tangan"
+                        className="h-20 sm:h-24 print:h-20 mx-auto w-full border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center p-1 cursor-pointer hover:border-blue-400 transition-all bg-slate-50/40 dark:bg-slate-800/20 print:border-none print:bg-transparent relative overflow-visible"
+                        title="Klik untuk TTD Kepala Sekolah"
                       >
-                        <PenLine className="w-3 h-3" />
-                        <span>Ubah</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDirectDeleteSign('kepala', e)}
-                        className="px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 hover:bg-rose-100 text-[10px] font-bold border border-rose-200 dark:border-rose-800 flex items-center gap-1"
-                        title="Hapus tanda tangan ini"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>Hapus TTD</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <p className="font-bold text-slate-900 dark:text-slate-100 underline decoration-1 print:text-black mt-2">
-                  {effectiveKepalaNama}
-                </p>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 print:text-black">
-                  NIP. {effectiveKepalaNip}
-                </p>
-              </div>
-
-              {/* Kolom Kanan: Pasuruan, [Tanggal], Guru Pendamping / Guru BK */}
-              <div className="space-y-1">
-                <p className="text-slate-600 dark:text-slate-400 print:text-black">
-                  Pasuruan, {currentDateFormatted}
-                </p>
-                <p className="font-bold text-slate-900 dark:text-slate-100 print:text-black">
-                  {effectiveGuruJabatan}
-                </p>
-
-                {/* Signature Box for Guru BK / Petugas */}
-                <div className="relative group mx-auto w-full max-w-[200px]">
-                  <div
-                    onClick={() => handleOpenSignCanvas('guru')}
-                    className="h-24 sm:h-28 mx-auto w-full border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 cursor-pointer hover:border-teal-400 transition-all bg-slate-50/40 dark:bg-slate-800/20 print:border-none print:bg-transparent"
-                    title="Klik untuk TTD Guru Pendamping / BK"
-                  >
-                    {effectiveGuruTtd && effectiveGuruTtd.startsWith('data:image') ? (
-                      <img
-                        src={effectiveGuruTtd}
-                        alt="Tanda Tangan Guru BK"
-                        className="max-h-full max-w-full object-contain filter dark:invert-0 print:filter-none"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center gap-1 text-slate-400 print:text-black">
-                        <PenLine className="w-5 h-5 text-slate-400 print:hidden" />
-                        <span className="text-[11px] font-medium print:text-[10px]">
-                          (Klik untuk TTD)
-                        </span>
+                        {effectiveKepalaTtd && effectiveKepalaTtd.startsWith('data:image') ? (
+                          <div className="relative w-full h-full flex items-center justify-center">
+                            {/* Tanda Tangan Digital Kepala Sekolah */}
+                            <img
+                              src={effectiveKepalaTtd}
+                              alt="Tanda Tangan Kepala Sekolah"
+                              className="max-h-full max-w-full object-contain filter dark:invert-0 print:filter-none z-10 relative"
+                            />
+                            {/* Logo Stempel Sekolah Resmi UPT SMPN 7 Pasuruan (Hanya tampil setelah Kepala Sekolah TTD) */}
+                            <img
+                              src="https://i.ibb.co.com/wrcwZdrK/STEMPEL.png"
+                              alt="Stempel Resmi UPT SMPN 7 Pasuruan"
+                              className="absolute left-1/2 top-1/2 -translate-x-[60%] -translate-y-1/2 w-20 h-20 sm:w-24 sm:h-24 print:w-20 print:h-20 object-contain pointer-events-none opacity-85 z-20 mix-blend-multiply dark:mix-blend-normal print:mix-blend-multiply drop-shadow-xs select-none"
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center gap-1 text-slate-400 print:text-black">
+                            <PenLine className="w-4 h-4 text-slate-400 print:hidden" />
+                            <span className="text-[10px] font-medium">
+                              (Klik untuk TTD)
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Action buttons on hover/touch */}
-                  {effectiveGuruTtd && effectiveGuruTtd.startsWith('data:image') && (
-                    <div className="flex items-center justify-center gap-1.5 mt-1.5 print:hidden">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenSignCanvas('guru')}
-                        className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 hover:bg-teal-100 text-[10px] font-bold border border-teal-200 dark:border-teal-800 flex items-center gap-1"
-                        title="Ubah tanda tangan"
-                      >
-                        <PenLine className="w-3 h-3" />
-                        <span>Ubah</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDirectDeleteSign('guru', e)}
-                        className="px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 hover:bg-rose-100 text-[10px] font-bold border border-rose-200 dark:border-rose-800 flex items-center gap-1"
-                        title="Hapus tanda tangan ini"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>Hapus TTD</span>
-                      </button>
+                      {/* Action buttons on hover/touch */}
+                      {effectiveKepalaTtd && effectiveKepalaTtd.startsWith('data:image') && (
+                        <div className="flex items-center justify-center gap-1.5 mt-1 print:hidden">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenSignCanvas('kepala')}
+                            className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 hover:bg-blue-100 text-[10px] font-bold border border-blue-200 dark:border-blue-800 flex items-center gap-1"
+                            title="Ubah tanda tangan"
+                          >
+                            <PenLine className="w-3 h-3" />
+                            <span>Ubah</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDirectDeleteSign('kepala', e)}
+                            className="px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 hover:bg-rose-100 text-[10px] font-bold border border-rose-200 dark:border-rose-800 flex items-center gap-1"
+                            title="Hapus tanda tangan ini"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <p className="font-bold text-slate-900 dark:text-slate-100 underline decoration-1 print:text-black mt-2">
-                  {effectiveGuruNama}
-                </p>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 print:text-black">
-                  NIP. {effectiveGuruNip}
-                </p>
-              </div>
-            </div>
+                    <p className="font-bold text-slate-900 dark:text-slate-100 underline decoration-1 print:text-black m-0 mt-0.5">
+                      {effectiveKepalaNama}
+                    </p>
+                    <p className="text-[10px] sm:text-[11px] print:text-[8pt] text-slate-600 dark:text-slate-400 print:text-black m-0">
+                      NIP. {effectiveKepalaNip}
+                    </p>
+                  </td>
+
+                  {/* Kolom Kanan: Pasuruan, [Tanggal], Guru Pendamping / Guru BK */}
+                  <td className="w-1/2 align-top p-1 sm:p-2 print:p-1">
+                    <p className="text-slate-600 dark:text-slate-400 print:text-black m-0">
+                      Pasuruan, {currentDateFormatted}
+                    </p>
+                    <p className="font-bold text-slate-900 dark:text-slate-100 print:text-black m-0 leading-tight">
+                      {effectiveGuruJabatan}
+                    </p>
+
+                    {/* Signature Box for Guru BK / Petugas */}
+                    <div className="relative group mx-auto w-full max-w-[180px] my-1 sm:my-1.5">
+                      <div
+                        onClick={() => handleOpenSignCanvas('guru')}
+                        className="h-20 sm:h-24 print:h-20 mx-auto w-full border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center p-1 cursor-pointer hover:border-teal-400 transition-all bg-slate-50/40 dark:bg-slate-800/20 print:border-none print:bg-transparent"
+                        title="Klik untuk TTD Guru Pendamping / BK"
+                      >
+                        {effectiveGuruTtd && effectiveGuruTtd.startsWith('data:image') ? (
+                          <img
+                            src={effectiveGuruTtd}
+                            alt="Tanda Tangan Guru BK"
+                            className="max-h-full max-w-full object-contain filter dark:invert-0 print:filter-none"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center gap-1 text-slate-400 print:text-black">
+                            <PenLine className="w-4 h-4 text-slate-400 print:hidden" />
+                            <span className="text-[10px] font-medium">
+                              (Klik untuk TTD)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action buttons on hover/touch */}
+                      {effectiveGuruTtd && effectiveGuruTtd.startsWith('data:image') && (
+                        <div className="flex items-center justify-center gap-1.5 mt-1 print:hidden">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenSignCanvas('guru')}
+                            className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 hover:bg-teal-100 text-[10px] font-bold border border-teal-200 dark:border-teal-800 flex items-center gap-1"
+                            title="Ubah tanda tangan"
+                          >
+                            <PenLine className="w-3 h-3" />
+                            <span>Ubah</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDirectDeleteSign('guru', e)}
+                            className="px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 hover:bg-rose-100 text-[10px] font-bold border border-rose-200 dark:border-rose-800 flex items-center gap-1"
+                            title="Hapus tanda tangan ini"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="font-bold text-slate-900 dark:text-slate-100 underline decoration-1 print:text-black m-0 mt-0.5">
+                      {effectiveGuruNama}
+                    </p>
+                    <p className="text-[10px] sm:text-[11px] print:text-[8pt] text-slate-600 dark:text-slate-400 print:text-black m-0">
+                      {effectiveGuruNip ? `NIP. ${effectiveGuruNip}` : '-'}
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           {/* Footer Validation Note */}
-          <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center pt-2 border-t border-slate-100 dark:border-slate-800 print:text-black">
+          <div className="text-[10px] print:text-[7.5pt] text-slate-400 dark:text-slate-500 text-center pt-2 border-t border-slate-100 dark:border-slate-800 print:text-black print:break-inside-avoid">
             Dokumen ini diterbitkan dan ditandatangani secara sah melalui Sistem Inovasi Layanan E-PASS TEMENAN SPANJU UPT SMPN 7 Pasuruan.
           </div>
         </div>
