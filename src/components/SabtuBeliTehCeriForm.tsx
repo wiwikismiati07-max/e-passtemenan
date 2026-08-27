@@ -716,6 +716,14 @@ export const SabtuBeliTehCeriForm: React.FC<Props> = ({ initialTab = 'form', use
           tanggalSurat={viewItem.hariTanggal}
           jabatanPenandatangan="Guru Pendamping / Guru BK"
           linkFoto={viewItem.linkFoto}
+          onUpdatePhoto={(newPhotoUrl) => {
+            if (viewItem) {
+              const updated = { ...viewItem, linkFoto: newPhotoUrl };
+              StorageService.saveSabtuBeliTehCeri(updated);
+              setViewItem(updated);
+              setDataList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+            }
+          }}
           tandaTangan={viewItem.tandaTangan}
           catatanUtama={
             viewItem.rencanaInovasi

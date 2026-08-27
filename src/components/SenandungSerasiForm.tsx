@@ -440,6 +440,14 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
           jabatanPenandatangan="Guru Pendamping / Guru BK"
           tandaTangan={viewItem.tandaTangan}
           linkFoto={viewItem.linkFoto}
+          onUpdatePhoto={(newPhotoUrl) => {
+            if (viewItem) {
+              const updated = { ...viewItem, linkFoto: newPhotoUrl };
+              StorageService.saveSenandungSerasi(updated);
+              setViewItem(updated);
+              setDataList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+            }
+          }}
           catatanUtama={{
             judul: 'Naskah Pesan & Afirmasi Karakter Yang Disiarkan',
             isi: `"${viewItem.pesanDisampaikan}"`,

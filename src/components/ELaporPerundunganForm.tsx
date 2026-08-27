@@ -551,6 +551,14 @@ export const ELaporPerundunganForm: React.FC<Props> = ({ userRole = 'admin' }) =
           namaPenandatangan="Tim Penanganan Kekerasan SPANJU"
           jabatanPenandatangan="Guru BK / Satgas TPPK SMPN 7 Pasuruan"
           linkFoto={viewItem.linkFoto}
+          onUpdatePhoto={(newPhotoUrl) => {
+            if (viewItem) {
+              const updated = { ...viewItem, linkFoto: newPhotoUrl };
+              StorageService.saveELapor(updated);
+              setViewItem(updated);
+              setDataList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+            }
+          }}
           tandaTangan={viewItem.tandaTangan}
           catatanUtama={{
             judul: 'Kronologi Kejadian / Konflik',

@@ -145,7 +145,8 @@ export function exportOfficialReportToWordDoc(
     guruNip: string;
     guruJabatan: string;
     guruTtd?: string;
-  }
+  },
+  linkFoto?: string
 ) {
   const fieldsRowsHtml = fields
     .map(
@@ -204,6 +205,15 @@ export function exportOfficialReportToWordDoc(
           ? `<div className="catatan-box">
               <div className="catatan-title">${catatanUtama.judul}</div>
               <div style="font-size: 10pt; color: #334155; white-space: pre-wrap;">${catatanUtama.isi}</div>
+            </div>`
+          : ''
+      }
+
+      ${
+        linkFoto
+          ? `<div style="margin-top: 15px; margin-bottom: 20px; text-align: center;">
+              <p style="font-weight: bold; font-size: 10pt; text-align: left; margin-bottom: 8px; text-transform: uppercase;">Lampiran Dokumentasi Kegiatan:</p>
+              <img src="${linkFoto}" style="max-width: 100%; max-height: 380px; border-radius: 8px; border: 1px solid #cbd5e1;" />
             </div>`
           : ''
       }

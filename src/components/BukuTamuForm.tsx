@@ -478,6 +478,14 @@ export const BukuTamuForm: React.FC<Props> = ({ userRole = 'admin' }) => {
           namaPenandatangan={viewItem.namaLengkap}
           jabatanPenandatangan={viewItem.jabatan ? `${viewItem.jabatan} - ${viewItem.instansiAsal}` : `Tamu Kunjungan (${viewItem.instansiAsal})`}
           linkFoto={viewItem.linkFoto}
+          onUpdatePhoto={(newPhotoUrl) => {
+            if (viewItem) {
+              const updated = { ...viewItem, linkFoto: newPhotoUrl };
+              StorageService.saveBukuTamu(updated);
+              setViewItem(updated);
+              setDataList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+            }
+          }}
           tandaTangan={viewItem.tandaTangan}
           catatanUtama={{
             judul: 'Maksud dan Tujuan Kunjungan',

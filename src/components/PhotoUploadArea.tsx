@@ -108,7 +108,13 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
     setErrorMsg(null);
     setImgLoadError(false);
 
-    if (!file.type.startsWith('image/')) {
+    // Resilient check for mobile phone photos (which sometimes have empty or generic MIME types)
+    const isImage =
+      !file.type ||
+      file.type.startsWith('image/') ||
+      /\.(jpg|jpeg|png|webp|gif|bmp|heic|heif|jfif|svg)$/i.test(file.name);
+
+    if (!isImage) {
       setErrorMsg('Format file harus berupa gambar (JPG, PNG, WEBP, dll).');
       return;
     }
@@ -132,46 +138,49 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
 
         const img = new Image();
         img.onload = async () => {
-          const maxWidth = 1600;
-          const maxHeight = 1600;
-          let width = img.width;
-          let height = img.height;
+          try {
+            const maxWidth = 1600;
+            const maxHeight = 1600;
+            let width = img.width || 1200;
+            let height = img.height || 800;
 
-          if (width > maxWidth || height > maxHeight) {
-            if (width > height) {
-              height = Math.round((height * maxWidth) / width);
-              width = maxWidth;
-            } else {
-              width = Math.round((width * maxHeight) / height);
-              height = maxHeight;
-            }
-          }
-
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          
-          if (!ctx) {
-            // Fallback to uploading direct file
-            await performUpload(file);
-            return;
-          }
-
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // Convert canvas to Blob
-          canvas.toBlob(
-            async (blob) => {
-              if (blob) {
-                await performUpload(blob);
+            if (width > maxWidth || height > maxHeight) {
+              if (width > height) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
               } else {
-                await performUpload(file);
+                width = Math.round((width * maxHeight) / height);
+                height = maxHeight;
               }
-            },
-            'image/jpeg',
-            0.85
-          );
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            
+            if (!ctx) {
+              await performUpload(file);
+              return;
+            }
+
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(
+              async (blob) => {
+                if (blob) {
+                  await performUpload(blob);
+                } else {
+                  await performUpload(file);
+                }
+              },
+              'image/jpeg',
+              0.85
+            );
+          } catch (canvasErr) {
+            console.warn('Canvas optimization fallback to original file:', canvasErr);
+            await performUpload(file);
+          }
         };
         img.onerror = async () => {
           await performUpload(file);

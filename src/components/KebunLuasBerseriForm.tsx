@@ -743,6 +743,14 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
           tanggalSurat={viewItem.hariTanggal}
           jabatanPenandatangan="Guru Pendamping / Guru BK"
           linkFoto={viewItem.linkFoto || (viewItem.produkKreatif?.startsWith('data:') || viewItem.produkKreatif?.startsWith('http') ? viewItem.produkKreatif : undefined)}
+          onUpdatePhoto={(newPhotoUrl) => {
+            if (viewItem) {
+              const updated = { ...viewItem, linkFoto: newPhotoUrl };
+              StorageService.saveKebunLuasBerseri(updated);
+              setViewItem(updated);
+              setDataList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+            }
+          }}
           tandaTangan={viewItem.tandaTangan}
           catatanUtama={
             viewItem.hasilInovasi

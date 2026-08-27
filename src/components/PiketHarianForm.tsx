@@ -700,6 +700,14 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
           namaPenandatangan={viewItem.namaAnggota}
           jabatanPenandatangan={`Petugas Piket (${viewItem.kelas})`}
           linkFoto={viewItem.linkFoto}
+          onUpdatePhoto={(newPhotoUrl) => {
+            if (viewItem) {
+              const updated = { ...viewItem, linkFoto: newPhotoUrl };
+              StorageService.savePiketHarian(updated);
+              setViewItem(updated);
+              setDataList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+            }
+          }}
           tandaTangan={viewItem.tandaTangan}
           fields={[
             { label: 'Hari & Tanggal', value: viewItem.hariTanggal },

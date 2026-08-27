@@ -15,10 +15,16 @@ import {
   RotateCcw,
   FileText,
   FileSpreadsheet,
+  Camera,
+  Image as ImageIcon,
+  Plus,
+  Eye,
+  ExternalLink,
 } from 'lucide-react';
 import { StorageService, GURU_BK_OPTIONS, DEFAULT_PEJABAT_CONFIG } from '../services/storage';
 import { PejabatSettingsModal } from './PejabatSettingsModal';
 import { SignatureCanvas } from './SignatureCanvas';
+import { PhotoUploadArea, normalizeImageUrl } from './PhotoUploadArea';
 import { exportOfficialReportToWordDoc, exportToExcel, exportElementToPDF, triggerPrintElement } from '../utils/exportUtils';
 
 export interface ReportDataField {
@@ -39,6 +45,7 @@ interface OfficialReportModalProps {
     isi: string;
   };
   linkFoto?: string;
+  onUpdatePhoto?: (newPhotoUrl: string) => void;
   tandaTangan?: string;
   namaPenandatangan?: string;
   jabatanPenandatangan?: string;
@@ -57,6 +64,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
   fields,
   catatanUtama,
   linkFoto,
+  onUpdatePhoto,
   tandaTangan: propTandaTangan,
   namaPenandatangan: propNamaPenandatangan,
   jabatanPenandatangan: propJabatanPenandatangan,
@@ -69,6 +77,12 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
   const [isPejabatModalOpen, setIsPejabatModalOpen] = useState(false);
   const [isGuruDropdownOpen, setIsGuruDropdownOpen] = useState(false);
   const [isSignCanvasOpen, setIsSignCanvasOpen] = useState<'kepala' | 'guru' | null>(null);
+
+  // Photo management inside modal
+  const [localPhotoUrl, setLocalPhotoUrl] = useState<string>(linkFoto || '');
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [tempPhotoUrl, setTempPhotoUrl] = useState<string>('');
+  const [showFullscreenPhoto, setShowFullscreenPhoto] = useState(false);
 
   // Local signature overrides: null means use default/prop, '' means explicitly cleared/deleted
   const [localGuruSign, setLocalGuruSign] = useState<string | null>(null);
@@ -85,8 +99,9 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
       loadConfig();
       setLocalGuruSign(null);
       setLocalKepalaSign(null);
+      setLocalPhotoUrl(linkFoto || '');
     }
-  }, [isOpen]);
+  }, [isOpen, linkFoto]);
 
   if (!isOpen) return null;
 
@@ -185,10 +200,40 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
     loadConfig();
   };
 
+  const handleOpenPhotoModal = () => {
+    setTempPhotoUrl(localPhotoUrl || '');
+    setIsPhotoModalOpen(true);
+  };
+
+  const handleSavePhotoModal = () => {
+    const finalUrl = tempPhotoUrl.trim();
+    setLocalPhotoUrl(finalUrl);
+    setIsPhotoModalOpen(false);
+    if (onUpdatePhoto) {
+      onUpdatePhoto(finalUrl);
+    }
+  };
+
+  const handleRemovePhotoModal = () => {
+    setLocalPhotoUrl('');
+    setTempPhotoUrl('');
+    setIsPhotoModalOpen(false);
+    if (onUpdatePhoto) {
+      onUpdatePhoto('');
+    }
+  };
+
   const handleDownloadWord = () => {
     const cleanFields = fields.map((f) => ({
       label: f.label,
-      value: typeof f.value === 'string' || typeof f.value === 'number' ? f.value : '',
+      value:
+        f.label.toLowerCase().includes('foto') || f.label.toLowerCase().includes('dokumentasi')
+          ? localPhotoUrl
+            ? 'Tersedia & Terlampir'
+            : 'Tidak Ada Foto'
+          : typeof f.value === 'string' || typeof f.value === 'number'
+          ? f.value
+          : '',
     }));
     exportOfficialReportToWordDoc(
       `${judulLaporan.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
@@ -206,7 +251,8 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
         guruNip: effectiveGuruNip,
         guruJabatan: effectiveGuruJabatan,
         guruTtd: effectiveGuruTtd,
-      }
+      },
+      localPhotoUrl || undefined
     );
   };
 
@@ -214,7 +260,11 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
     const headers = ['Informasi / Field', 'Isi Data'];
     const rows = fields.map((f) => [
       f.label,
-      typeof f.value === 'string' || typeof f.value === 'number' ? String(f.value) : '',
+      f.label.toLowerCase().includes('foto') || f.label.toLowerCase().includes('dokumentasi')
+        ? localPhotoUrl || 'Tidak Ada Foto'
+        : typeof f.value === 'string' || typeof f.value === 'number'
+        ? String(f.value)
+        : '',
     ]);
     if (catatanUtama) {
       rows.push([catatanUtama.judul, catatanUtama.isi]);
@@ -377,19 +427,48 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
             </div>
 
             <div className="divide-y divide-slate-200 dark:divide-slate-800 text-xs print:divide-black">
-              {fields.map((field, idx) => (
-                <div
-                  key={idx}
-                  className={`grid ${field.fullWidth ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'} p-3 gap-1 sm:gap-4`}
-                >
-                  <span className="font-bold text-slate-600 dark:text-slate-400 sm:col-span-1 print:text-black">
-                    {field.label}
-                  </span>
-                  <div className="text-slate-900 dark:text-slate-100 sm:col-span-2 font-medium print:text-black whitespace-pre-wrap">
-                    {field.value || '-'}
+              {fields.map((field, idx) => {
+                const isPhotoField =
+                  field.label.toLowerCase().includes('foto') ||
+                  field.label.toLowerCase().includes('dokumentasi');
+
+                let displayValue = field.value;
+                if (isPhotoField) {
+                  displayValue = localPhotoUrl ? (
+                    <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Tersedia & Terlampir di bawah</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
+                      <span>Belum Terlampir</span>
+                      {onUpdatePhoto && (
+                        <button
+                          type="button"
+                          onClick={handleOpenPhotoModal}
+                          className="text-teal-600 dark:text-teal-400 underline font-bold print:hidden"
+                        >
+                          (Klik untuk melampirkan)
+                        </button>
+                      )}
+                    </span>
+                  );
+                }
+
+                return (
+                  <div
+                    key={idx}
+                    className={`grid ${field.fullWidth ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'} p-3 gap-1 sm:gap-4`}
+                  >
+                    <span className="font-bold text-slate-600 dark:text-slate-400 sm:col-span-1 print:text-black">
+                      {field.label}
+                    </span>
+                    <div className="text-slate-900 dark:text-slate-100 sm:col-span-2 font-medium print:text-black whitespace-pre-wrap">
+                      {displayValue || '-'}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -405,20 +484,88 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
             </div>
           )}
 
-          {/* 4. DOKUMENTASI FOTO */}
-          {linkFoto && (
+          {/* 4. DOKUMENTASI FOTO (RESPONSIF DI HP & LAPTOP) */}
+          {localPhotoUrl ? (
             <div className="space-y-2 text-xs">
-              <h4 className="font-bold text-slate-800 dark:text-slate-200 uppercase print:text-black">
-                Lampiran Dokumentasi Kegiatan:
-              </h4>
-              <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 max-h-72 print:max-h-60 flex items-center justify-center bg-slate-950">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 uppercase print:text-black flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Lampiran Dokumentasi Kegiatan:</span>
+                </h4>
+                <div className="flex items-center gap-2 print:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowFullscreenPhoto(true)}
+                    className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-[11px] font-bold flex items-center gap-1 transition-colors"
+                    title="Perbesar foto tampilan penuh"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Perbesar</span>
+                  </button>
+                  {onUpdatePhoto && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleOpenPhotoModal}
+                        className="px-2.5 py-1 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 hover:bg-teal-100 text-[11px] font-bold border border-teal-200 dark:border-teal-800 flex items-center gap-1 transition-colors"
+                        title="Ganti atau perbarui foto ini"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Ganti Foto</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemovePhotoModal}
+                        className="px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 hover:bg-rose-100 text-[11px] font-bold border border-rose-200 dark:border-rose-800 flex items-center gap-1 transition-colors"
+                        title="Hapus foto dari laporan ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div
+                onClick={() => setShowFullscreenPhoto(true)}
+                className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 max-h-80 sm:max-h-96 print:max-h-72 flex items-center justify-center bg-slate-950/90 cursor-pointer group relative shadow-inner"
+              >
                 <img
-                  src={linkFoto}
-                  alt="Dokumentasi"
-                  className="max-h-72 w-auto object-contain"
+                  src={normalizeImageUrl(localPhotoUrl)}
+                  alt="Dokumentasi Kegiatan"
+                  className="max-h-80 sm:max-h-96 w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
                   referrerPolicy="no-referrer"
                 />
+                <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center print:hidden">
+                  <span className="px-3 py-1.5 rounded-xl bg-slate-900/80 backdrop-blur-sm text-white text-xs font-bold flex items-center gap-1.5 shadow-lg">
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Klik untuk memperbesar</span>
+                  </span>
+                </div>
               </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-2xl border-2 border-dashed border-teal-500/30 dark:border-teal-500/20 bg-teal-50/40 dark:bg-teal-950/20 text-center space-y-2 print:hidden">
+              <div className="flex items-center justify-center gap-2 text-teal-700 dark:text-teal-300 font-bold text-xs">
+                <Camera className="w-4 h-4 text-emerald-500" />
+                <span>Dokumentasi Foto Belum Dilampirkan</span>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+                Foto dokumentasi dapat langsung diambil melalui kamera HP atau diunggah dari galeri/laptop agar otomatis tampil di laporan resmi dan disimpan ke Supabase Cloud Storage.
+              </p>
+              {onUpdatePhoto && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={handleOpenPhotoModal}
+                    className="px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-md inline-flex items-center gap-2 active:scale-95 transition-all"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Ambil Foto HP / Unggah Sekarang</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -640,6 +787,105 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Photo Attachment / Upload Modal */}
+      {isPhotoModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white font-display">
+                  Lampirkan Foto Dokumentasi Kegiatan
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPhotoModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <PhotoUploadArea
+              value={tempPhotoUrl}
+              onChange={(url) => setTempPhotoUrl(url)}
+              label="Dokumentasi Foto Kegiatan (Online Storage Supabase)"
+              folder="laporan_resmi"
+            />
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 gap-2">
+              {localPhotoUrl ? (
+                <button
+                  type="button"
+                  onClick={handleRemovePhotoModal}
+                  className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold flex items-center gap-1.5 border border-rose-200 dark:border-rose-800 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Foto</span>
+                </button>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPhotoModalOpen(false)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSavePhotoModal}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Pasang ke Laporan</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Photo Lightbox Modal */}
+      {showFullscreenPhoto && localPhotoUrl && (
+        <div
+          onClick={() => setShowFullscreenPhoto(false)}
+          className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-fadeIn cursor-pointer"
+        >
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <a
+              href={normalizeImageUrl(localPhotoUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="px-3 py-1.5 rounded-xl bg-slate-800 text-white hover:bg-slate-700 text-xs font-bold flex items-center gap-1.5"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Buka Tab Baru</span>
+            </a>
+            <button
+              onClick={() => setShowFullscreenPhoto(false)}
+              className="p-2 rounded-xl bg-slate-800 text-white hover:bg-slate-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="max-w-4xl max-h-[85vh] p-2 flex items-center justify-center">
+            <img
+              src={normalizeImageUrl(localPhotoUrl)}
+              alt="Dokumentasi Fullscreen"
+              className="max-h-[80vh] max-w-full object-contain rounded-2xl shadow-2xl border border-slate-700"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+          <p className="text-slate-400 text-xs mt-3">Klik di mana saja untuk menutup</p>
         </div>
       )}
     </div>
