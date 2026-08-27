@@ -563,7 +563,7 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
               {/* Upload Foto Dokumentasi Kegiatan Senandung Serasi */}
               <div className="pt-2">
                 <PhotoUploadArea
-                  label="Upload / Foto Dokumentasi Kegiatan Senandung Serasi (Kamera HP / File Galeri / Link URL)"
+                  label="LINK FOTO KEGIATAN"
                   value={linkFoto}
                   onChange={(val) => setLinkFoto(val)}
                   maxSizeMB={15}

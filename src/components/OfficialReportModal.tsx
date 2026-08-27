@@ -21,6 +21,7 @@ import {
   Eye,
   ExternalLink,
   FolderOpen,
+  Sparkles,
 } from 'lucide-react';
 import { StorageService, GURU_BK_OPTIONS, DEFAULT_PEJABAT_CONFIG } from '../services/storage';
 import { PejabatSettingsModal } from './PejabatSettingsModal';
@@ -211,11 +212,12 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
     if (!file) return;
     setIsProcessingPhoto(true);
     try {
-      // 1. Compress image to clean, compact ~50KB - 80KB target size
+      // 1. Process image compression
       const compressed = await compressImage(file, 1000, 0.75);
-      setLocalPhotoUrl(compressed.dataUrl);
+      const chosenUrl = compressed.dataUrl;
+      setLocalPhotoUrl(chosenUrl);
       if (onUpdatePhoto) {
-        onUpdatePhoto(compressed.dataUrl);
+        onUpdatePhoto(chosenUrl);
       }
 
       // 2. Concurrently upload to Supabase Cloud Storage if available
@@ -230,10 +232,32 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
         }
       }
     } catch (err: any) {
-      console.warn('Direct photo compression/upload error:', err);
+      console.warn('Direct photo compression/upload error, falling back to direct FileReader:', err);
+      try {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const res = evt.target?.result as string;
+          if (res) {
+            setLocalPhotoUrl(res);
+            if (onUpdatePhoto) {
+              onUpdatePhoto(res);
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      } catch (readErr) {
+        console.error('FileReader fallback failed:', readErr);
+      }
     } finally {
       setIsProcessingPhoto(false);
       e.target.value = '';
+    }
+  };
+
+  const handleUsePresetSamplePhoto = (url: string) => {
+    setLocalPhotoUrl(url);
+    if (onUpdatePhoto) {
+      onUpdatePhoto(url);
     }
   };
 
@@ -623,7 +647,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                     className="px-3.5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-md inline-flex items-center gap-2 active:scale-95 transition-all disabled:opacity-50"
                   >
                     <Camera className="w-4 h-4" />
-                    <span>{isProcessingPhoto ? 'Memproses...' : 'Buka Kamera HP'}</span>
+                    <span>{isProcessingPhoto ? 'Memproses Foto...' : 'Buka Kamera HP'}</span>
                   </button>
                   <button
                     type="button"
@@ -633,6 +657,20 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                   >
                     <FolderOpen className="w-4 h-4 text-teal-600" />
                     <span>Pilih dari Galeri / File</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isProcessingPhoto}
+                    onClick={() =>
+                      handleUsePresetSamplePhoto(
+                        'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=800&auto=format&fit=crop'
+                      )
+                    }
+                    className="px-3 py-2 bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 rounded-xl text-xs font-bold shadow-sm inline-flex items-center gap-1.5 active:scale-95 transition-all"
+                    title="Gunakan contoh foto dokumentasi siaran radio sekolah"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    <span>Contoh Foto Siaran</span>
                   </button>
                   <button
                     type="button"
@@ -893,7 +931,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
             <PhotoUploadArea
               value={tempPhotoUrl}
               onChange={(url) => setTempPhotoUrl(url)}
-              label="Dokumentasi Foto Kegiatan (Online Storage Supabase)"
+              label="LINK FOTO KEGIATAN"
               folder="laporan_resmi"
             />
 

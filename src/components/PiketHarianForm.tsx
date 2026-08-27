@@ -429,7 +429,7 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
             {/* Upload Foto Kegiatan matching exact design from image */}
             <div>
               <PhotoUploadArea
-                label="Upload Foto Kegiatan (Opsional)"
+                label="LINK FOTO KEGIATAN"
                 value={linkFoto}
                 onChange={setLinkFoto}
                 maxSizeMB={15}

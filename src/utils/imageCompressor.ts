@@ -32,12 +32,33 @@ export async function compressImage(
     if (typeof fileOrBlobOrBase64 === 'string') {
       srcUrl = fileOrBlobOrBase64;
     } else {
-      srcUrl = URL.createObjectURL(fileOrBlobOrBase64);
-      isObjectUrl = true;
+      try {
+        srcUrl = URL.createObjectURL(fileOrBlobOrBase64);
+        isObjectUrl = true;
+      } catch (e) {
+        // Fallback to FileReader if createObjectURL fails
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          resolve({
+            dataUrl,
+            blob: fileOrBlobOrBase64 as Blob,
+            sizeKB: Math.round((fileOrBlobOrBase64 as Blob).size / 1024),
+            width: 800,
+            height: 600,
+          });
+        };
+        reader.onerror = () => reject(new Error('Gagal membaca file gambar'));
+        reader.readAsDataURL(fileOrBlobOrBase64 as Blob);
+        return;
+      }
     }
 
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Only set crossOrigin for remote HTTP/HTTPS URLs; never on blob: or data: URLs to prevent CORS block
+    if (srcUrl.startsWith('http://') || srcUrl.startsWith('https://')) {
+      img.crossOrigin = 'anonymous';
+    }
 
     img.onload = () => {
       try {
@@ -79,7 +100,9 @@ export async function compressImage(
         canvas.toBlob(
           (blob) => {
             if (isObjectUrl) {
-              URL.revokeObjectURL(srcUrl);
+              try {
+                URL.revokeObjectURL(srcUrl);
+              } catch (_) {}
             }
 
             if (blob) {
@@ -92,7 +115,7 @@ export async function compressImage(
               });
             } else {
               // Fallback if toBlob fails
-              const byteCharacters = atob(dataUrl.split(',')[1]);
+              const byteCharacters = atob(dataUrl.split(',')[1] || '');
               const byteNumbers = new Array(byteCharacters.length);
               for (let i = 0; i < byteCharacters.length; i++) {
                 byteNumbers[i] = byteCharacters.charCodeAt(i);
@@ -112,14 +135,71 @@ export async function compressImage(
           quality
         );
       } catch (err) {
-        if (isObjectUrl) URL.revokeObjectURL(srcUrl);
-        reject(err);
+        if (isObjectUrl) {
+          try {
+            URL.revokeObjectURL(srcUrl);
+          } catch (_) {}
+        }
+        
+        // Graceful fallback: return raw dataUrl if canvas operations fail
+        if (typeof fileOrBlobOrBase64 === 'string') {
+          resolve({
+            dataUrl: fileOrBlobOrBase64,
+            blob: new Blob([fileOrBlobOrBase64], { type: 'image/jpeg' }),
+            sizeKB: Math.round(fileOrBlobOrBase64.length / 1024),
+            width: 800,
+            height: 600,
+          });
+        } else {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            resolve({
+              dataUrl,
+              blob: fileOrBlobOrBase64 as Blob,
+              sizeKB: Math.round((fileOrBlobOrBase64 as Blob).size / 1024),
+              width: 800,
+              height: 600,
+            });
+          };
+          reader.onerror = () => reject(err);
+          reader.readAsDataURL(fileOrBlobOrBase64 as Blob);
+        }
       }
     };
 
-    img.onerror = (err) => {
-      if (isObjectUrl) URL.revokeObjectURL(srcUrl);
-      reject(new Error('Gagal memuat file gambar untuk dikompresi'));
+    img.onerror = () => {
+      if (isObjectUrl) {
+        try {
+          URL.revokeObjectURL(srcUrl);
+        } catch (_) {}
+      }
+
+      // If Image fails to load object URL, fallback to FileReader
+      if (typeof fileOrBlobOrBase64 !== 'string') {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          resolve({
+            dataUrl,
+            blob: fileOrBlobOrBase64 as Blob,
+            sizeKB: Math.round((fileOrBlobOrBase64 as Blob).size / 1024),
+            width: 800,
+            height: 600,
+          });
+        };
+        reader.onerror = () => reject(new Error('Gagal memuat file gambar untuk dikompresi'));
+        reader.readAsDataURL(fileOrBlobOrBase64 as Blob);
+      } else {
+        // String URL or Data URL
+        resolve({
+          dataUrl: fileOrBlobOrBase64,
+          blob: new Blob([fileOrBlobOrBase64], { type: 'image/jpeg' }),
+          sizeKB: Math.round(fileOrBlobOrBase64.length / 1024),
+          width: 800,
+          height: 600,
+        });
+      }
     };
 
     img.src = srcUrl;

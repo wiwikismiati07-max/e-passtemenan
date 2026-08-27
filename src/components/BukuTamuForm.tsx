@@ -687,7 +687,7 @@ export const BukuTamuForm: React.FC<Props> = ({ userRole = 'admin' }) => {
               {/* Upload Foto Dokumentasi Tamu Online Supabase */}
               <div className="pt-2">
                 <PhotoUploadArea
-                  label="Upload / Foto Dokumentasi Kunjungan Tamu (Simpan Online Supabase)"
+                  label="LINK FOTO DOKUMENTASI TAMU"
                   value={linkFoto}
                   onChange={(val) => setLinkFoto(val)}
                   folder="buku_tamu"

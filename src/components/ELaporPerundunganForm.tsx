@@ -811,7 +811,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({ userRole = 'admin' }) =
               {/* Upload Foto Dokumentasi Online Supabase */}
               <div className="pt-2">
                 <PhotoUploadArea
-                  label="Upload / Foto Dokumentasi Penanganan Kasus (Simpan Online Supabase)"
+                  label="LINK FOTO KEGIATAN"
                   value={linkFoto}
                   onChange={(val) => setLinkFoto(val)}
                   folder="e_lapor"

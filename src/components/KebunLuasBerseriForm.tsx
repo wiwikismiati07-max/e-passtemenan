@@ -456,7 +456,7 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
             {/* Upload Foto Dokumentasi Kegiatan / Produk Kreatif */}
             <div>
               <PhotoUploadArea
-                label="Upload Foto Kegiatan / Produk Inovasi (Opsional)"
+                label="LINK FOTO PRODUK / INOVASI"
                 value={produkKreatif}
                 onChange={setProdukKreatif}
                 maxSizeMB={15}
@@ -519,7 +519,7 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
             {/* Upload Foto Kegiatan Kebun Luas Berseri */}
             <div className="pt-2">
               <PhotoUploadArea
-                label="Upload / Foto Dokumentasi Inovasi & Kegiatan Kebun Luas Berseri (Simpan Online Supabase)"
+                label="LINK FOTO KEGIATAN"
                 value={linkFoto}
                 onChange={(val) => setLinkFoto(val)}
                 folder="kebun_luas_berseri"

@@ -435,7 +435,7 @@ export const SabtuBeliTehCeriForm: React.FC<Props> = ({ initialTab = 'form', use
             {/* Upload Foto Kegiatan matching exact design from image */}
             <div>
               <PhotoUploadArea
-                label="Upload Foto Kegiatan (Opsional)"
+                label="LINK FOTO KEGIATAN"
                 value={linkFoto}
                 onChange={setLinkFoto}
                 maxSizeMB={15}
