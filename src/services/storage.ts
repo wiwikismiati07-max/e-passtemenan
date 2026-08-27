@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { compressImage } from '../utils/imageCompressor';
 import {
   AppDatabase,
   BukuTamu,
@@ -17,6 +18,52 @@ import { INITIAL_CLASS_ZONE_DATA } from '../data/classZoneData';
 
 const STORAGE_KEY = 'PASS_TEMENAN_SPANJU_DB_V1';
 const DELETED_IDS_STORAGE_KEY = 'PASS_TEMENAN_DELETED_IDS_V1';
+const IDB_NAME = 'PASS_TEMENAN_SPANJU_IDB_V1';
+const IDB_STORE_NAME = 'app_state';
+
+// Helper for IndexedDB persistence (safe against 5MB localStorage limits)
+function openAppIndexedDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      return reject(new Error('IndexedDB is not supported'));
+    }
+    const request = indexedDB.open(IDB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const idb = request.result;
+      if (!idb.objectStoreNames.contains(IDB_STORE_NAME)) {
+        idb.createObjectStore(IDB_STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveToIndexedDB(key: string, value: any): Promise<void> {
+  try {
+    const idb = await openAppIndexedDB();
+    const tx = idb.transaction(IDB_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(IDB_STORE_NAME);
+    store.put(value, key);
+  } catch (e) {
+    console.warn('IndexedDB save warning:', e);
+  }
+}
+
+async function getFromIndexedDB(key: string): Promise<any> {
+  try {
+    const idb = await openAppIndexedDB();
+    return new Promise((resolve) => {
+      const tx = idb.transaction(IDB_STORE_NAME, 'readonly');
+      const store = tx.objectStore(IDB_STORE_NAME);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+  } catch (e) {
+    return null;
+  }
+}
 
 export const INITIAL_CUSTOM_LINKS: CustomLink[] = [
   {
@@ -335,6 +382,30 @@ export class StorageService {
         };
         this.saveDb();
       }
+
+      // Check IndexedDB asynchronously for robust multi-device & offline backup
+      getFromIndexedDB(STORAGE_KEY).then((idbData) => {
+        if (idbData && typeof idbData === 'object' && this.db) {
+          let hasNewerPhotos = false;
+          // Check if any Senandung Serasi or other list has a photo in IndexedDB that was missing in localStorage
+          ['senandungSerasi', 'piketHarian', 'sabtuBeliTehCeri', 'kebunLuasBerseri', 'eLaporPerundungan', 'bukuTamu'].forEach((key) => {
+            const idbList = (idbData as any)[key];
+            const currentList = (this.db as any)[key];
+            if (Array.isArray(idbList) && Array.isArray(currentList)) {
+              idbList.forEach((idbItem) => {
+                const currentItem = currentList.find((c: any) => c.id === idbItem.id);
+                if (currentItem && !currentItem.linkFoto && idbItem.linkFoto) {
+                  currentItem.linkFoto = idbItem.linkFoto;
+                  hasNewerPhotos = true;
+                }
+              });
+            }
+          });
+          if (hasNewerPhotos) {
+            this.saveDb();
+          }
+        }
+      });
     } catch (e) {
       console.error('Error loading database from localStorage', e);
       this.db = { ...DEFAULT_DATABASE };
@@ -346,10 +417,15 @@ export class StorageService {
     if (!this.db) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.db));
+      // Also persist to IndexedDB for unlimited capacity & safety against browser storage clearing
+      saveToIndexedDB(STORAGE_KEY, this.db);
       // Trigger storage event for UI reactivity
       window.dispatchEvent(new Event('pass-temenan-db-updated'));
     } catch (e) {
-      console.error('Error saving to localStorage', e);
+      console.warn('LocalStorage quota warning, falling back to IndexedDB persistent storage:', e);
+      // IndexedDB has gigabytes of storage, safe from localStorage QuotaExceededError
+      saveToIndexedDB(STORAGE_KEY, this.db);
+      window.dispatchEvent(new Event('pass-temenan-db-updated'));
     }
   }
 
@@ -400,27 +476,27 @@ export class StorageService {
     const bucketName = 'foto_kegiatan';
 
     try {
-      // Determine extension
-      let ext = 'jpg';
-      if (fileOrBlob.type) {
-        const match = fileOrBlob.type.match(/image\/([a-zA-Z0-9]+)/);
-        if (match && match[1]) {
-          ext = match[1].replace('jpeg', 'jpg');
-        }
+      // Compress the image before uploading to optimize cloud bandwidth and storage
+      let uploadTarget: Blob | File = fileOrBlob;
+      try {
+        const compressed = await compressImage(fileOrBlob, 1000, 0.75);
+        uploadTarget = compressed.blob;
+      } catch (compErr) {
+        console.warn('Image pre-compression fallback:', compErr);
       }
 
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(2, 8);
       const cleanFolder = folder.replace(/[^a-zA-Z0-9_-]/g, '_');
-      const filePath = `${cleanFolder}/${timestamp}_${randomStr}.${ext}`;
+      const filePath = `${cleanFolder}/${timestamp}_${randomStr}.jpg`;
 
       // Upload to Supabase Storage Bucket
       const { data, error } = await client.storage
         .from(bucketName)
-        .upload(filePath, fileOrBlob, {
+        .upload(filePath, uploadTarget, {
           cacheControl: '3600',
           upsert: true,
-          contentType: fileOrBlob.type || 'image/jpeg',
+          contentType: 'image/jpeg',
         });
 
       if (error) {
@@ -567,7 +643,7 @@ export class StorageService {
   }
 
   // --- MERGE HELPER FOR ROBUST CROSS-DEVICE SYNC ---
-  private static mergeEntities<T extends { id: string; updatedAt?: string; createdAt?: string }>(
+  private static mergeEntities<T extends { id: string; updatedAt?: string; createdAt?: string; linkFoto?: string; tandaTangan?: string }>(
     localList: T[],
     remoteList: T[],
     deletedIds: Set<string>
@@ -591,20 +667,23 @@ export class StorageService {
       if (!existing) {
         map.set(remoteItem.id, remoteItem);
       } else {
-        // Merge without losing existing non-empty values if remote has null/empty
+        // Merge without losing existing non-empty values (photos, signatures, etc.) if remote is empty
         const mergedItem: any = { ...existing };
         Object.entries(remoteItem).forEach(([key, val]) => {
           if (val !== undefined && val !== null && val !== '') {
             mergedItem[key] = val;
           }
         });
-        const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
-        const remoteTime = new Date(remoteItem.updatedAt || remoteItem.createdAt || 0).getTime();
-        if (remoteTime > localTime) {
-          map.set(remoteItem.id, { ...existing, ...remoteItem });
-        } else {
-          map.set(remoteItem.id, mergedItem);
+
+        // Ensure linkFoto and tandaTangan from existing local are never lost if remote happens to be empty
+        if (existing.linkFoto && !mergedItem.linkFoto) {
+          mergedItem.linkFoto = existing.linkFoto;
         }
+        if (existing.tandaTangan && !mergedItem.tandaTangan) {
+          mergedItem.tandaTangan = existing.tandaTangan;
+        }
+
+        map.set(remoteItem.id, mergedItem);
       }
     });
 

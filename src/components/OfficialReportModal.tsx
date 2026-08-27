@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { KopSurat } from './KopSurat';
 import {
   Printer,
@@ -20,11 +20,13 @@ import {
   Plus,
   Eye,
   ExternalLink,
+  FolderOpen,
 } from 'lucide-react';
 import { StorageService, GURU_BK_OPTIONS, DEFAULT_PEJABAT_CONFIG } from '../services/storage';
 import { PejabatSettingsModal } from './PejabatSettingsModal';
 import { SignatureCanvas } from './SignatureCanvas';
 import { PhotoUploadArea, normalizeImageUrl } from './PhotoUploadArea';
+import { compressImage } from '../utils/imageCompressor';
 import { exportOfficialReportToWordDoc, exportToExcel, exportElementToPDF, triggerPrintElement } from '../utils/exportUtils';
 
 export interface ReportDataField {
@@ -83,6 +85,10 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [tempPhotoUrl, setTempPhotoUrl] = useState<string>('');
   const [showFullscreenPhoto, setShowFullscreenPhoto] = useState(false);
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+
+  const directFileInputRef = useRef<HTMLInputElement>(null);
+  const directCameraInputRef = useRef<HTMLInputElement>(null);
 
   // Local signature overrides: null means use default/prop, '' means explicitly cleared/deleted
   const [localGuruSign, setLocalGuruSign] = useState<string | null>(null);
@@ -198,6 +204,37 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
     }
     setIsSignCanvasOpen(null);
     loadConfig();
+  };
+
+  const handleDirectPhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsProcessingPhoto(true);
+    try {
+      // 1. Compress image to clean, compact ~50KB - 80KB target size
+      const compressed = await compressImage(file, 1000, 0.75);
+      setLocalPhotoUrl(compressed.dataUrl);
+      if (onUpdatePhoto) {
+        onUpdatePhoto(compressed.dataUrl);
+      }
+
+      // 2. Concurrently upload to Supabase Cloud Storage if available
+      const client = StorageService.getSupabaseClient();
+      if (client) {
+        const uploadRes = await StorageService.uploadPhotoToSupabase(compressed.blob, 'laporan_resmi');
+        if (uploadRes.url) {
+          setLocalPhotoUrl(uploadRes.url);
+          if (onUpdatePhoto) {
+            onUpdatePhoto(uploadRes.url);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('Direct photo compression/upload error:', err);
+    } finally {
+      setIsProcessingPhoto(false);
+      e.target.value = '';
+    }
   };
 
   const handleOpenPhotoModal = () => {
@@ -552,23 +589,57 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
               </div>
             </div>
           ) : (
-            <div className="p-4 rounded-2xl border-2 border-dashed border-teal-500/30 dark:border-teal-500/20 bg-teal-50/40 dark:bg-teal-950/20 text-center space-y-2 print:hidden">
+            <div className="p-4 rounded-2xl border-2 border-dashed border-teal-500/30 dark:border-teal-500/20 bg-teal-50/40 dark:bg-teal-950/20 text-center space-y-3 print:hidden">
+              {/* Hidden file inputs for direct capture */}
+              <input
+                ref={directCameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleDirectPhotoSelect}
+              />
+              <input
+                ref={directFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleDirectPhotoSelect}
+              />
+
               <div className="flex items-center justify-center gap-2 text-teal-700 dark:text-teal-300 font-bold text-xs">
                 <Camera className="w-4 h-4 text-emerald-500" />
                 <span>Dokumentasi Foto Belum Dilampirkan</span>
               </div>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                Foto dokumentasi dapat langsung diambil melalui kamera HP atau diunggah dari galeri/laptop agar otomatis tampil di laporan resmi dan disimpan ke Supabase Cloud Storage.
+                Foto dokumentasi dapat langsung diambil via kamera HP atau diunggah dari galeri laptop/HP. Foto akan disimpan permanen dan tetap tampil saat aplikasi dibuka kembali.
               </p>
               {onUpdatePhoto && (
-                <div className="pt-1">
+                <div className="pt-1 flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isProcessingPhoto}
+                    onClick={() => directCameraInputRef.current?.click()}
+                    className="px-3.5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-md inline-flex items-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>{isProcessingPhoto ? 'Memproses...' : 'Buka Kamera HP'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isProcessingPhoto}
+                    onClick={() => directFileInputRef.current?.click()}
+                    className="px-3.5 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold shadow-sm inline-flex items-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    <FolderOpen className="w-4 h-4 text-teal-600" />
+                    <span>Pilih dari Galeri / File</span>
+                  </button>
                   <button
                     type="button"
                     onClick={handleOpenPhotoModal}
-                    className="px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-md inline-flex items-center gap-2 active:scale-95 transition-all"
+                    className="px-3 py-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 text-xs font-semibold underline inline-flex items-center gap-1"
                   >
-                    <Camera className="w-4 h-4" />
-                    <span>Ambil Foto HP / Unggah Sekarang</span>
+                    <span>Opsi Link / Detail</span>
                   </button>
                 </div>
               )}

@@ -30,7 +30,7 @@ import { StorageService } from '../services/storage';
 import { RencanaInovasiModal } from './RencanaInovasiModal';
 import { KopSurat } from './KopSurat';
 import { SignatureCanvas } from './SignatureCanvas';
-import { PhotoUploadArea } from './PhotoUploadArea';
+import { PhotoUploadArea, normalizeImageUrl } from './PhotoUploadArea';
 import { OfficialReportModal } from './OfficialReportModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import confetti from 'canvas-confetti';
@@ -334,7 +334,7 @@ export const SenandungSerasiForm: React.FC<Props> = ({ userRole = 'admin' }) => 
                   title="Klik untuk melihat foto dalam laporan lengkap"
                 >
                   <img
-                    src={item.linkFoto}
+                    src={normalizeImageUrl(item.linkFoto)}
                     alt="Foto Dokumentasi Senandung Serasi"
                     className="w-full h-36 object-cover transition-transform duration-300 group-hover/img:scale-105"
                     referrerPolicy="no-referrer"

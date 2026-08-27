@@ -18,6 +18,7 @@ import {
   Copy,
 } from 'lucide-react';
 import { StorageService } from '../services/storage';
+import { compressImage } from '../utils/imageCompressor';
 
 interface PhotoUploadAreaProps {
   label?: string;
@@ -125,120 +126,44 @@ export const PhotoUploadArea: React.FC<PhotoUploadAreaProps> = ({
     }
 
     setIsLoading(true);
-    setLoadingStatus('Mengoptimalkan resolusi foto...');
+    setLoadingStatus('Mengompresi & mengoptimalkan resolusi foto HP...');
 
     try {
+      // 1. Compress image to clean, compact ~50KB - 80KB target size
+      const compressed = await compressImage(file, 1000, 0.75);
+
+      // 2. Immediately set compressed dataUrl so UI updates instantly & local storage never runs out of quota
+      onChange(compressed.dataUrl);
+
+      // 3. Concurrently upload to Supabase Cloud Storage if available
+      const client = StorageService.getSupabaseClient();
+      if (client) {
+        setLoadingStatus('Mengunggah ke Supabase Cloud Storage (Online)...');
+        const uploadRes = await StorageService.uploadPhotoToSupabase(compressed.blob, folder);
+        if (uploadRes.url) {
+          onChange(uploadRes.url);
+          setErrorMsg(null);
+        } else {
+          console.warn('Supabase storage upload notice:', uploadRes.error);
+        }
+      }
+      setIsLoading(false);
+    } catch (err: any) {
+      console.warn('Compression error fallback:', err);
+      // Fallback: read directly as data URL if canvas compression fails
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        if (!result) {
-          setIsLoading(false);
-          return;
+        if (result) {
+          onChange(result);
         }
-
-        const img = new Image();
-        img.onload = async () => {
-          try {
-            const maxWidth = 1600;
-            const maxHeight = 1600;
-            let width = img.width || 1200;
-            let height = img.height || 800;
-
-            if (width > maxWidth || height > maxHeight) {
-              if (width > height) {
-                height = Math.round((height * maxWidth) / width);
-                width = maxWidth;
-              } else {
-                width = Math.round((width * maxHeight) / height);
-                height = maxHeight;
-              }
-            }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            
-            if (!ctx) {
-              await performUpload(file);
-              return;
-            }
-
-            ctx.drawImage(img, 0, 0, width, height);
-
-            canvas.toBlob(
-              async (blob) => {
-                if (blob) {
-                  await performUpload(blob);
-                } else {
-                  await performUpload(file);
-                }
-              },
-              'image/jpeg',
-              0.85
-            );
-          } catch (canvasErr) {
-            console.warn('Canvas optimization fallback to original file:', canvasErr);
-            await performUpload(file);
-          }
-        };
-        img.onerror = async () => {
-          await performUpload(file);
-        };
-        img.src = result;
+        setIsLoading(false);
       };
       reader.onerror = () => {
-        setErrorMsg('Gagal membaca file gambar.');
+        setErrorMsg('Gagal membaca file foto.');
         setIsLoading(false);
       };
       reader.readAsDataURL(file);
-    } catch (err: any) {
-      setErrorMsg(`Terjadi kesalahan: ${err?.message || 'Gagal memproses foto.'}`);
-      setIsLoading(false);
-    }
-  };
-
-  const performUpload = async (fileOrBlob: Blob | File) => {
-    setLoadingStatus('Mengunggah foto online ke Supabase Cloud Storage...');
-    
-    // Check if Supabase client is configured
-    const client = StorageService.getSupabaseClient();
-    if (!client) {
-      // Supabase is not connected yet, offer base64 preview with notice
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const base64 = evt.target?.result as string;
-        if (base64) {
-          onChange(base64);
-          setErrorMsg('Koneksi Supabase belum aktif di Pengaturan. Foto disimpan sementara di memori.');
-        }
-        setIsLoading(false);
-      };
-      reader.readAsDataURL(fileOrBlob);
-      return;
-    }
-
-    const uploadRes = await StorageService.uploadPhotoToSupabase(fileOrBlob, folder);
-
-    if (uploadRes.url) {
-      onChange(uploadRes.url);
-      setErrorMsg(null);
-      setIsLoading(false);
-    } else {
-      console.warn('Supabase storage upload failed:', uploadRes.error);
-      // If error (e.g. bucket does not exist or policy violation), provide fallback base64 & actionable guide
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const base64 = evt.target?.result as string;
-        if (base64) {
-          onChange(base64);
-        }
-        setErrorMsg(
-          `Supabase Storage: ${uploadRes.error || 'Bucket "foto_kegiatan" belum dibuat di Supabase.'}. Silakan jalankan Skrip SQL di Pengaturan Cloud.`
-        );
-        setIsLoading(false);
-      };
-      reader.readAsDataURL(fileOrBlob);
     }
   };
 
