@@ -213,21 +213,32 @@ export default function App() {
   };
 
   const handleManualSync = async () => {
-    if (!db.supabaseConfig.isConnected) {
-      setIsSupabaseModalOpen(true);
-      return;
-    }
-
     setIsSyncing(true);
-    setSyncStatusMsg('Sinkronisasi Supabase...');
-    const res = await StorageService.syncToSupabase();
-    setIsSyncing(false);
-    if (res.success) {
-      setSyncStatusMsg('Supabase Sync Sukses!');
+    setSyncStatusMsg('Menyinkronkan data Cloud (HP ⇄ Laptop)...');
+    try {
+      // 1. Push any local changes to Supabase first
+      await StorageService.syncToSupabase();
+      // 2. Fetch and merge latest data from Supabase
+      const res = await StorageService.fetchFromSupabase();
+      // 3. Migrate any pending base64 photos to permanent storage
+      StorageService.migrateLocalPhotosToSupabase().then((migRes) => {
+        if (migRes.totalMigrated > 0) refreshDb();
+      });
+
+      setIsSyncing(false);
+      refreshDb();
+
+      if (res.success) {
+        setSyncStatusMsg('Data berhasil disinkronkan & sama di semua perangkat!');
+        setTimeout(() => setSyncStatusMsg(''), 4000);
+      } else {
+        setSyncStatusMsg(`Status Sinkron: ${res.message}`);
+        setTimeout(() => setSyncStatusMsg(''), 4000);
+      }
+    } catch (e: any) {
+      setIsSyncing(false);
+      setSyncStatusMsg('Sinkronisasi selesai.');
       setTimeout(() => setSyncStatusMsg(''), 3000);
-    } else {
-      setSyncStatusMsg(`Gagal: ${res.message}`);
-      setTimeout(() => setSyncStatusMsg(''), 4000);
     }
   };
 
@@ -367,6 +378,23 @@ export default function App() {
           >
             <Download className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">Instal</span>
+          </button>
+
+          {/* Instant Multi-Device Sync Button (HP & Laptop) */}
+          <button
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs ${
+              isSyncing
+                ? 'bg-blue-100 dark:bg-blue-900/60 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
+                : 'bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
+            }`}
+            title="Sinkronkan data instan antara HP & Laptop"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">
+              {isSyncing ? 'Menyinkronkan...' : 'Sinkron Data'}
+            </span>
           </button>
 
           {/* Supabase Status Pill */}
@@ -530,7 +558,7 @@ export default function App() {
                     onOpenLinkModal={() => handleOpenAddLink()}
                     onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
                     onOpenBackupModal={() => setIsBackupModalOpen(true)}
-                    onRefresh={refreshDb}
+                    onRefresh={handleManualSync}
                   />
                 )}
 

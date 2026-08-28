@@ -336,6 +336,8 @@ export class StorageService {
       const { error } = await client.from(table).delete().eq('id', id);
       if (error) {
         console.warn(`Supabase delete from ${table} notice:`, error.message);
+      } else {
+        this.broadcastChange(table, 'delete', id);
       }
     } catch (e) {
       console.warn(`Supabase delete exception on ${table}:`, e);
@@ -349,8 +351,20 @@ export class StorageService {
       const deletedIds = this.getDeletedIds();
       const isValidItem = (x: any) => x && x.id && !deletedIds.has(x.id) && !LEGACY_MOCK_IDS.has(x.id);
 
+      const defaultCfg = DEFAULT_DATABASE.supabaseConfig;
+
       if (stored) {
         const parsed = JSON.parse(stored);
+        const parsedCfg = parsed.supabaseConfig || {};
+        const finalUrl =
+          parsedCfg.url && parsedCfg.url.trim().startsWith('http')
+            ? parsedCfg.url.trim()
+            : defaultCfg.url;
+        const finalKey =
+          parsedCfg.anonKey && parsedCfg.anonKey.trim().length > 10
+            ? parsedCfg.anonKey.trim()
+            : defaultCfg.anonKey;
+
         this.db = {
           ...DEFAULT_DATABASE,
           ...parsed,
@@ -364,7 +378,13 @@ export class StorageService {
           masterSiswa: (Array.isArray(parsed.masterSiswa) ? parsed.masterSiswa : DEFAULT_DATABASE.masterSiswa).filter(isValidItem),
           masterGuru: (Array.isArray(parsed.masterGuru) ? parsed.masterGuru : DEFAULT_DATABASE.masterGuru).filter(isValidItem),
           classAssignments: parsed.classAssignments || DEFAULT_DATABASE.classAssignments || {},
-          supabaseConfig: { ...DEFAULT_DATABASE.supabaseConfig, ...(parsed.supabaseConfig || {}) },
+          supabaseConfig: {
+            url: finalUrl,
+            anonKey: finalKey,
+            isConnected: true,
+            autoSync: true,
+            lastSyncedAt: parsedCfg.lastSyncedAt || undefined,
+          },
           pejabatConfig: { ...DEFAULT_PEJABAT_CONFIG, ...(parsed.pejabatConfig || {}) },
         };
       } else {
@@ -668,56 +688,57 @@ export class StorageService {
     remoteList: T[],
     deletedIds: Set<string>
   ): { merged: T[]; missingInRemote: T[] } {
-    const map = new Map<string, T>();
-    const remoteIdSet = new Set<string>();
+    const remoteMap = new Map<string, T>();
+    const localMap = new Map<string, T>();
 
-    // 1. Keep valid local items not deleted and not legacy mock
+    // 1. Index local items (excluding deleted & mock)
     (localList || []).forEach((item) => {
       if (item && item.id && !deletedIds.has(item.id) && !LEGACY_MOCK_IDS.has(item.id)) {
-        map.set(item.id, item);
+        localMap.set(item.id, item);
       }
     });
 
-    // 2. Merge remote items with field-level preservation
+    // 2. Put remote items into remoteMap as the single source of truth
     (remoteList || []).forEach((remoteItem) => {
       if (!remoteItem || !remoteItem.id || deletedIds.has(remoteItem.id) || LEGACY_MOCK_IDS.has(remoteItem.id)) return;
-      remoteIdSet.add(remoteItem.id);
 
-      const existing = map.get(remoteItem.id);
-      if (!existing) {
-        map.set(remoteItem.id, remoteItem);
+      const localItem = localMap.get(remoteItem.id);
+      if (localItem) {
+        // If remote item doesn't have photo/sig yet (e.g. was uploaded right before async photo upload completed), preserve local
+        const mergedItem: T = { ...remoteItem };
+        if (localItem.linkFoto && !mergedItem.linkFoto) {
+          mergedItem.linkFoto = localItem.linkFoto;
+        }
+        if (localItem.tandaTangan && !mergedItem.tandaTangan) {
+          mergedItem.tandaTangan = localItem.tandaTangan;
+        }
+        remoteMap.set(remoteItem.id, mergedItem);
       } else {
-        // Merge without losing existing non-empty values (photos, signatures, etc.) if remote is empty
-        const mergedItem: any = { ...existing };
-        Object.entries(remoteItem).forEach(([key, val]) => {
-          if (val !== undefined && val !== null && val !== '') {
-            mergedItem[key] = val;
-          }
-        });
-
-        // Ensure linkFoto and tandaTangan from existing local are never lost if remote happens to be empty
-        if (existing.linkFoto && !mergedItem.linkFoto) {
-          mergedItem.linkFoto = existing.linkFoto;
-        }
-        if (existing.tandaTangan && !mergedItem.tandaTangan) {
-          mergedItem.tandaTangan = existing.tandaTangan;
-        }
-
-        map.set(remoteItem.id, mergedItem);
+        remoteMap.set(remoteItem.id, remoteItem);
       }
     });
 
-    const merged = Array.from(map.values()).sort((a, b) => {
+    // 3. Keep local items that are not yet in remote and sync them up
+    const missingInRemote: T[] = [];
+    localMap.forEach((localItem, id) => {
+      if (!remoteMap.has(id)) {
+        if (!deletedIds.has(id) && !LEGACY_MOCK_IDS.has(id)) {
+          remoteMap.set(id, localItem);
+          missingInRemote.push(localItem);
+        }
+      }
+    });
+
+    const merged = Array.from(remoteMap.values()).sort((a, b) => {
       const timeA = new Date(a.createdAt || a.updatedAt || 0).getTime();
       const timeB = new Date(b.createdAt || b.updatedAt || 0).getTime();
       return timeB - timeA;
     });
 
-    const missingInRemote = Array.from(map.values()).filter((item) => !remoteIdSet.has(item.id) && !LEGACY_MOCK_IDS.has(item.id));
     return { merged, missingInRemote };
   }
 
-  // Safe Upsert Helper with automatic fallback
+  // Safe Upsert Helper with automatic fallback and broadcast
   public static async safeUpsert(table: string, payload: any | any[]): Promise<{ error: any }> {
     const client = this.getSupabaseClient();
     if (!client) return { error: new Error('Supabase client tidak aktif') };
@@ -725,22 +746,50 @@ export class StorageService {
     try {
       const res = await client.from(table).upsert(payload);
       if (res.error) {
-        // If column error (e.g. table in supabase does not have tanda_tangan yet), retry without tanda_tangan
-        if (res.error.message && (res.error.message.includes('column') || res.error.message.includes('tanda_tangan'))) {
+        // If column error, parse and remove problematic columns and retry
+        const errMsg = res.error.message || '';
+        if (errMsg.includes('column') || errMsg.includes('tanda_tangan') || errMsg.includes('link_foto') || errMsg.includes('rtl_list')) {
           const cleanItem = (item: any) => {
             if (!item || typeof item !== 'object') return item;
-            const { tanda_tangan, ...rest } = item;
-            return rest;
+            const cloned = { ...item };
+            if (errMsg.includes('tanda_tangan')) delete cloned.tanda_tangan;
+            if (errMsg.includes('link_foto')) delete cloned.link_foto;
+            if (errMsg.includes('rtl_list')) delete cloned.rtl_list;
+            if (errMsg.includes('produk_kreatif')) delete cloned.produk_kreatif;
+            return cloned;
           };
           const fallbackPayload = Array.isArray(payload) ? payload.map(cleanItem) : cleanItem(payload);
           const retryRes = await client.from(table).upsert(fallbackPayload);
+          if (!retryRes.error) {
+            this.broadcastChange(table, 'upsert');
+          }
           return retryRes;
         }
+      } else {
+        this.broadcastChange(table, 'upsert');
       }
       return res;
     } catch (e: any) {
       console.warn(`Supabase upsert into ${table} warning:`, e);
       return { error: e };
+    }
+  }
+
+  // Broadcast change across all connected devices (HP, Laptop, PC, Tablet)
+  public static async broadcastChange(table: string, action: string, itemId?: string): Promise<void> {
+    const client = this.getSupabaseClient();
+    if (!client) return;
+    try {
+      const channel = client.channel('pass-temenan-realtime-sync', {
+        config: { broadcast: { self: false } },
+      });
+      await channel.send({
+        type: 'broadcast',
+        event: 'db_changed',
+        payload: { table, action, itemId, timestamp: Date.now() },
+      });
+    } catch (e) {
+      // silently ignore
     }
   }
 
@@ -757,14 +806,30 @@ export class StorageService {
         this.realtimeChannel = null;
       }
 
-      this.realtimeChannel = client
-        .channel('pass-temenan-cloud-sync')
-        .on('postgres_changes', { event: '*', schema: 'public' }, (_payload) => {
-          this.fetchFromSupabase().then(() => {
-            window.dispatchEvent(new Event('pass-temenan-db-updated'));
-          });
-        })
-        .subscribe();
+      const channel = client.channel('pass-temenan-realtime-sync', {
+        config: { broadcast: { self: false } },
+      });
+
+      // 1. Listen for Supabase Broadcast (instant across all browsers/devices)
+      channel.on('broadcast', { event: 'db_changed' }, async (payload) => {
+        console.log('Realtime broadcast sync received:', payload);
+        await this.fetchFromSupabase();
+        window.dispatchEvent(new Event('pass-temenan-db-updated'));
+      });
+
+      // 2. Listen for Postgres changes (if Supabase replication is enabled)
+      channel.on('postgres_changes', { event: '*', schema: 'public' }, async () => {
+        await this.fetchFromSupabase();
+        window.dispatchEvent(new Event('pass-temenan-db-updated'));
+      });
+
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✓ Supabase Realtime channel connected for instant multi-device sync');
+        }
+      });
+
+      this.realtimeChannel = channel;
 
       return () => {
         if (this.realtimeChannel) {
@@ -1325,6 +1390,27 @@ export class StorageService {
             }
           });
           counts['class_assignments'] = classData.length;
+        }
+      } catch (e: any) {
+        // Silently handle
+      }
+
+      // 11. Fetch App Settings (Pejabat Config, Tanda Tangan, dll)
+      try {
+        const { data: settingsData, error: settingsErr } = await client
+          .from('app_settings')
+          .select('*')
+          .range(0, 100);
+
+        if (!settingsErr && settingsData && settingsData.length > 0) {
+          const pejabatRow = settingsData.find((r: any) => r.key === 'pejabat_config');
+          if (pejabatRow && pejabatRow.value) {
+            const parsedVal = typeof pejabatRow.value === 'string' ? JSON.parse(pejabatRow.value) : pejabatRow.value;
+            db.pejabatConfig = {
+              ...(db.pejabatConfig || DEFAULT_PEJABAT_CONFIG),
+              ...parsedVal,
+            };
+          }
         }
       } catch (e: any) {
         // Silently handle
@@ -2516,6 +2602,16 @@ export class StorageService {
       ...config,
     };
     this.saveDb();
+
+    // Sync to Supabase app_settings table
+    this.safeUpsert('app_settings', {
+      key: 'pejabat_config',
+      value: JSON.stringify(db.pejabatConfig),
+      updated_at: new Date().toISOString(),
+    }).then(() => {
+      this.broadcastChange('app_settings', 'update');
+    });
+
     return db.pejabatConfig;
   }
 
@@ -2894,6 +2990,13 @@ CREATE TABLE IF NOT EXISTS public.class_assignments (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 11. Tabel App Settings (Pengaturan Pejabat, Kepala Sekolah, Guru BK)
+CREATE TABLE IF NOT EXISTS public.app_settings (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Enable Row Level Security (RLS) & Public Policies for open access as requested
 ALTER TABLE public.piket_harian ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sabtu_teh_ceri ENABLE ROW LEVEL SECURITY;
@@ -2905,6 +3008,7 @@ ALTER TABLE public.master_siswa ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.master_guru ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.custom_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.class_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read and write (upsert) for all users
 CREATE POLICY "Public Read All" ON public.piket_harian FOR SELECT USING (true);
@@ -2957,7 +3061,12 @@ CREATE POLICY "Public Insert All" ON public.class_assignments FOR INSERT WITH CH
 CREATE POLICY "Public Update All" ON public.class_assignments FOR UPDATE USING (true);
 CREATE POLICY "Public Delete All" ON public.class_assignments FOR DELETE USING (true);
 
--- 11. Konfigurasi Supabase Storage Bucket untuk Foto Dokumentasi Online
+CREATE POLICY "Public Read All" ON public.app_settings FOR SELECT USING (true);
+CREATE POLICY "Public Insert All" ON public.app_settings FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update All" ON public.app_settings FOR UPDATE USING (true);
+CREATE POLICY "Public Delete All" ON public.app_settings FOR DELETE USING (true);
+
+-- 12. Konfigurasi Supabase Storage Bucket untuk Foto Dokumentasi Online
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('foto_kegiatan', 'foto_kegiatan', true)
 ON CONFLICT (id) DO UPDATE SET public = true;

@@ -12,6 +12,7 @@ import {
   Table,
   Sparkles,
   Award,
+  RefreshCw,
 } from 'lucide-react';
 import { AppDatabase } from '../types';
 import { RencanaInovasiModal } from './RencanaInovasiModal';
@@ -141,6 +142,17 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 rounded-xl transition-all shadow-xs cursor-pointer"
+              title="Sinkronkan data dengan Supabase untuk menyamakan tampilan HP & Laptop"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Sinkron HP & Laptop</span>
+            </button>
+          )}
+
           <button
             onClick={() => setIsInovasiModalOpen(true)}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl transition-all shadow-sm cursor-pointer"
