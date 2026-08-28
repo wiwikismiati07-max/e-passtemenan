@@ -24,6 +24,7 @@ import {
   PenLine,
   FileText,
   FileSpreadsheet,
+  RefreshCw,
 } from 'lucide-react';
 import { exportToExcel, exportToWord } from '../utils/exportUtils';
 import { KebunLuasBerseri, RTLItem } from '../types';
@@ -55,6 +56,7 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
   const [searchQuery, setSearchQuery] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isInovasiModalOpen, setIsInovasiModalOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Form states
   const [dateInput, setDateInput] = useState(() => getRealtimeDateISO());
@@ -70,6 +72,13 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
   const [linkFoto, setLinkFoto] = useState('');
   const [tandaTangan, setTandaTangan] = useState('');
   const [keterangan, setKeterangan] = useState('');
+
+  // Sync initialTab when navigation changes
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const formatDateToIndonesian = (dateStr: string) => {
     if (!dateStr) return '';
@@ -92,8 +101,21 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
   }, [dateInput]);
 
   const loadData = () => {
-    const list = StorageService.getDb().kebunLuasBerseri;
+    const list = StorageService.getDb().kebunLuasBerseri || [];
     setDataList([...list]);
+  };
+
+  const handleSyncCloud = async () => {
+    setIsSyncing(true);
+    try {
+      await StorageService.syncToSupabase();
+      await StorageService.fetchFromSupabase();
+      loadData();
+    } catch {
+      // ignore
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   useEffect(() => {
@@ -270,11 +292,16 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
   };
 
   const filteredList = dataList.filter((item) => {
+    if (!item) return false;
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
     return (
-      item.hariTanggal.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.evaluasiBerhasil.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.hasilInovasi.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.produkKreatif.toLowerCase().includes(searchQuery.toLowerCase())
+      (item.hariTanggal || '').toLowerCase().includes(q) ||
+      (item.evaluasiBerhasil || '').toLowerCase().includes(q) ||
+      (item.hasilInovasi || '').toLowerCase().includes(q) ||
+      (item.kendalaSolusi || '').toLowerCase().includes(q) ||
+      (item.produkKreatif || '').toLowerCase().includes(q) ||
+      (item.keterangan || '').toLowerCase().includes(q)
     );
   });
 
@@ -583,6 +610,20 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
 
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
                 <button
+                  onClick={handleSyncCloud}
+                  disabled={isSyncing}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors border ${
+                    isSyncing
+                      ? 'bg-blue-50 text-blue-700 border-blue-300'
+                      : 'bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                  }`}
+                  title="Sinkronkan data dengan Cloud Supabase (HP ⇄ Laptop)"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkron Cloud'}</span>
+                </button>
+
+                <button
                   onClick={handleExportWord}
                   className="px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950 hover:bg-blue-100 text-blue-700 dark:text-blue-300 text-xs font-bold flex items-center gap-1.5 transition-colors border border-blue-200 dark:border-blue-800"
                   title="Unduh Rekap Laporan Format Microsoft Word (.doc)"
@@ -619,98 +660,134 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredList.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-5 hover:border-emerald-300 transition-all flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-700">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-emerald-600" />
-                          {item.hariTanggal}
-                        </h4>
-                        <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                          <Clock className="w-3 h-3" />
-                          {item.waktu}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/70 dark:border-slate-800 text-xs">
-                      <strong className="text-emerald-700 dark:text-emerald-400 block mb-1">
-                        Capaian Berhasil:
-                      </strong>
-                      <p className="text-slate-600 dark:text-slate-300 line-clamp-3">
-                        {item.evaluasiBerhasil}
-                      </p>
-                    </div>
-
-                    {item.hasilInovasi && (
-                      <div className="p-3 bg-teal-50/60 dark:bg-teal-950/30 rounded-xl border border-teal-200/60 dark:border-teal-900 text-xs">
-                        <strong className="text-teal-700 dark:text-teal-400 block mb-1">
-                          Inovasi Baru:
-                        </strong>
-                        <p className="text-slate-700 dark:text-slate-300 line-clamp-2">
-                          {item.hasilInovasi}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Signature Preview if Available */}
-                    {item.tandaTangan && (
-                      <div className="flex items-center gap-2 pt-1">
-                        <span className="text-[10px] text-slate-400">TTD:</span>
-                        <div className="h-7 w-20 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 flex items-center justify-center p-0.5">
-                          <img src={item.tandaTangan} alt="TTD" className="h-full object-contain" />
+            {filteredList.length === 0 ? (
+              <div className="py-12 px-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-center bg-slate-50/50 dark:bg-slate-800/30">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4">
+                  <Trees className="w-8 h-8" />
+                </div>
+                <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-200 mb-1">
+                  {searchQuery ? 'Data Tidak Ditemukan' : 'Belum Ada Data Rekapitulasi Kebun Luas Berseri'}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+                  {searchQuery
+                    ? `Tidak ada laporan yang sesuai dengan kata kunci "${searchQuery}". Coba kata kunci lain.`
+                    : 'Belum ada agenda kegiatan bulanan evaluasi & inovasi yang tersimpan di perangkat ini. Anda dapat menginput laporan baru atau menarik data yang diinput dari perangkat lain.'}
+                </p>
+                <div className="flex items-center justify-center gap-3 flex-wrap">
+                  <button
+                    onClick={() => {
+                      resetForm();
+                      setActiveTab('form');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Isi Form Kebun Luas Berseri</span>
+                  </button>
+                  <button
+                    onClick={handleSyncCloud}
+                    disabled={isSyncing}
+                    className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-emerald-600 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isSyncing ? 'Menyinkronkan...' : 'Tarik & Sinkronkan Data Cloud'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredList.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-5 hover:border-emerald-300 transition-all flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-700">
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-emerald-600" />
+                            {item.hariTanggal}
+                          </h4>
+                          <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                            <Clock className="w-3 h-3" />
+                            {item.waktu}
+                          </span>
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-700 text-xs">
-                    <button
-                      onClick={() => setViewItem(item)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1.5 transition-colors"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      <span>Lihat & Cetak Resmi</span>
-                    </button>
+                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/70 dark:border-slate-800 text-xs">
+                        <strong className="text-emerald-700 dark:text-emerald-400 block mb-1">
+                          Capaian Berhasil:
+                        </strong>
+                        <p className="text-slate-600 dark:text-slate-300 line-clamp-3">
+                          {item.evaluasiBerhasil}
+                        </p>
+                      </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenEdit(item)}
-                        className="p-1.5 text-slate-600 hover:text-emerald-600 rounded-lg hover:bg-white cursor-pointer"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                      {item.hasilInovasi && (
+                        <div className="p-3 bg-teal-50/60 dark:bg-teal-950/30 rounded-xl border border-teal-200/60 dark:border-teal-900 text-xs">
+                          <strong className="text-teal-700 dark:text-teal-400 block mb-1">
+                            Inovasi Baru:
+                          </strong>
+                          <p className="text-slate-700 dark:text-slate-300 line-clamp-2">
+                            {item.hasilInovasi}
+                          </p>
+                        </div>
+                      )}
 
-                      {userRole === 'admin' ? (
-                        <button
-                          onClick={() => handleDelete(item)}
-                          className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                          title="Hapus Data (Khusus Admin)"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => alert('Akses Siswa: Anda dapat menambah dan mengedit data, namun tidak diizinkan untuk menghapus data.')}
-                          className="p-2 text-slate-300 dark:text-slate-700 hover:text-rose-500 rounded-xl transition-colors cursor-not-allowed opacity-50"
-                          title="Akses Siswa: Tidak bisa menghapus data"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      {/* Signature Preview if Available */}
+                      {item.tandaTangan && (
+                        <div className="flex items-center gap-2 pt-1">
+                          <span className="text-[10px] text-slate-400">TTD:</span>
+                          <div className="h-7 w-20 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 flex items-center justify-center p-0.5">
+                            <img src={item.tandaTangan} alt="TTD" className="h-full object-contain" />
+                          </div>
+                        </div>
                       )}
                     </div>
+
+                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-700 text-xs">
+                      <button
+                        onClick={() => setViewItem(item)}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Lihat & Cetak Resmi</span>
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenEdit(item)}
+                          className="p-1.5 text-slate-600 hover:text-emerald-600 rounded-lg hover:bg-white cursor-pointer"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        {userRole === 'admin' ? (
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title="Hapus Data (Khusus Admin)"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => alert('Akses Siswa: Anda dapat menambah dan mengedit data, namun tidak diizinkan untuk menghapus data.')}
+                            className="p-2 text-slate-300 dark:text-slate-700 hover:text-rose-500 rounded-xl transition-colors cursor-not-allowed opacity-50"
+                            title="Akses Siswa: Tidak bisa menghapus data"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -25,6 +25,7 @@ import {
   Printer,
   PenLine,
   FileSpreadsheet,
+  RefreshCw,
 } from 'lucide-react';
 import { exportToExcel, exportToWord } from '../utils/exportUtils';
 import { PiketHarian } from '../types';
@@ -55,6 +56,7 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
   const [searchQuery, setSearchQuery] = useState('');
   const [filterKelas, setFilterKelas] = useState('ALL');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Form Fields
   const [dateInput, setDateInput] = useState(() => getRealtimeDateISO());
@@ -66,6 +68,13 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
   const [linkFoto, setLinkFoto] = useState('');
   const [tandaTangan, setTandaTangan] = useState('');
   const [keterangan, setKeterangan] = useState('');
+
+  // Sync initialTab when navigation changes
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const formatDateToIndonesian = (dateStr: string) => {
     if (!dateStr) return '';
@@ -88,8 +97,21 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
   }, [dateInput]);
 
   const loadData = () => {
-    const list = StorageService.getDb().piketHarian;
+    const list = StorageService.getDb().piketHarian || [];
     setDataList([...list]);
+  };
+
+  const handleSyncCloud = async () => {
+    setIsSyncing(true);
+    try {
+      await StorageService.syncToSupabase();
+      await StorageService.fetchFromSupabase();
+      loadData();
+    } catch {
+      // ignore
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   useEffect(() => {
@@ -237,13 +259,19 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
   };
 
   const filteredList = dataList.filter((item) => {
+    if (!item) return false;
+    const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
-      item.hariTanggal.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.namaAnggota.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.hasilTemuan.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.kelas.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      (item.hariTanggal || '').toLowerCase().includes(q) ||
+      (item.namaAnggota || '').toLowerCase().includes(q) ||
+      (item.hasilTemuan || '').toLowerCase().includes(q) ||
+      (item.kelas || '').toLowerCase().includes(q) ||
+      (item.keterangan || '').toLowerCase().includes(q);
 
-    const matchesKelas = filterKelas === 'ALL' || item.kelas.toLowerCase().includes(filterKelas.toLowerCase());
+    const matchesKelas =
+      filterKelas === 'ALL' ||
+      (item.kelas || '').toLowerCase().includes(filterKelas.toLowerCase());
 
     return matchesSearch && matchesKelas;
   });
@@ -505,7 +533,7 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
                 />
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
                 <select
                   value={filterKelas}
                   onChange={(e) => setFilterKelas(e.target.value)}
@@ -517,6 +545,20 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
                   <option value="IX">Kelas IX</option>
                   <option value="Pokja">Pokja / OSIS</option>
                 </select>
+
+                <button
+                  onClick={handleSyncCloud}
+                  disabled={isSyncing}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors border ${
+                    isSyncing
+                      ? 'bg-blue-50 text-blue-700 border-blue-300'
+                      : 'bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                  }`}
+                  title="Sinkronkan data dengan Cloud Supabase (HP ⇄ Laptop)"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-blue-600 dark:text-blue-400 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkron Cloud'}</span>
+                </button>
 
                 <button
                   onClick={handleExportWord}
@@ -555,102 +597,132 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredList.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-5 hover:border-blue-300 transition-all flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-700">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-blue-600" />
-                          {item.hariTanggal}
-                        </h4>
-                        <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                          <Clock className="w-3 h-3" />
-                          {item.waktu}
+            {filteredList.length === 0 ? (
+              <div className="py-12 px-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-center bg-slate-50/50 dark:bg-slate-800/30">
+                <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-8 h-8" />
+                </div>
+                <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-200 mb-1">
+                  {searchQuery ? 'Data Tidak Ditemukan' : 'Belum Ada Data Rekapitulasi Piket Harian'}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+                  {searchQuery
+                    ? `Tidak ada laporan yang sesuai dengan kata kunci "${searchQuery}". Coba kata kunci lain.`
+                    : 'Belum ada agenda piket harian satgas yang tersimpan di perangkat ini. Anda dapat menginput laporan baru atau menarik data yang diinput dari perangkat lain.'}
+                </p>
+                <div className="flex items-center justify-center gap-3 flex-wrap">
+                  <button
+                    onClick={() => {
+                      resetForm();
+                      setActiveTab('form');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Isi Form Piket Harian</span>
+                  </button>
+                  <button
+                    onClick={handleSyncCloud}
+                    disabled={isSyncing}
+                    className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-blue-600 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isSyncing ? 'Menyinkronkan...' : 'Tarik & Sinkronkan Data Cloud'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredList.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-5 hover:border-blue-300 transition-all flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-700">
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-blue-600" />
+                            {item.hariTanggal}
+                          </h4>
+                          <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                            <Clock className="w-3 h-3" />
+                            {item.waktu}
+                          </span>
+                        </div>
+
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          {item.kelas}
                         </span>
                       </div>
 
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                        {item.kelas}
-                      </span>
-                    </div>
-
-                    <div className="text-xs">
-                      <span className="text-slate-400 font-semibold block">Petugas Piket:</span>
-                      <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{item.namaAnggota}</p>
-                    </div>
-
-                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/70 dark:border-slate-800 text-xs">
-                      <strong className="text-blue-700 dark:text-blue-400 block mb-1">
-                        Temuan Piket:
-                      </strong>
-                      <p className="text-slate-600 dark:text-slate-300 line-clamp-3">
-                        {item.hasilTemuan}
-                      </p>
-                    </div>
-
-                    {/* Signature Preview if Available */}
-                    {item.tandaTangan && (
-                      <div className="flex items-center gap-2 pt-1">
-                        <span className="text-[10px] text-slate-400">TTD:</span>
-                        <div className="h-7 w-20 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 flex items-center justify-center p-0.5">
-                          <img src={item.tandaTangan} alt="TTD" className="h-full object-contain" />
-                        </div>
+                      <div className="text-xs">
+                        <span className="text-slate-400 font-semibold block">Petugas Piket:</span>
+                        <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{item.namaAnggota}</p>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-700 text-xs">
-                    <button
-                      onClick={() => setViewItem(item)}
-                      className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 font-bold flex items-center gap-1.5 transition-colors"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      <span>Lihat & Cetak Resmi</span>
-                    </button>
+                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/70 dark:border-slate-800 text-xs">
+                        <strong className="text-blue-700 dark:text-blue-400 block mb-1">
+                          Temuan Piket:
+                        </strong>
+                        <p className="text-slate-600 dark:text-slate-300 line-clamp-3">
+                          {item.hasilTemuan}
+                        </p>
+                      </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => handleOpenEdit(item)}
-                        className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                        title="Edit Data"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-
-                      {userRole === 'admin' ? (
-                        <button
-                          onClick={() => handleDelete(item)}
-                          className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                          title="Hapus Data (Khusus Admin)"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => alert('Akses Siswa: Anda dapat menambah dan mengedit data, namun tidak diizinkan untuk menghapus data.')}
-                          className="p-2 text-slate-300 dark:text-slate-700 hover:text-rose-500 rounded-xl transition-colors cursor-not-allowed opacity-50"
-                          title="Akses Siswa: Tidak bisa menghapus data"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      {/* Signature Preview if Available */}
+                      {item.tandaTangan && (
+                        <div className="flex items-center gap-2 pt-1">
+                          <span className="text-[10px] text-slate-400">TTD:</span>
+                          <div className="h-7 w-20 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 flex items-center justify-center p-0.5">
+                            <img src={item.tandaTangan} alt="TTD" className="h-full object-contain" />
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
-                </div>
-              ))}
 
-              {filteredList.length === 0 && (
-                <div className="col-span-full text-center py-12 text-slate-400 text-xs">
-                  Belum ada data catatan piket harian.
-                </div>
-              )}
-            </div>
+                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-700 text-xs">
+                      <button
+                        onClick={() => setViewItem(item)}
+                        className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 font-bold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Lihat & Cetak Resmi</span>
+                      </button>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleOpenEdit(item)}
+                          className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          title="Edit Data"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+
+                        {userRole === 'admin' ? (
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title="Hapus Data (Khusus Admin)"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => alert('Akses Siswa: Anda dapat menambah dan mengedit data, namun tidak diizinkan untuk menghapus data.')}
+                            className="p-2 text-slate-300 dark:text-slate-700 hover:text-rose-500 rounded-xl transition-colors cursor-not-allowed opacity-50"
+                            title="Akses Siswa: Tidak bisa menghapus data"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
