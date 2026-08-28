@@ -2142,6 +2142,14 @@ export class StorageService {
     this.deleteFromSupabase('e_lapor_perundungan', id);
   }
 
+  public static saveELaporPerundungan(item: Parameters<typeof StorageService.saveELapor>[0]): ELaporPerundungan {
+    return this.saveELapor(item);
+  }
+
+  public static deleteELaporPerundungan(id: string): void {
+    return this.deleteELapor(id);
+  }
+
   // 7. Buku Tamu
   public static saveBukuTamu(item: Omit<BukuTamu, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): BukuTamu {
     const db = this.getDb();

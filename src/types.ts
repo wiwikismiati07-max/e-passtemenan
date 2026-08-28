@@ -69,7 +69,7 @@ export interface SenandungSerasi {
   pesanDisampaikan: string;
   linkFoto?: string; // Online Supabase Storage photo URL
   tandaTangan?: string; // Digital touchscreen / mouse signature data URL
-  keterangan: string;
+  keterangan?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -101,14 +101,14 @@ export interface BukuTamu {
   hariTanggal: string;
   jamKedatangan: string;
   namaLengkap: string;
-  nipNik: string;
-  jabatan: string;
+  nipNik?: string;
+  jabatan?: string;
   instansiAsal: string;
   tujuanKunjungan: string;
   linkFoto?: string; // Online Supabase Storage photo URL
-  tandaTangan: string; // Base64 png data URL
-  tindakLanjut: string;
-  keterangan: string;
+  tandaTangan?: string; // Base64 png data URL
+  tindakLanjut?: string;
+  keterangan?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -17,6 +17,8 @@ import {
   GraduationCap,
   ChevronRight,
   UserCheck,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react';
 import { AppDatabase, CustomLink } from '../types';
 
@@ -28,8 +30,9 @@ interface SidebarProps {
   onDeleteLink?: (id: string) => void;
   onOpenSupabaseModal: () => void;
   onOpenBackupModal: () => void;
-  isMobileOpen: boolean;
-  onCloseMobile: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onToggle: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -38,8 +41,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectView,
   onOpenSupabaseModal,
   onOpenBackupModal,
-  isMobileOpen,
-  onCloseMobile,
+  isOpen,
+  onClose,
+  onToggle,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('Semua');
@@ -82,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {
           id: 'sabtu-teh-ceri',
           title: 'Sabtu Beli Teh Ceri',
-          tag: 'Inovasi',
+          tag: 'Formulir',
           category: 'Program',
           subtitle: 'Sabtu Bersama Mengulik Temuan...',
           icon: Sparkles,
@@ -93,7 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {
           id: 'kebun-berseri',
           title: 'Kebun Luas Berseri',
-          tag: 'Bulanan',
+          tag: 'Formulir',
           category: 'Program',
           subtitle: 'Evaluasi Lingkungan & RTL',
           icon: Trees,
@@ -104,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {
           id: 'senandung-serasi',
           title: 'Senandung Serasi',
-          tag: 'Literasi',
+          tag: 'Formulir',
           category: 'Program',
           subtitle: 'Salam & Pesan Mendukung',
           icon: Music,
@@ -115,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {
           id: 'piket-harian',
           title: 'Piket Harian',
-          tag: 'Rutin',
+          tag: 'Formulir',
           category: 'Program',
           subtitle: 'Administrasi Laporan Piket',
           icon: Calendar,
@@ -126,7 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {
           id: 'e-lapor',
           title: 'E-Lapor Perundungan',
-          tag: 'Darurat',
+          tag: 'Formulir',
           category: 'Program',
           subtitle: 'Pengaduan Cepat & BK',
           icon: ShieldAlert,
@@ -137,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {
           id: 'buku-tamu',
           title: 'Buku Tamu Digital',
-          tag: 'Layanan',
+          tag: 'Formulir',
           category: 'Program',
           subtitle: 'Pencatatan Tamu & Tanda Tangan',
           icon: BookOpenCheck,
@@ -179,30 +183,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSelect = (id: string) => {
     onSelectView(id);
-    onCloseMobile();
+    // On small screens, close the menu overlay automatically
+    if (window.innerWidth < 1024) {
+      onClose();
+    }
   };
 
   return (
     <>
       {/* Mobile Backdrop */}
-      {isMobileOpen && (
+      {isOpen && (
         <div
-          onClick={onCloseMobile}
+          onClick={onClose}
           className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm lg:hidden animate-fadeIn"
         />
       )}
 
+      {/* Main Collapsible Sidebar */}
       <aside
-        className={`fixed top-0 lg:top-16 left-0 bottom-0 z-50 w-72 md:w-80 bg-white dark:bg-slate-900 border-r border-slate-200/90 dark:border-slate-800 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-2xl lg:shadow-none ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 lg:top-16 left-0 bottom-0 z-50 w-72 md:w-80 bg-white dark:bg-slate-900 border-r border-slate-200/90 dark:border-slate-800 flex flex-col transition-all duration-300 ease-in-out shadow-2xl lg:shadow-none ${
+          isOpen
+            ? 'translate-x-0 opacity-100 pointer-events-auto'
+            : '-translate-x-full opacity-0 pointer-events-none'
         }`}
       >
         {/* Top Header inside Drawer / Sidebar */}
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
               {/* Circular Logo */}
-              <div className="w-10 h-10 rounded-full p-0.5 border-2 border-emerald-400 bg-white shadow-sm flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full p-0.5 border-2 border-emerald-400 bg-white shadow-xs flex items-center justify-center shrink-0">
                 <img
                   src="https://i.ibb.co.com/pBbfS44d/LOGO-PASS-TEMENAN.jpg"
                   alt="Logo Pass Temenan"
@@ -211,22 +221,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 />
               </div>
 
-              <div>
-                <h2 className="text-sm font-extrabold text-slate-800 dark:text-white font-display tracking-tight uppercase">
+              <div className="truncate">
+                <h2 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white font-display tracking-tight uppercase truncate">
                   Menu Aplikasi
                 </h2>
-                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                <p className="text-[10px] sm:text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 truncate">
                   E-PASS TEMENAN SPANJU
                 </p>
               </div>
             </div>
 
+            {/* Hide / Collapse Sidebar Button */}
             <button
-              onClick={onCloseMobile}
-              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl lg:hidden hover:bg-slate-100 dark:hover:bg-slate-800"
-              title="Tutup Menu"
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1 text-xs font-bold"
+              title="Sembunyikan Menu (Bebaskan Layar)"
             >
-              <X className="w-5 h-5" />
+              <PanelLeftClose className="w-4 h-4 text-slate-500" />
+              <span className="text-[11px] hidden sm:inline">Tutup</span>
             </button>
           </div>
 
@@ -237,7 +249,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari fitur / menu..."
+              placeholder="Cari menu / formulir..."
               className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-8.5 pr-7 py-1.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400 transition-colors"
             />
             {searchQuery && (
@@ -256,7 +268,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`whitespace-nowrap px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                className={`whitespace-nowrap px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                   activeCategory === cat
                     ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -299,9 +311,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <button
                         key={item.id}
                         onClick={() => handleSelect(item.id)}
-                        className={`w-full p-2.5 rounded-xl border text-left transition-all duration-150 flex items-center justify-between group ${
+                        className={`w-full p-2.5 rounded-xl border text-left transition-all duration-150 flex items-center justify-between group cursor-pointer ${
                           isActive
-                            ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-400/80 dark:border-indigo-600/80 shadow-xs ring-1 ring-indigo-400/30'
+                            ? 'bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-400 dark:border-indigo-600 shadow-xs ring-1 ring-indigo-400/30'
                             : 'bg-white dark:bg-slate-800/40 border-slate-200/70 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/70'
                         }`}
                       >
@@ -365,20 +377,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => {
                 onOpenBackupModal();
-                onCloseMobile();
+                if (window.innerWidth < 1024) onClose();
               }}
-              className="flex-1 py-2 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+              className="flex-1 py-2 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
               title="Backup & Restore Data JSON"
             >
               <FileJson className="w-3.5 h-3.5 text-cyan-600" />
-              <span>Backup & Restore</span>
+              <span>Backup Data</span>
             </button>
             <button
               onClick={() => {
                 onOpenSupabaseModal();
-                onCloseMobile();
+                if (window.innerWidth < 1024) onClose();
               }}
-              className="py-2 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+              className="py-2 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
               title="Konfigurasi Database Supabase"
             >
               <Database className="w-3.5 h-3.5 text-emerald-600" />

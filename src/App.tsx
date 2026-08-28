@@ -1,37 +1,34 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect } from 'react';
 import {
   Menu,
+  Sun,
+  Moon,
   Sparkles,
-  RefreshCw,
-  ShieldCheck,
-  LayoutDashboard,
-  Calendar,
-  Coffee,
   Trees,
   Music,
   ShieldAlert,
   BookOpenCheck,
-  Download,
-  Moon,
-  Sun,
-  Database,
+  Calendar,
+  RefreshCw,
   Clock,
+  Download,
+  ShieldCheck,
+  LayoutDashboard,
   LogOut,
-  GraduationCap,
-  UserCog,
   UserCheck,
-  ChevronRight,
-  Workflow,
+  UserCog,
+  GraduationCap,
   Users,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react';
-import { getRealtimeFullFormattedDate, getRealtimeTimeStringWithSeconds } from './utils/dateUtils';
 import { AppDatabase, CustomLink } from './types';
 import { StorageService } from './services/storage';
+import {
+  getRealtimeFullFormattedDate,
+  getRealtimeTimeStringWithSeconds,
+} from './utils/dateUtils';
 import { Sidebar } from './components/Sidebar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { DashboardOverview } from './components/DashboardOverview';
@@ -68,6 +65,7 @@ export default function App() {
   const [activeView, setActiveView] = useState<string>('flowchart-intro');
   const [activeTab, setActiveTab] = useState<'form' | 'rekap' | 'statistik'>('form');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Modals state
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -75,7 +73,6 @@ export default function App() {
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isPejabatModalOpen, setIsPejabatModalOpen] = useState(false);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -296,20 +293,32 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased font-sans transition-colors duration-200">
       {/* 1. TOP NAVBAR */}
-      <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-2xs transition-colors">
-        {/* Left: Hamburger & Brand */}
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-2xs transition-colors">
+        {/* Left: Menu Toggle & Brand */}
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          {/* Universal Menu Collapse/Expand Toggle Button */}
           <button
-            onClick={() => setIsMobileSidebarOpen(true)}
-            className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 lg:hidden"
-            title="Buka Menu"
-            aria-label="Menu"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={`p-2 rounded-xl border transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
+              isSidebarOpen
+                ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 shadow-2xs'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+            }`}
+            title={isSidebarOpen ? 'Sembunyikan Menu Navigasi' : 'Tampilkan Menu Navigasi'}
+            aria-label="Toggle Menu"
           >
-            <Menu className="w-5 h-5" />
+            {isSidebarOpen ? (
+              <PanelLeftClose className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            ) : (
+              <PanelLeft className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            )}
+            <span className="hidden sm:inline font-display">
+              {isSidebarOpen ? 'Sembunyikan Menu' : 'Buka Menu'}
+            </span>
           </button>
 
           <div
-            onClick={() => setActiveView('dashboard-overview')}
+            onClick={() => handleNavigate('dashboard-overview')}
             className="flex items-center gap-2.5 cursor-pointer select-none group"
           >
             <div className="w-9 h-9 rounded-full p-0.5 border-2 border-emerald-400 bg-white shadow-xs flex items-center justify-center shrink-0">
@@ -353,7 +362,7 @@ export default function App() {
           <button
             onClick={handleManualSync}
             disabled={isSyncing}
-            className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs ${
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
               isSyncing
                 ? 'bg-blue-100 dark:bg-blue-900/60 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
                 : 'bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
@@ -374,7 +383,7 @@ export default function App() {
           {currentUser.role === 'admin' && (
             <button
               onClick={() => setIsPejabatModalOpen(true)}
-              className="px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 border border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+              className="px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 border border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
               title="Pengaturan Guru Pendamping, Konselor & Kepala Sekolah"
             >
               <UserCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
@@ -385,7 +394,7 @@ export default function App() {
           {/* Install PWA Button */}
           <button
             onClick={handleInstallApp}
-            className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold items-center gap-1.5 transition-all shadow-2xs"
+            className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
             title="Instal Aplikasi PWA ke HP / Komputer"
           >
             <Download className="w-3.5 h-3.5 shrink-0" />
@@ -395,7 +404,7 @@ export default function App() {
           {/* Dark / Light Toggle */}
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-2xs"
+            className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-2xs cursor-pointer"
             title={isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
           >
             {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
@@ -420,7 +429,7 @@ export default function App() {
 
             <button
               onClick={handleLogout}
-              className="p-1.5 sm:p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 transition-all shadow-2xs flex items-center"
+              className="p-1.5 sm:p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 transition-all shadow-2xs flex items-center cursor-pointer"
               title="Keluar dari Akun"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -438,8 +447,8 @@ export default function App() {
       )}
 
       {/* 2. MAIN LAYOUT STRUCTURE */}
-      <div className="flex flex-1 min-w-0">
-        {/* Left Sidebar */}
+      <div className="flex flex-1 min-w-0 relative">
+        {/* Collapsible Sidebar */}
         <Sidebar
           db={db}
           activeView={activeView}
@@ -448,12 +457,29 @@ export default function App() {
           onDeleteLink={handleDeleteLink}
           onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           onOpenBackupModal={() => setIsBackupModalOpen(true)}
-          isMobileOpen={isMobileSidebarOpen}
-          onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
         />
 
-        {/* Right Main Content Area - Full Width */}
-        <div className="lg:pl-80 flex flex-col flex-1 min-w-0 pb-20 lg:pb-8">
+        {/* Floating Quick Opener Button when Sidebar is collapsed on Desktop */}
+        {!isSidebarOpen && (
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="hidden lg:flex fixed left-4 bottom-8 z-40 px-3.5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-600/30 items-center gap-2 text-xs font-bold transition-all transform hover:scale-105 cursor-pointer animate-fadeIn border border-indigo-400/40"
+            title="Buka Menu Aplikasi"
+          >
+            <PanelLeft className="w-4 h-4" />
+            <span>Buka Menu Navigasi</span>
+          </button>
+        )}
+
+        {/* Right Main Content Area - Full Width & Fluid Responsive */}
+        <div
+          className={`flex flex-col flex-1 min-w-0 pb-20 lg:pb-8 transition-all duration-300 ease-in-out ${
+            isSidebarOpen ? 'lg:pl-80' : 'lg:pl-0'
+          }`}
+        >
           <main className="flex-1 p-3 sm:p-5 md:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
             {/* View Header Breadcrumb & Actions */}
             {activeView !== 'flowchart-intro' && activeView !== 'dashboard-overview' && (
@@ -486,7 +512,7 @@ export default function App() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => handleNavigate('dashboard-overview')}
-                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <LayoutDashboard className="w-3.5 h-3.5 text-indigo-500" />
                     <span>Dashboard</span>
@@ -494,7 +520,7 @@ export default function App() {
                   <button
                     onClick={handleManualSync}
                     disabled={isSyncing}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                     title="Sinkronisasi Cloud"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -504,7 +530,7 @@ export default function App() {
               </div>
             )}
 
-            {/* Dynamic Views */}
+            {/* Dynamic Views with 1-Click Direct Form Access */}
             <div className="w-full">
               {activeView === 'flowchart-intro' && (
                 <FlowchartIntroLanding
@@ -533,13 +559,13 @@ export default function App() {
                 <KebunLuasBerseriForm initialTab={activeTab} userRole={currentUser.role} />
               )}
               {activeView === 'senandung-serasi' && (
-                <SenandungSerasiForm userRole={currentUser.role} />
+                <SenandungSerasiForm initialTab={activeTab} userRole={currentUser.role} />
               )}
               {activeView === 'e-lapor' && (
-                <ELaporPerundunganForm userRole={currentUser.role} />
+                <ELaporPerundunganForm initialTab={activeTab} userRole={currentUser.role} />
               )}
               {activeView === 'buku-tamu' && (
-                <BukuTamuForm userRole={currentUser.role} />
+                <BukuTamuForm initialTab={activeTab} userRole={currentUser.role} />
               )}
               {activeView === 'master-siswa' && (
                 <MasterSiswaView db={db} onRefresh={refreshDb} />
@@ -559,7 +585,7 @@ export default function App() {
       <MobileBottomNav
         activeView={activeView}
         onSelectView={(view) => handleNavigate(view, 'form')}
-        onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
+        onOpenMobileMenu={() => setIsSidebarOpen(true)}
         db={db}
       />
 
