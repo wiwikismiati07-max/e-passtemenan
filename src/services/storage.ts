@@ -414,15 +414,28 @@ export class StorageService {
             if (Array.isArray(idbList) && Array.isArray(currentList)) {
               idbList.forEach((idbItem) => {
                 const currentItem = currentList.find((c: any) => c.id === idbItem.id);
-                if (currentItem && !currentItem.linkFoto && idbItem.linkFoto) {
-                  currentItem.linkFoto = idbItem.linkFoto;
-                  hasNewerPhotos = true;
+                if (currentItem) {
+                  if (!currentItem.linkFoto && idbItem.linkFoto) {
+                    currentItem.linkFoto = idbItem.linkFoto;
+                    hasNewerPhotos = true;
+                  }
+                  if (!currentItem.tandaTangan && idbItem.tandaTangan) {
+                    currentItem.tandaTangan = idbItem.tandaTangan;
+                    hasNewerPhotos = true;
+                  }
+                } else {
+                  // Complete item missing in localStorage (due to QuotaExceededError), restore from IndexedDB
+                  if (idbItem && idbItem.id && !deletedIds.has(idbItem.id)) {
+                    currentList.push(idbItem);
+                    hasNewerPhotos = true;
+                  }
                 }
               });
             }
           });
           if (hasNewerPhotos) {
             this.saveDb();
+            window.dispatchEvent(new Event('pass-temenan-db-updated'));
           }
         }
       });
