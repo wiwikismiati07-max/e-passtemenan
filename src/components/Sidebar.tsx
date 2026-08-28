@@ -6,14 +6,8 @@ import {
   Music,
   ShieldAlert,
   BookOpenCheck,
-  Globe,
-  Plus,
-  Edit2,
-  Trash2,
   LayoutDashboard,
   Search,
-  ExternalLink,
-  Pin,
   Sparkles,
   Database,
   FileJson,
@@ -21,6 +15,8 @@ import {
   Workflow,
   Users,
   GraduationCap,
+  ChevronRight,
+  UserCheck,
 } from 'lucide-react';
 import { AppDatabase, CustomLink } from '../types';
 
@@ -48,113 +44,143 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('Semua');
 
-  const categories = ['Semua', 'Utama', 'Administrasi', 'Akademik'];
+  const categories = ['Semua', 'Utama', 'Program', 'Master'];
 
-  const coreMenus = [
+  const menuSections = [
     {
-      id: 'flowchart-intro',
-      title: 'BAGAN & ALUR TOLAK UKUR',
-      tag: 'PANDUAN',
+      sectionTitle: 'Navigasi Utama',
       category: 'Utama',
-      subtitle: 'Bagan Struktur, Alur Penilaian & Respon...',
-      icon: Workflow,
-      color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800',
-      activeColor: 'bg-indigo-600 text-white',
+      items: [
+        {
+          id: 'flowchart-intro',
+          title: 'Bagan & Alur Tolak Ukur',
+          tag: 'Panduan',
+          category: 'Utama',
+          subtitle: 'Struktur, Alur Tolak Ukur & SOP',
+          icon: Workflow,
+          color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800',
+          activeBg: 'bg-indigo-600 text-white shadow-indigo-600/20',
+          count: undefined,
+        },
+        {
+          id: 'dashboard-overview',
+          title: 'Dashboard Utama',
+          tag: 'Ringkasan',
+          category: 'Utama',
+          subtitle: 'Hub Statistik & Matriks Kelas',
+          icon: LayoutDashboard,
+          color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800',
+          activeBg: 'bg-blue-600 text-white shadow-blue-600/20',
+          count: undefined,
+        },
+      ],
     },
     {
-      id: 'piket-harian',
-      title: 'PIKET HARIAN',
-      tag: 'SMPN 7',
-      category: 'Administrasi',
-      subtitle: 'Administrasi Program E-Pass...',
-      icon: Calendar,
-      color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800',
-      activeColor: 'bg-blue-600 text-white',
+      sectionTitle: 'Program & Evaluasi Inovasi',
+      category: 'Program',
+      items: [
+        {
+          id: 'sabtu-teh-ceri',
+          title: 'Sabtu Beli Teh Ceri',
+          tag: 'Inovasi',
+          category: 'Program',
+          subtitle: 'Sabtu Bersama Mengulik Temuan...',
+          icon: Sparkles,
+          color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800',
+          activeBg: 'bg-amber-500 text-slate-950 shadow-amber-500/20',
+          count: db.sabtuBeliTehCeri?.length || 0,
+        },
+        {
+          id: 'kebun-berseri',
+          title: 'Kebun Luas Berseri',
+          tag: 'Bulanan',
+          category: 'Program',
+          subtitle: 'Evaluasi Lingkungan & RTL',
+          icon: Trees,
+          color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800',
+          activeBg: 'bg-emerald-600 text-white shadow-emerald-600/20',
+          count: db.kebunLuasBerseri?.length || 0,
+        },
+        {
+          id: 'senandung-serasi',
+          title: 'Senandung Serasi',
+          tag: 'Literasi',
+          category: 'Program',
+          subtitle: 'Salam & Pesan Mendukung',
+          icon: Music,
+          color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 border-purple-200 dark:border-purple-800',
+          activeBg: 'bg-purple-600 text-white shadow-purple-600/20',
+          count: db.senandungSerasi?.length || 0,
+        },
+        {
+          id: 'piket-harian',
+          title: 'Piket Harian',
+          tag: 'Rutin',
+          category: 'Program',
+          subtitle: 'Administrasi Laporan Piket',
+          icon: Calendar,
+          color: 'text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 border-sky-200 dark:border-sky-800',
+          activeBg: 'bg-sky-600 text-white shadow-sky-600/20',
+          count: db.piketHarian?.length || 0,
+        },
+        {
+          id: 'e-lapor',
+          title: 'E-Lapor Perundungan',
+          tag: 'Darurat',
+          category: 'Program',
+          subtitle: 'Pengaduan Cepat & BK',
+          icon: ShieldAlert,
+          color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800',
+          activeBg: 'bg-rose-600 text-white shadow-rose-600/20',
+          count: db.eLaporPerundungan?.length || 0,
+        },
+        {
+          id: 'buku-tamu',
+          title: 'Buku Tamu Digital',
+          tag: 'Layanan',
+          category: 'Program',
+          subtitle: 'Pencatatan Tamu & Tanda Tangan',
+          icon: BookOpenCheck,
+          color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 border-teal-200 dark:border-teal-800',
+          activeBg: 'bg-teal-600 text-white shadow-teal-600/20',
+          count: db.bukuTamu?.length || 0,
+        },
+      ],
     },
     {
-      id: 'sabtu-teh-ceri',
-      title: 'SABTU BELI TEH CERI',
-      tag: 'INOVASI',
-      category: 'Utama',
-      subtitle: 'Sabtu Bersama Mengulik Temuan...',
-      icon: Sparkles,
-      color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800',
-      activeColor: 'bg-amber-500 text-slate-950',
-    },
-    {
-      id: 'kebun-berseri',
-      title: 'KEBUN LUAS BERSERI',
-      tag: 'BULANAN',
-      category: 'Utama',
-      subtitle: 'Kegiatan Bulanan Evaluasi,...',
-      icon: Trees,
-      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800',
-      activeColor: 'bg-emerald-600 text-white',
-    },
-    {
-      id: 'senandung-serasi',
-      title: 'SENANDUNG SERASI',
-      tag: 'PESAN',
-      category: 'Akademik',
-      subtitle: 'Salam dan Pesan Mendukung...',
-      icon: Music,
-      color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800',
-      activeColor: 'bg-purple-600 text-white',
-    },
-    {
-      id: 'e-lapor',
-      title: 'E-LAPOR PERUNDUNGAN',
-      tag: 'DARURAT',
-      category: 'Utama',
-      subtitle: 'Pelaporan & Pengaduan Kasus...',
-      icon: ShieldAlert,
-      color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800',
-      activeColor: 'bg-rose-600 text-white',
-    },
-    {
-      id: 'buku-tamu',
-      title: 'BUKU TAMU DIGITAL',
-      tag: 'LAYANAN',
-      category: 'Administrasi',
-      subtitle: 'Buku Tamu & Tanda Tangan...',
-      icon: BookOpenCheck,
-      color: 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/50 border-cyan-200 dark:border-cyan-800',
-      activeColor: 'bg-cyan-600 text-white',
-    },
-    {
-      id: 'master-siswa',
-      title: 'MASTER DATA SISWA',
-      tag: 'AKADEMIK',
-      category: 'Akademik',
-      subtitle: 'Upload Excel, Edit & Hapus Siswa...',
-      icon: Users,
-      color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-800',
-      activeColor: 'bg-teal-600 text-white',
-    },
-    {
-      id: 'master-guru',
-      title: 'MASTER DATA GURU',
-      tag: 'PENDIDIK',
-      category: 'Akademik',
-      subtitle: 'Upload Excel, Edit & Hapus Guru...',
-      icon: GraduationCap,
-      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800',
-      activeColor: 'bg-emerald-600 text-white',
+      sectionTitle: 'Master Data & Akademik',
+      category: 'Master',
+      items: [
+        {
+          id: 'master-siswa',
+          title: 'Master Data Siswa',
+          tag: 'Siswa',
+          category: 'Master',
+          subtitle: 'Database Siswa & Import Excel',
+          icon: Users,
+          color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800',
+          activeBg: 'bg-indigo-600 text-white shadow-indigo-600/20',
+          count: db.masterSiswa?.length || 0,
+        },
+        {
+          id: 'master-guru',
+          title: 'Master Data Guru',
+          tag: 'Pendidik',
+          category: 'Master',
+          subtitle: 'Database Guru & Import Excel',
+          icon: GraduationCap,
+          color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800',
+          activeBg: 'bg-emerald-600 text-white shadow-emerald-600/20',
+          count: db.masterGuru?.length || 0,
+        },
+      ],
     },
   ];
 
-  // Filtering
-  const filteredCoreMenus = coreMenus.filter((m) => {
-    const matchesCat =
-      activeCategory === 'Semua' ||
-      m.category.toLowerCase() === activeCategory.toLowerCase();
-    const matchesSearch =
-      !searchQuery.trim() ||
-      m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.tag.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
+  const handleSelect = (id: string) => {
+    onSelectView(id);
+    onCloseMobile();
+  };
 
   return (
     <>
@@ -167,16 +193,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`fixed top-16 left-0 bottom-0 z-50 w-72 md:w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-2xl lg:shadow-none ${
+        className={`fixed top-0 lg:top-16 left-0 bottom-0 z-50 w-72 md:w-80 bg-white dark:bg-slate-900 border-r border-slate-200/90 dark:border-slate-800 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-2xl lg:shadow-none ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Top Header Card */}
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+        {/* Top Header inside Drawer / Sidebar */}
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* Circular Logo with Glow */}
-              <div className="w-11 h-11 rounded-full p-0.5 border-2 border-emerald-400 bg-white shadow-md flex items-center justify-center shrink-0">
+              {/* Circular Logo */}
+              <div className="w-10 h-10 rounded-full p-0.5 border-2 border-emerald-400 bg-white shadow-sm flex items-center justify-center shrink-0">
                 <img
                   src="https://i.ibb.co.com/pBbfS44d/LOGO-PASS-TEMENAN.jpg"
                   alt="Logo Pass Temenan"
@@ -187,17 +213,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <div>
                 <h2 className="text-sm font-extrabold text-slate-800 dark:text-white font-display tracking-tight uppercase">
-                  MENU APLIKASI
+                  Menu Aplikasi
                 </h2>
                 <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  Pass Temenan & Portal
+                  E-PASS TEMENAN SPANJU
                 </p>
               </div>
             </div>
 
             <button
               onClick={onCloseMobile}
-              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg lg:hidden hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl lg:hidden hover:bg-slate-100 dark:hover:bg-slate-800"
+              title="Tutup Menu"
             >
               <X className="w-5 h-5" />
             </button>
@@ -205,33 +232,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Search bar */}
           <div className="mt-3 relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari menu aplikasi..."
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400 transition-colors"
+              placeholder="Cari fitur / menu..."
+              className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-8.5 pr-7 py-1.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400 transition-colors"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </button>
             )}
           </div>
 
           {/* Category Filter Pills */}
-          <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`whitespace-nowrap px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                className={`whitespace-nowrap px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
                   activeCategory === cat
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-sm'
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
@@ -241,108 +268,118 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* List of Menu Cards */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 scrollbar-thin">
-          {/* Dashboard Overview button */}
-          <button
-            onClick={() => {
-              onSelectView('dashboard-overview');
-              onCloseMobile();
-            }}
-            className={`w-full p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between group ${
-              activeView === 'dashboard-overview'
-                ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 shadow-sm'
-                : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-slate-700'
-            }`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                  activeView === 'dashboard-overview'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800'
-                }`}
-              >
-                <LayoutDashboard className="w-5 h-5" />
-              </div>
-              <div className="truncate">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-800 dark:text-white truncate">
-                    DASHBOARD UTAMA
-                  </span>
-                  <Pin className="w-3 h-3 text-amber-500 shrink-0" />
-                </div>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block">
-                  Ringkasan & Hub Informasi
-                </span>
-              </div>
-            </div>
-            <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 shrink-0" />
-          </button>
+        {/* List of Menu Cards Grouped Neatly */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-thin">
+          {menuSections.map((sec, secIdx) => {
+            const visibleItems = sec.items.filter((item) => {
+              const matchesCat =
+                activeCategory === 'Semua' ||
+                item.category.toLowerCase() === activeCategory.toLowerCase();
+              const matchesSearch =
+                !searchQuery.trim() ||
+                item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.tag.toLowerCase().includes(searchQuery.toLowerCase());
+              return matchesCat && matchesSearch;
+            });
 
-          {/* Core App Menus */}
-          {filteredCoreMenus.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeView === item.id;
+            if (visibleItems.length === 0) return null;
+
             return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  onSelectView(item.id);
-                  onCloseMobile();
-                }}
-                className={`w-full p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between group ${
-                  isActive
-                    ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-400 dark:border-blue-600 shadow-sm ring-1 ring-blue-400/50'
-                    : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 hover:border-blue-200 dark:hover:border-slate-700'
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
-                      isActive ? item.activeColor : item.color
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </div>
-
-                  <div className="truncate">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-extrabold text-slate-800 dark:text-white truncate font-display">
-                        {item.title}
-                      </span>
-                      <Pin className="w-3 h-3 text-amber-500 shrink-0" />
-                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                        {item.tag}
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block mt-0.5">
-                      {item.subtitle}
-                    </span>
-                  </div>
+              <div key={secIdx} className="space-y-1.5">
+                <div className="px-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  {sec.sectionTitle}
                 </div>
 
-                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-500 shrink-0 ml-1" />
-              </button>
+                <div className="space-y-1">
+                  {visibleItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeView === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleSelect(item.id)}
+                        className={`w-full p-2.5 rounded-xl border text-left transition-all duration-150 flex items-center justify-between group ${
+                          isActive
+                            ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-400/80 dark:border-indigo-600/80 shadow-xs ring-1 ring-indigo-400/30'
+                            : 'bg-white dark:bg-slate-800/40 border-slate-200/70 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105 ${
+                              isActive ? item.activeBg : item.color
+                            }`}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </div>
+
+                          <div className="truncate">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`text-xs font-bold truncate ${
+                                  isActive
+                                    ? 'text-indigo-900 dark:text-white font-extrabold'
+                                    : 'text-slate-800 dark:text-slate-200'
+                                }`}
+                              >
+                                {item.title}
+                              </span>
+                              {item.count !== undefined && item.count > 0 && (
+                                <span
+                                  className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
+                                    isActive
+                                      ? 'bg-indigo-600 text-white'
+                                      : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                  }`}
+                                >
+                                  {item.count}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate block">
+                              {item.subtitle}
+                            </span>
+                          </div>
+                        </div>
+
+                        <ChevronRight
+                          className={`w-4 h-4 shrink-0 transition-transform ${
+                            isActive
+                              ? 'text-indigo-600 dark:text-indigo-400 translate-x-0.5'
+                              : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400'
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </div>
 
-        {/* Bottom Actions */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/90 space-y-2 shrink-0">
+        {/* Bottom Quick Tools */}
+        <div className="p-3 border-t border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 space-y-2 shrink-0">
           <div className="flex gap-2">
             <button
-              onClick={onOpenBackupModal}
-              className="flex-1 py-2 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-              title="Backup & Restore Database"
+              onClick={() => {
+                onOpenBackupModal();
+                onCloseMobile();
+              }}
+              className="flex-1 py-2 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+              title="Backup & Restore Data JSON"
             >
               <FileJson className="w-3.5 h-3.5 text-cyan-600" />
-              <span>Backup & Restore Data</span>
+              <span>Backup & Restore</span>
             </button>
             <button
-              onClick={onOpenSupabaseModal}
-              className="py-2 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-              title="Konfigurasi Supabase"
+              onClick={() => {
+                onOpenSupabaseModal();
+                onCloseMobile();
+              }}
+              className="py-2 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+              title="Konfigurasi Database Supabase"
             >
               <Database className="w-3.5 h-3.5 text-emerald-600" />
             </button>
