@@ -47,6 +47,7 @@ import { FlowchartIntroLanding } from './components/FlowchartIntroLanding';
 import { MasterSiswaView } from './components/MasterSiswaView';
 import { MasterGuruView } from './components/MasterGuruView';
 import { LoginScreen, UserSession } from './components/LoginScreen';
+import { ExitAppModal } from './components/ExitAppModal';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
@@ -73,6 +74,7 @@ export default function App() {
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isPejabatModalOpen, setIsPejabatModalOpen] = useState(false);
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -428,9 +430,9 @@ export default function App() {
             </div>
 
             <button
-              onClick={handleLogout}
+              onClick={() => setIsExitModalOpen(true)}
               className="p-1.5 sm:p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 transition-all shadow-2xs flex items-center cursor-pointer"
-              title="Keluar dari Akun"
+              title="Keluar dari Aplikasi E-Pass Temenan"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
@@ -457,6 +459,7 @@ export default function App() {
           onDeleteLink={handleDeleteLink}
           onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           onOpenBackupModal={() => setIsBackupModalOpen(true)}
+          onOpenExitModal={() => setIsExitModalOpen(true)}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -613,6 +616,16 @@ export default function App() {
         isOpen={isPejabatModalOpen}
         onClose={() => setIsPejabatModalOpen(false)}
         onSaved={refreshDb}
+      />
+
+      <ExitAppModal
+        isOpen={isExitModalOpen}
+        currentUser={currentUser}
+        onConfirmExit={() => {
+          setIsExitModalOpen(false);
+          handleLogout();
+        }}
+        onCancel={() => setIsExitModalOpen(false)}
       />
     </div>
   );

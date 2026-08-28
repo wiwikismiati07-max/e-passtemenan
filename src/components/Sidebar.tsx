@@ -19,6 +19,7 @@ import {
   UserCheck,
   PanelLeftClose,
   PanelLeft,
+  LogOut,
 } from 'lucide-react';
 import { AppDatabase, CustomLink } from '../types';
 
@@ -30,6 +31,7 @@ interface SidebarProps {
   onDeleteLink?: (id: string) => void;
   onOpenSupabaseModal: () => void;
   onOpenBackupModal: () => void;
+  onOpenExitModal: () => void;
   isOpen: boolean;
   onClose: () => void;
   onToggle: () => void;
@@ -41,6 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectView,
   onOpenSupabaseModal,
   onOpenBackupModal,
+  onOpenExitModal,
   isOpen,
   onClose,
   onToggle,
@@ -373,7 +376,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Bottom Quick Tools */}
         <div className="p-3 border-t border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 space-y-2 shrink-0">
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => {
                 onOpenBackupModal();
@@ -382,8 +385,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="flex-1 py-2 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
               title="Backup & Restore Data JSON"
             >
-              <FileJson className="w-3.5 h-3.5 text-cyan-600" />
-              <span>Backup Data</span>
+              <FileJson className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+              <span className="truncate">Backup Data</span>
+            </button>
+            <button
+              onClick={() => {
+                onOpenExitModal();
+                if (window.innerWidth < 1024) onClose();
+              }}
+              className="py-2 px-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/70 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+              title="Keluar dari Aplikasi E-Pass Temenan"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+              <span>Keluar</span>
             </button>
             <button
               onClick={() => {
@@ -393,7 +407,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="py-2 px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
               title="Konfigurasi Database Supabase"
             >
-              <Database className="w-3.5 h-3.5 text-emerald-600" />
+              <Database className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             </button>
           </div>
         </div>
