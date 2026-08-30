@@ -1,20 +1,39 @@
 {
-  "name": "E-Pass Temenan SPAnju",
-  "short_name": "PassTemenan",
+  "name": "E-PASS TEMENAN SPANJU - SMPN 7 Pasuruan",
+  "short_name": "Pass Temenan",
+  "description": "Aplikasi E-PASS TEMENAN: Bersama Melawan Perundungan - UPT SMP Negeri 7 Pasuruan",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
+  "categories": ["education", "productivity", "utilities"],
   "icons": [
     {
-      "src": "https://i.ibb.co.com/pBbfS44d/LOGO-PASS-TEMENAN.jpg",
+      "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "https://i.ibb.co.com/pBbfS44d/LOGO-PASS-TEMENAN.jpg",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo-pass-temenan.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
     }
   ]
 }
+

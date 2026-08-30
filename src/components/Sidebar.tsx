@@ -20,6 +20,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   LogOut,
+  Download,
 } from 'lucide-react';
 import { AppDatabase, CustomLink } from '../types';
 
@@ -32,6 +33,7 @@ interface SidebarProps {
   onOpenSupabaseModal: () => void;
   onOpenBackupModal: () => void;
   onOpenExitModal: () => void;
+  onOpenInstallModal?: () => void;
   isOpen: boolean;
   onClose: () => void;
   onToggle: () => void;
@@ -44,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenSupabaseModal,
   onOpenBackupModal,
   onOpenExitModal,
+  onOpenInstallModal,
   isOpen,
   onClose,
   onToggle,
@@ -376,6 +379,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Bottom Quick Tools */}
         <div className="p-3 border-t border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 space-y-2 shrink-0">
+          {onOpenInstallModal && (
+            <button
+              onClick={() => {
+                onOpenInstallModal();
+                if (window.innerWidth < 1024) onClose();
+              }}
+              className="w-full py-2 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-xs cursor-pointer transition-all"
+              title="Pasang Aplikasi ke Layar Utama HP / Laptop"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Instal Aplikasi PWA</span>
+            </button>
+          )}
+
           <div className="flex items-center gap-2">
             <button
               onClick={() => {

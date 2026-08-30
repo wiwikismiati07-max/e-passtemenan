@@ -48,6 +48,7 @@ import { MasterSiswaView } from './components/MasterSiswaView';
 import { MasterGuruView } from './components/MasterGuruView';
 import { LoginScreen, UserSession } from './components/LoginScreen';
 import { ExitAppModal } from './components/ExitAppModal';
+import { InstallModal } from './components/InstallModal';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
@@ -75,6 +76,7 @@ export default function App() {
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isPejabatModalOpen, setIsPejabatModalOpen] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -241,15 +243,7 @@ export default function App() {
         setDeferredPrompt(null);
       }
     } else {
-      alert(
-        'PANDUAN INSTALASI APLIKASI E-PASS TEMENAN SPANJU:\n\n' +
-        '💻 DI LAPTOP / KOMPUTER (Chrome / Edge):\n' +
-        '- Klik ikon Pasang di sebelah kanan bilah URL browser.\n\n' +
-        '📱 DI HP ANDROID (Chrome):\n' +
-        '- Ketuk menu titik tiga di kanan atas > "Tambahkan ke Layar Utama" / "Install Aplikasi".\n\n' +
-        '🍏 DI iPHONE / IPAD (Safari):\n' +
-        '- Ketuk tombol Bagikan (Share) > "Tambahkan ke Layar Utama".'
-      );
+      setIsInstallModalOpen(true);
     }
   };
 
@@ -460,6 +454,7 @@ export default function App() {
           onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           onOpenBackupModal={() => setIsBackupModalOpen(true)}
           onOpenExitModal={() => setIsExitModalOpen(true)}
+          onOpenInstallModal={() => setIsInstallModalOpen(true)}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -626,6 +621,23 @@ export default function App() {
           handleLogout();
         }}
         onCancel={() => setIsExitModalOpen(false)}
+      />
+
+      <InstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        deferredPrompt={deferredPrompt}
+        onInstallNative={() => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choice: any) => {
+              if (choice.outcome === 'accepted') {
+                setDeferredPrompt(null);
+                setIsInstallModalOpen(false);
+              }
+            });
+          }
+        }}
       />
     </div>
   );
