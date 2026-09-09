@@ -127,6 +127,27 @@ Tahapan Konseling Mediasi BK:
 
   infografis: [
     {
+      id: 'info-alur-penanganan',
+      judul: 'Bagan Alur Penanganan Kasus PASS TEMENAN',
+      fokus: 'SOP & Alur Penanganan Kasus',
+      deskripsi: 'Bagan alur penanganan resmi Satgas PASS TEMENAN: Mulai dari pelaporan kasus, verifikasi investigasi, tindakan intervensi mediasi, hingga pemulihan & monitoring korban.',
+      gambarUrl: 'https://i.ibb.co.com/gMZWh2pN/ALUR-PENANGANAN-PASS-TEMENAN.png',
+      sumber: 'Satgas Anti-Perundungan & BK UPT SMPN 7 Pasuruan',
+      poinPenting: [
+        'Tahap 1 - Pelaporan Kasus (E-Lapor, Buku Saku, atau Kotak Curhat Duta Anti-Bullying).',
+        'Tahap 2 - Investigasi & Verifikasi Fakta (Kerahasiaan data pelapor & korban terjamin 100%).',
+        'Tahap 3 - Intervensi & Mediasi Restoratif (Konseling BK, pendampingan wali kelas & orang tua).',
+        'Tahap 4 - Evaluasi, Pemulihan & Monitoring Pasca-Kejadian (Pemantauan rutin dan pemulihan lingkungan belajar).',
+      ],
+      tanggal: '2026-08-01',
+      alurTahapan: [
+        { nomor: 1, langkah: 'Penerimaan Laporan', keterangan: 'Laporan dicatat dalam sistem E-PASS TEMENAN' },
+        { nomor: 2, langkah: 'Investigasi & Verifikasi', keterangan: 'Pengumpulan bukti dan klarifikasi para pihak secara rahasia' },
+        { nomor: 3, langkah: 'Tindakan Intervensi & Mediasi', keterangan: 'Konseling BK, mediasi, dan pendampingan psikososial' },
+        { nomor: 4, langkah: 'Tindak Lanjut & Pemulihan', keterangan: 'Evaluasi berkala di formulir Sabtu Beli Teh Ceri' },
+      ],
+    },
+    {
       id: 'info-1',
       judul: 'Alur Penanganan Kasus Perundungan di UPT SMPN 7 Pasuruan',
       fokus: 'SOP & Prosedur Laporan',

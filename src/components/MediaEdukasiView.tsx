@@ -165,7 +165,22 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
         !p.judul?.includes('Stop Cyberbullying: Jarimu Harimaumu')
     );
   }, [mediaDb.poster]);
-  const infografisList = mediaDb.infografis || [];
+  const infografisList = useMemo(() => {
+    const stored = Array.isArray(mediaDb.infografis) ? mediaDb.infografis : [];
+    const officialInfografis = INITIAL_MEDIA_EDUKASI.infografis;
+    const combined: InfografisEdukasiItem[] = [...stored];
+    for (const off of officialInfografis) {
+      const exists = combined.some((item) => item.id === off.id);
+      if (!exists) {
+        if (off.id === 'info-alur-penanganan') {
+          combined.unshift(off);
+        } else {
+          combined.push(off);
+        }
+      }
+    }
+    return combined;
+  }, [mediaDb.infografis]);
   const videoList = useMemo(() => {
     const stored = Array.isArray(mediaDb.video) ? mediaDb.video : [];
     const officialVideos = INITIAL_MEDIA_EDUKASI.video;

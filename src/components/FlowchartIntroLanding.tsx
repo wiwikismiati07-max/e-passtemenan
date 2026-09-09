@@ -25,8 +25,20 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
 
   const flowcharts = [
     {
-      id: 'bagan-1',
+      id: 'bagan-alur-penanganan',
       number: '01',
+      title: 'Bagan Alur Penanganan Kasus Pass Temenan',
+      subtitle: 'SOP Alur Penanganan Terpadu, Investigasi Rahasia, Mediasi & Pemulihan SPANJU',
+      webLink: 'https://i.ibb.co.com/gMZWh2pN/ALUR-PENANGANAN-PASS-TEMENAN.png',
+      primaryImg: 'https://images.weserv.nl/?url=i.ibb.co/gMZWh2pN/ALUR-PENANGANAN-PASS-TEMENAN.png&w=1200&output=jpg&q=85',
+      fallbackImg: 'https://i.ibb.co.com/gMZWh2pN/ALUR-PENANGANAN-PASS-TEMENAN.png',
+      onlineImg: 'https://i.ibb.co.com/gMZWh2pN/ALUR-PENANGANAN-PASS-TEMENAN.png',
+      badge: 'Alur Penanganan Kasus',
+      badgeColor: 'bg-teal-500 text-white',
+    },
+    {
+      id: 'bagan-1',
+      number: '02',
       title: 'Bagan Struktur Tolak Ukur E-Pass Temenan',
       subtitle: 'Kerangka Kerja & Indikator Satgas Anti Perundungan SPANJU',
       webLink: 'https://ibb.co.com/Tx9BwDfb',
@@ -38,7 +50,7 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
     },
     {
       id: 'bagan-2',
-      number: '02',
+      number: '03',
       title: 'Alur Penilaian Tolak Ukur & Bagan Keputusan',
       subtitle: 'Tahapan Evaluasi, Bobot Penilaian, dan Klasifikasi Keputusan',
       webLink: 'https://ibb.co.com/FpgTjqT',
@@ -50,7 +62,7 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
     },
     {
       id: 'bagan-3',
-      number: '03',
+      number: '04',
       title: 'Diagram Alur Respon Tindak Lanjut Laporan',
       subtitle: 'Prosedur Respon Cepat, Penanganan 4 Pilar, dan Pendampingan BK',
       webLink: 'https://ibb.co.com/NgKRd6S8',
