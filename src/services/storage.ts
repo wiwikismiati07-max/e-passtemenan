@@ -386,6 +386,21 @@ export class StorageService {
             if (!parsed.mediaEdukasi || !parsed.mediaEdukasi.materi) {
               return INITIAL_MEDIA_EDUKASI;
             }
+            // Remove deleted generic infographics (info-3 and info-4)
+            const cleanedInfografis = Array.isArray(parsed.mediaEdukasi.infografis)
+              ? parsed.mediaEdukasi.infografis.filter((i: any) => i.id !== 'info-3' && i.id !== 'info-4')
+              : INITIAL_MEDIA_EDUKASI.infografis;
+
+            // Remove all mock/default posters (pos-1, pos-2, pos-3, pos-4, pos-5)
+            const cleanedPoster = Array.isArray(parsed.mediaEdukasi.poster)
+              ? parsed.mediaEdukasi.poster.filter(
+                  (p: any) =>
+                    !['pos-1', 'pos-2', 'pos-3', 'pos-4', 'pos-5'].includes(p.id) &&
+                    !p.judul?.includes('Katakan TIDAK Pada Bullying') &&
+                    !p.judul?.includes('Stop Cyberbullying: Jarimu Harimaumu')
+                )
+              : [];
+
             // Check if existing video list contains old mock videos or missing the new 7 official videos
             const currentVideos = Array.isArray(parsed.mediaEdukasi.video) ? parsed.mediaEdukasi.video : [];
             const hasOldMock = currentVideos.some(
@@ -404,10 +419,16 @@ export class StorageService {
               );
               return {
                 ...parsed.mediaEdukasi,
+                infografis: cleanedInfografis,
+                poster: cleanedPoster,
                 video: [...INITIAL_MEDIA_EDUKASI.video, ...customVideos],
               };
             }
-            return parsed.mediaEdukasi;
+            return {
+              ...parsed.mediaEdukasi,
+              infografis: cleanedInfografis,
+              poster: cleanedPoster,
+            };
           })(),
           supabaseConfig: {
             url: finalUrl,
@@ -499,6 +520,11 @@ export class StorageService {
     if (!db.mediaEdukasi) {
       db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI };
     }
+    if (!Array.isArray(db.mediaEdukasi[tab])) {
+      db.mediaEdukasi[tab] = Array.isArray(INITIAL_MEDIA_EDUKASI[tab])
+        ? [...(INITIAL_MEDIA_EDUKASI[tab] as any[])]
+        : [];
+    }
     const list = db.mediaEdukasi[tab] as any[];
     const idx = list.findIndex((x: any) => x.id === item.id);
     if (idx >= 0) {
@@ -512,6 +538,11 @@ export class StorageService {
   public static deleteMediaEdukasiItem(tab: MediaEdukasiSubTab, id: string): void {
     const db = this.getDb();
     if (!db.mediaEdukasi) return;
+    if (!Array.isArray(db.mediaEdukasi[tab])) {
+      db.mediaEdukasi[tab] = Array.isArray(INITIAL_MEDIA_EDUKASI[tab])
+        ? [...(INITIAL_MEDIA_EDUKASI[tab] as any[])]
+        : [];
+    }
     const list = db.mediaEdukasi[tab] as any[];
     db.mediaEdukasi[tab] = list.filter((x: any) => x.id !== id) as any;
     this.saveDb();
@@ -543,7 +574,35 @@ export class StorageService {
     if (!db.mediaEdukasi) {
       db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI };
     } else {
-      db.mediaEdukasi.video = [...INITIAL_MEDIA_EDUKASI.video];
+      const currentVideos = Array.isArray(db.mediaEdukasi.video) ? db.mediaEdukasi.video : [];
+      // Keep any user-added videos (videos whose id or youtubeId is not one of the official ones)
+      const officialIds = new Set(INITIAL_MEDIA_EDUKASI.video.map((v) => v.id));
+      const officialYtIds = new Set(INITIAL_MEDIA_EDUKASI.video.map((v) => v.youtubeId).filter(Boolean));
+      const userCustomVideos = currentVideos.filter(
+        (v: any) => !officialIds.has(v.id) && (!v.youtubeId || !officialYtIds.has(v.youtubeId))
+      );
+      // Combine user custom videos first, followed by the 7 official videos
+      db.mediaEdukasi.video = [...userCustomVideos, ...INITIAL_MEDIA_EDUKASI.video];
+    }
+    this.saveDb();
+  }
+
+  public static resetMediaEdukasiInfografis(): void {
+    const db = this.getDb();
+    if (!db.mediaEdukasi) {
+      db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI };
+    } else {
+      db.mediaEdukasi.infografis = [...INITIAL_MEDIA_EDUKASI.infografis];
+    }
+    this.saveDb();
+  }
+
+  public static clearAllPosters(): void {
+    const db = this.getDb();
+    if (!db.mediaEdukasi) {
+      db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI, poster: [] };
+    } else {
+      db.mediaEdukasi.poster = [];
     }
     this.saveDb();
   }

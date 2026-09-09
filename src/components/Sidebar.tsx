@@ -22,13 +22,14 @@ import {
   PanelLeft,
   LogOut,
   Download,
+  Video,
 } from 'lucide-react';
 import { AppDatabase, CustomLink } from '../types';
 
 interface SidebarProps {
   db: AppDatabase;
   activeView: string;
-  onSelectView: (view: string) => void;
+  onSelectView: (view: string, tab?: string) => void;
   onOpenLinkModal?: (editing?: CustomLink) => void;
   onDeleteLink?: (id: string) => void;
   onOpenSupabaseModal: () => void;
@@ -95,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title: 'Media Edukasi Digital',
           tag: 'Edukasi',
           category: 'Edukasi',
-          subtitle: 'Materi, Poster, Infografis, Video & Pesan',
+          subtitle: 'Materi, Poster, Infografis & Pesan',
           icon: BookOpen,
           color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 border-teal-200 dark:border-teal-800',
           activeBg: 'bg-teal-600 text-white shadow-teal-600/20',
@@ -103,8 +104,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             (db.mediaEdukasi?.materi?.length || 0) +
             (db.mediaEdukasi?.poster?.length || 0) +
             (db.mediaEdukasi?.infografis?.length || 0) +
-            (db.mediaEdukasi?.video?.length || 0) +
             (db.mediaEdukasi?.pesan?.length || 0),
+        },
+        {
+          id: 'media-video',
+          title: 'Video Edukasi & Sosialisasi',
+          tag: 'Video',
+          category: 'Edukasi',
+          subtitle: 'Dokumentasi Inovasi & Roadshow',
+          icon: Video,
+          color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800',
+          activeBg: 'bg-rose-600 text-white shadow-rose-600/20',
+          count: (db.mediaEdukasi?.video && db.mediaEdukasi.video.length > 0) ? db.mediaEdukasi.video.length : 7,
+          targetView: 'media-edukasi',
+          targetTab: 'video',
         },
       ],
     },
@@ -210,8 +223,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  const handleSelect = (id: string) => {
-    onSelectView(id);
+  const handleSelect = (item: any) => {
+    if (item.targetView) {
+      onSelectView(item.targetView, item.targetTab);
+    } else {
+      onSelectView(item.id);
+    }
     // On small screens, close the menu overlay automatically
     if (window.innerWidth < 1024) {
       onClose();
@@ -339,7 +356,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     return (
                       <button
                         key={item.id}
-                        onClick={() => handleSelect(item.id)}
+                        onClick={() => handleSelect(item)}
                         className={`w-full p-2.5 rounded-xl border text-left transition-all duration-150 flex items-center justify-between group cursor-pointer ${
                           isActive
                             ? 'bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-400 dark:border-indigo-600 shadow-xs ring-1 ring-indigo-400/30'

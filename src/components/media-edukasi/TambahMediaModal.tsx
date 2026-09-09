@@ -178,7 +178,9 @@ export const TambahMediaModal: React.FC<TambahMediaModalProps> = ({
           durasi: durasi.trim() || '04:00',
           narasumber: penulis.trim() || 'Tim Kesiswaan SPANJU',
           tanggal: todayStr,
-          thumbnailUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
+          thumbnailUrl: ytId
+            ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+            : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
         };
         StorageService.saveMediaEdukasiItem('video', item);
         break;

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   BookOpen,
   Image as ImageIcon,
@@ -26,6 +26,11 @@ import {
   BookmarkCheck,
   RefreshCw,
   MessageCircle,
+  ChevronDown,
+  ChevronUp,
+  Link as LinkIcon,
+  AlertCircle,
+  Upload,
 } from 'lucide-react';
 import {
   AppDatabase,
@@ -37,10 +42,19 @@ import {
   PesanEdukatifItem,
 } from '../types';
 import { StorageService } from '../services/storage';
+import { INITIAL_MEDIA_EDUKASI } from '../data/mediaEdukasiData';
+import {
+  extractYouTubeId,
+  getYouTubeThumbnail,
+  normalizeVideoUrl,
+  getYouTubeWatchUrl,
+} from '../utils/youtube';
 import { MediaLightboxModal } from './media-edukasi/MediaLightboxModal';
 import { MateriDetailModal } from './media-edukasi/MateriDetailModal';
 import { VideoPlayerModal } from './media-edukasi/VideoPlayerModal';
 import { TambahMediaModal } from './media-edukasi/TambahMediaModal';
+import { TambahVideoModal } from './media-edukasi/TambahVideoModal';
+import { TambahPosterModal } from './media-edukasi/TambahPosterModal';
 
 interface MediaEdukasiViewProps {
   db: AppDatabase;
@@ -53,14 +67,59 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   onRefresh,
   initialTab = 'materi',
 }) => {
-  const [activeTab, setActiveTab] = useState<MediaEdukasiSubTab>(initialTab);
+  const validTabs: MediaEdukasiSubTab[] = ['materi', 'poster', 'infografis', 'video', 'pesan'];
+  const resolvedTab: MediaEdukasiSubTab =
+    initialTab && validTabs.includes(initialTab as MediaEdukasiSubTab)
+      ? (initialTab as MediaEdukasiSubTab)
+      : 'materi';
+
+  const [activeTab, setActiveTab] = useState<MediaEdukasiSubTab>(resolvedTab);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('Semua');
 
+  // Sync tab when initialTab prop updates
+  useEffect(() => {
+    if (initialTab && validTabs.includes(initialTab as MediaEdukasiSubTab)) {
+      setActiveTab(initialTab as MediaEdukasiSubTab);
+    }
+  }, [initialTab]);
+
+  // Reset category filter & search when switching sub-tabs so previous filter doesn't hide items
+  useEffect(() => {
+    setSelectedCategoryFilter('Semua');
+    setSearchQuery('');
+  }, [activeTab]);
+
   // Modal States
   const [isTambahModalOpen, setIsTambahModalOpen] = useState<boolean>(false);
+  const [isTambahVideoModalOpen, setIsTambahVideoModalOpen] = useState<boolean>(false);
+  const [isTambahPosterModalOpen, setIsTambahPosterModalOpen] = useState<boolean>(false);
   const [selectedMateri, setSelectedMateri] = useState<MateriEdukasiItem | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<VideoEdukasiItem | null>(null);
+
+  // Quick Manual Poster Field States
+  const [quickPosterUrl, setQuickPosterUrl] = useState('');
+  const [quickPosterJudul, setQuickPosterJudul] = useState('');
+  const [quickPosterTema, setQuickPosterTema] = useState('Kampanye Utama');
+  const [quickPosterKreator, setQuickPosterKreator] = useState('Duta Anti-Bullying SPANJU');
+  const [quickPosterDeskripsi, setQuickPosterDeskripsi] = useState('');
+  const [quickPosterIsKaryaSiswa, setQuickPosterIsKaryaSiswa] = useState(true);
+  const [isQuickPosterExpanded, setIsQuickPosterExpanded] = useState(false);
+  const [quickPosterSuccess, setQuickPosterSuccess] = useState(false);
+  const [quickPosterError, setQuickPosterError] = useState('');
+  const [quickPosterUploading, setQuickPosterUploading] = useState(false);
+  const quickPosterFileRef = useRef<HTMLInputElement>(null);
+
+  // Quick Manual Video Field States
+  const [quickVideoUrl, setQuickVideoUrl] = useState('');
+  const [quickVideoJudul, setQuickVideoJudul] = useState('');
+  const [quickVideoKategori, setQuickVideoKategori] = useState('Dokumentasi Inovasi');
+  const [quickVideoNarasumber, setQuickVideoNarasumber] = useState('Satgas PASS TEMENAN UPT SMPN 7 Pasuruan');
+  const [quickVideoDurasi, setQuickVideoDurasi] = useState('04:00');
+  const [quickVideoDeskripsi, setQuickVideoDeskripsi] = useState('');
+  const [isQuickVideoExpanded, setIsQuickVideoExpanded] = useState(false);
+  const [quickVideoSuccess, setQuickVideoSuccess] = useState(false);
+  const [quickVideoError, setQuickVideoError] = useState('');
   const [lightboxData, setLightboxData] = useState<{
     isOpen: boolean;
     title: string;
@@ -78,7 +137,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   // Feedback states
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Safe data extraction
+  // Safe data extraction with fallback to initial data if empty
   const mediaDb = db.mediaEdukasi || {
     materi: [],
     poster: [],
@@ -87,10 +146,42 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
     pesan: [],
   };
 
+  // If video list is empty in storage, auto hydrate with the 7 official videos
+  useEffect(() => {
+    if (!mediaDb.video || !Array.isArray(mediaDb.video) || mediaDb.video.length === 0) {
+      StorageService.resetMediaEdukasiVideos();
+      onRefresh();
+    }
+  }, []);
+
   const materiList = mediaDb.materi || [];
-  const posterList = mediaDb.poster || [];
+  // Exclude legacy mock posters (pos-1, pos-2, pos-3, pos-4, pos-5)
+  const posterList = useMemo(() => {
+    const stored = Array.isArray(mediaDb.poster) ? mediaDb.poster : [];
+    return stored.filter(
+      (p) =>
+        !['pos-1', 'pos-2', 'pos-3', 'pos-4', 'pos-5'].includes(p.id) &&
+        !p.judul?.includes('Katakan TIDAK Pada Bullying') &&
+        !p.judul?.includes('Stop Cyberbullying: Jarimu Harimaumu')
+    );
+  }, [mediaDb.poster]);
   const infografisList = mediaDb.infografis || [];
-  const videoList = mediaDb.video || [];
+  const videoList = useMemo(() => {
+    const stored = Array.isArray(mediaDb.video) ? mediaDb.video : [];
+    const officialVideos = INITIAL_MEDIA_EDUKASI.video;
+    // Put stored videos first
+    const combined: VideoEdukasiItem[] = [...stored];
+    // Add any official videos not already present by id or youtubeId
+    for (const off of officialVideos) {
+      const exists = combined.some(
+        (v) => v.id === off.id || (v.youtubeId && off.youtubeId && v.youtubeId === off.youtubeId)
+      );
+      if (!exists) {
+        combined.push(off);
+      }
+    }
+    return combined;
+  }, [mediaDb.video]);
   const pesanList = mediaDb.pesan || [];
 
   // Filter categories for the current tab
@@ -212,6 +303,163 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   const handleResetVideos = () => {
     if (window.confirm('Muat ulang dan sinkronkan koleksi ke 7 video resmi dokumentasi inovasi PASS TEMENAN SMPN 7 Pasuruan?')) {
       StorageService.resetMediaEdukasiVideos();
+      onRefresh();
+    }
+  };
+
+  const handleQuickSaveVideo = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setQuickVideoError('');
+
+    if (!quickVideoUrl.trim()) {
+      setQuickVideoError('Silakan masukkan tautan / link URL video.');
+      return;
+    }
+
+    const finalUrl = normalizeVideoUrl(quickVideoUrl);
+    const ytId = extractYouTubeId(finalUrl);
+    const videoTitle =
+      quickVideoJudul.trim() ||
+      (ytId ? `Video YouTube (${ytId})` : 'Video Edukasi & Sosialisasi Baru');
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const newVideo: VideoEdukasiItem = {
+      id: `vid-${Date.now()}`,
+      judul: videoTitle,
+      kategori: quickVideoKategori.trim() || 'Dokumentasi Inovasi',
+      deskripsi:
+        quickVideoDeskripsi.trim() ||
+        'Dokumentasi video edukasi dan inovasi perlindungan siswa UPT SMPN 7 Pasuruan.',
+      videoUrl: finalUrl,
+      youtubeId: ytId || undefined,
+      durasi: quickVideoDurasi.trim() || '04:00',
+      narasumber: quickVideoNarasumber.trim() || 'Satgas PASS TEMENAN SPANJU',
+      tanggal: todayStr,
+      thumbnailUrl: ytId
+        ? getYouTubeThumbnail(ytId)
+        : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
+    };
+
+    StorageService.saveMediaEdukasiItem('video', newVideo);
+    // Automatically reset category and search filters so the new video displays immediately!
+    setSelectedCategoryFilter('Semua');
+    setSearchQuery('');
+    setQuickVideoSuccess(true);
+    setQuickVideoUrl('');
+    setQuickVideoJudul('');
+    setQuickVideoDeskripsi('');
+    setIsQuickVideoExpanded(false);
+    onRefresh();
+
+    setTimeout(() => {
+      setQuickVideoSuccess(false);
+    }, 4000);
+  };
+
+  const handleQuickPosterFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setQuickPosterError('File harus berupa gambar yang valid (JPG, PNG, WEBP).');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setQuickPosterError('Ukuran file gambar maksimal 10MB.');
+      return;
+    }
+    setQuickPosterUploading(true);
+    setQuickPosterError('');
+    try {
+      const res = await StorageService.uploadPhotoToSupabase(file, 'poster-edukasi');
+      if (res.url) {
+        setQuickPosterUrl(res.url);
+        if (!quickPosterJudul) {
+          const nameClean = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+          setQuickPosterJudul(`Poster ${nameClean}`);
+        }
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setQuickPosterUrl(reader.result as string);
+          if (!quickPosterJudul) {
+            const nameClean = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            setQuickPosterJudul(`Poster ${nameClean}`);
+          }
+          setQuickPosterUploading(false);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+    } catch {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setQuickPosterUrl(reader.result as string);
+        setQuickPosterUploading(false);
+      };
+      reader.readAsDataURL(file);
+      return;
+    } finally {
+      setQuickPosterUploading(false);
+    }
+  };
+
+  const handleSaveQuickPoster = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setQuickPosterError('');
+
+    const finalUrl = quickPosterUrl.trim();
+    if (!finalUrl) {
+      setQuickPosterError('Harap pilih file gambar atau masukkan URL tautan gambar poster.');
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const resolvedTitle =
+      quickPosterJudul.trim() || `Poster Kampanye: ${quickPosterTema}`;
+
+    const newPoster: PosterEdukasiItem = {
+      id: `pos-${Date.now()}`,
+      judul: resolvedTitle,
+      tema: quickPosterTema.trim() || 'Kampanye Utama',
+      deskripsi:
+        quickPosterDeskripsi.trim() ||
+        'Poster edukasi kampanye anti-perundungan dan kepedulian siswa UPT SMPN 7 Pasuruan.',
+      gambarUrl: finalUrl,
+      kreator: quickPosterKreator.trim() || 'Duta Anti-Bullying SPANJU',
+      tanggal: todayStr,
+      resolusi: 'HD Standard (1080 x 1350 px)',
+      unduhanCount: 0,
+      isKaryaSiswa: quickPosterIsKaryaSiswa,
+    };
+
+    StorageService.saveMediaEdukasiItem('poster', newPoster);
+
+    // Automatically reset category and search filters so the new poster displays immediately!
+    setSelectedCategoryFilter('Semua');
+    setSearchQuery('');
+    setQuickPosterSuccess(true);
+    setQuickPosterUrl('');
+    setQuickPosterJudul('');
+    setQuickPosterDeskripsi('');
+    setIsQuickPosterExpanded(false);
+    if (quickPosterFileRef.current) quickPosterFileRef.current.value = '';
+    onRefresh();
+
+    setTimeout(() => {
+      setQuickPosterSuccess(false);
+    }, 4000);
+  };
+
+  const handleClearAllPosters = () => {
+    if (window.confirm('Hapus semua poster di galeri? Galeri poster akan dikosongkan.')) {
+      StorageService.clearAllPosters();
+      onRefresh();
+    }
+  };
+
+  const handleResetInfografis = () => {
+    if (window.confirm('Muat ulang dan sinkronkan infografis ke bagan & alur resmi inovasi PASS TEMENAN SMPN 7 Pasuruan?')) {
+      StorageService.resetMediaEdukasiInfografis();
       onRefresh();
     }
   };
@@ -553,23 +801,268 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
 
       {/* TAB 2: DOKUMENTASI POSTER */}
       {activeTab === 'poster' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-amber-600" />
-              Galeri Poster Kampanye Digital ({filteredPoster.length})
-            </h2>
-            <span className="text-[11px] text-slate-400">
-              Klik pada poster untuk melihat resolusi penuh & mengunduh
-            </span>
+        <div className="space-y-5">
+          {/* Header Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-amber-600" />
+                Galeri Poster Kampanye Digital ({filteredPoster.length})
+              </h2>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                Poster tersimpan langsung tampil di galeri, mudah diakses, dilihat resolusi penuh, atau diunduh
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsTambahPosterModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Tambah Poster (Popup Modal)</span>
+              </button>
+
+              {posterList.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAllPosters}
+                  className="px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/30 hover:bg-rose-100 text-rose-700 dark:text-rose-400 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Hapus semua poster di galeri"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Bersihkan Semua</span>
+                </button>
+              )}
+            </div>
           </div>
 
+          {/* Quick Manual Poster Form Field */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-amber-200 dark:border-amber-900/50 p-4 sm:p-5 shadow-2xs">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shrink-0">
+                  <ImageIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-2">
+                    Formulir Manual Tambah Poster
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300">
+                      Tampil Instan di Galeri
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Pilih file gambar dari perangkat atau tempel tautan URL poster
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsQuickPosterExpanded(!isQuickPosterExpanded)}
+                className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                {isQuickPosterExpanded ? (
+                  <>
+                    <span>Sembunyikan Opsi</span>
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  </>
+                ) : (
+                  <>
+                    <span>Opsi Lengkap</span>
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            </div>
+
+            {quickPosterSuccess && (
+              <div className="mb-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  <strong>Poster berhasil disimpan!</strong> Poster baru kini langsung tampil di galeri di bawah dan siap dilihat atau diunduh.
+                </span>
+              </div>
+            )}
+
+            {quickPosterError && (
+              <div className="mb-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{quickPosterError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveQuickPoster} className="space-y-3">
+              {/* Row 1: File Upload + URL Input */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center">
+                {/* File picker button */}
+                <div className="md:col-span-4 flex items-center gap-2">
+                  <input
+                    ref={quickPosterFileRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleQuickPosterFile}
+                    className="hidden"
+                    id="quick-poster-file"
+                  />
+                  <label
+                    htmlFor="quick-poster-file"
+                    className="w-full px-3 py-2.5 rounded-xl border border-dashed border-amber-400 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Upload className="w-4 h-4 text-amber-600" />
+                    <span>{quickPosterUploading ? 'Memproses File...' : 'Pilih File Gambar'}</span>
+                  </label>
+                </div>
+
+                {/* URL input */}
+                <div className="md:col-span-8 relative">
+                  <LinkIcon className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+                  <input
+                    type="text"
+                    value={quickPosterUrl}
+                    onChange={(e) => setQuickPosterUrl(e.target.value)}
+                    placeholder="Atau tempel URL tautan gambar poster (https://...)"
+                    className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {quickPosterUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setQuickPosterUrl('')}
+                      className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Preview Thumbnail if image is loaded */}
+              {quickPosterUrl && (
+                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <img
+                    src={quickPosterUrl}
+                    alt="Pratinjau Poster"
+                    className="w-12 h-14 object-cover rounded-lg bg-black border border-slate-300 dark:border-slate-600 shrink-0"
+                    onError={() => setQuickPosterError('Gagal memuat pratinjau URL gambar.')}
+                  />
+                  <div className="flex-1 min-w-0 text-xs">
+                    <p className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                      <Check className="w-3.5 h-3.5" />
+                      Gambar poster siap disimpan
+                    </p>
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5">{quickPosterUrl}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickPosterUrl('');
+                      if (quickPosterFileRef.current) quickPosterFileRef.current.value = '';
+                    }}
+                    className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Row 2: Title, Category, Creator */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <input
+                    type="text"
+                    value={quickPosterJudul}
+                    onChange={(e) => setQuickPosterJudul(e.target.value)}
+                    placeholder="Judul Poster (opsional - otomatis)"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <select
+                    value={quickPosterTema}
+                    onChange={(e) => setQuickPosterTema(e.target.value)}
+                    className="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  >
+                    <option value="Kampanye Utama">Kampanye Utama</option>
+                    <option value="Anti-Perundungan">Anti-Perundungan</option>
+                    <option value="Pertemanan Positif">Pertemanan Positif</option>
+                    <option value="Stop Cyberbullying">Stop Cyberbullying</option>
+                    <option value="Keberanian & Kepedulian">Keberanian & Kepedulian</option>
+                    <option value="Karakter Pelajar Pancasila">Karakter Pelajar Pancasila</option>
+                    <option value="Sekolah Ramah Anak">Sekolah Ramah Anak</option>
+                  </select>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={quickPosterKreator}
+                    onChange={(e) => setQuickPosterKreator(e.target.value)}
+                    placeholder="Pembuat / Duta Siswa / Satgas"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Collapsible Expanded Options */}
+              {isQuickPosterExpanded && (
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2.5 animate-in fade-in duration-150">
+                  <div>
+                    <input
+                      type="text"
+                      value={quickPosterDeskripsi}
+                      onChange={(e) => setQuickPosterDeskripsi(e.target.value)}
+                      placeholder="Deskripsi / Pesan edukasi yang terkandung dalam poster..."
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={quickPosterIsKaryaSiswa}
+                      onChange={(e) => setQuickPosterIsKaryaSiswa(e.target.checked)}
+                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 dark:border-slate-600"
+                    />
+                    <span>Tandai sebagai Karya Orisinal Siswa SPANJU</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <div className="flex items-center justify-end pt-1">
+                <button
+                  type="submit"
+                  disabled={quickPosterUploading}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Simpan Poster ke Galeri</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Poster Gallery Grid or Empty State */}
           {filteredPoster.length === 0 ? (
-            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-              <ImageIcon className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-                Tidak ada poster yang sesuai dengan filter.
+            <div className="p-10 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-300 flex items-center justify-center mx-auto">
+                <ImageIcon className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+                Galeri Poster Masih Kosong
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                Semua poster bawaan lama telah dibersihkan. Tambahkan poster kampanye baru melalui formulir manual di atas atau klik tombol di bawah untuk membuka popup.
               </p>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTambahPosterModalOpen(true)}
+                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold inline-flex items-center gap-2 shadow-sm transition-transform hover:scale-105 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Buka Popup Tambah Poster</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -655,15 +1148,29 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                           <Download className="w-3.5 h-3.5" />
                         </a>
 
-                        {poster.id.startsWith('pos-') && !['pos-1', 'pos-2', 'pos-3', 'pos-4', 'pos-5'].includes(poster.id) && (
-                          <button
-                            onClick={() => handleDeleteItem('poster', poster.id, poster.judul)}
-                            className="p-1.5 hover:text-rose-600 transition-colors text-slate-400"
-                            title="Hapus Poster"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(poster.gambarUrl);
+                            setCopiedId(poster.id);
+                            setTimeout(() => setCopiedId(null), 2000);
+                          }}
+                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                          title="Salin Tautan Gambar"
+                        >
+                          {copiedId === poster.id ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteItem('poster', poster.id, poster.judul)}
+                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                          title="Hapus Poster"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -677,14 +1184,25 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       {/* TAB 3: DOKUMENTASI INFOGRAFIS */}
       {activeTab === 'infografis' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <BarChart2 className="w-3.5 h-3.5 text-indigo-600" />
-              Dokumentasi Infografis & Diagram Alur ({filteredInfografis.length})
-            </h2>
-            <span className="text-[11px] text-slate-400">
-              Visualisasi prosedur SOP, data dampak, dan panduan praktis
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <BarChart2 className="w-3.5 h-3.5 text-indigo-600" />
+                Dokumentasi Infografis & Diagram Alur ({filteredInfografis.length})
+              </h2>
+              <span className="text-[11px] text-slate-400">
+                Visualisasi prosedur SOP, indikator 4 pilar, dan struktur resmi inovasi UPT SMPN 7 Pasuruan
+              </span>
+            </div>
+
+            <button
+              onClick={handleResetInfografis}
+              className="px-2.5 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/80 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
+              title="Kembalikan atau sinkronkan ke diagram alur & bagan resmi PASS TEMENAN"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Muat Bagan Resmi</span>
+            </button>
           </div>
 
           {filteredInfografis.length === 0 ? (
@@ -779,6 +1297,14 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                         >
                           <Download className="w-3.5 h-3.5" />
                         </a>
+
+                        <button
+                          onClick={() => handleDeleteItem('infografis', info.id, info.judul)}
+                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                          title="Hapus Infografis Ini"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -803,118 +1329,353 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
               </span>
             </div>
 
-            <button
-              onClick={handleResetVideos}
-              className="px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
-              title="Kembalikan atau sinkronkan ke 7 video resmi PASS TEMENAN"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Muat 7 Video Resmi</span>
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              <button
+                onClick={() => setIsTambahVideoModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs hover:shadow-md cursor-pointer"
+                title="Buka popup untuk menambah link video YouTube terbaru secara manual"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Tambah Video (Popup)</span>
+              </button>
+
+              <button
+                onClick={handleResetVideos}
+                className="px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                title="Kembalikan atau sinkronkan ke 7 video resmi PASS TEMENAN"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Muat 7 Video Resmi</span>
+              </button>
+            </div>
+          </div>
+
+          {/* DEDICATED INLINE FIELD: INPUT LINK VIDEO SECARA MANUAL */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-rose-50/80 via-white to-amber-50/40 dark:from-rose-950/30 dark:via-slate-900 dark:to-slate-900 border border-rose-200 dark:border-rose-900/60 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-rose-600 text-white shadow-xs">
+                  <Video className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    Field Simpan Link Video YouTube Manual
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                      Cepat & Mandiri
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Tempelkan URL YouTube atau tautan video kegiatan sekolah untuk disimpan langsung ke koleksi
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickVideoExpanded(!isQuickVideoExpanded)}
+                  className="text-xs text-rose-700 dark:text-rose-300 hover:text-rose-800 font-semibold flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-rose-100/60 dark:hover:bg-rose-900/40 transition-colors cursor-pointer"
+                >
+                  <span>{isQuickVideoExpanded ? 'Tutup Opsi Detail' : 'Opsi Detail (Kategori/Narsum)'}</span>
+                  {isQuickVideoExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            {quickVideoSuccess && (
+              <div className="mb-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Link video berhasil disimpan dan langsung ditambahkan ke daftar video edukasi!</span>
+              </div>
+            )}
+
+            {quickVideoError && (
+              <div className="mb-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{quickVideoError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleQuickSaveVideo} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5">
+                {/* Field 1: Link URL Video */}
+                <div className="md:col-span-5 relative">
+                  <LinkIcon className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+                  <input
+                    type="text"
+                    value={quickVideoUrl}
+                    onChange={(e) => setQuickVideoUrl(e.target.value)}
+                    placeholder="Tempel tautan YouTube apa saja (youtu.be/..., watch, shorts, atau ID)"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none shadow-2xs font-medium"
+                    required
+                  />
+                </div>
+
+                {/* Field 2: Judul Video */}
+                <div className="md:col-span-4">
+                  <input
+                    type="text"
+                    value={quickVideoJudul}
+                    onChange={(e) => setQuickVideoJudul(e.target.value)}
+                    placeholder="Judul Video (Opsional - otomatis terisi)"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none shadow-2xs font-medium"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="md:col-span-3 flex items-center gap-1.5">
+                  <button
+                    type="submit"
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs hover:shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Simpan Video</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsTambahVideoModalOpen(true)}
+                    className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+                    title="Buka Popup Formulir Lengkap"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* YouTube ID Preview */}
+              {extractYouTubeId(quickVideoUrl) && (
+                <div className="flex items-center gap-3 text-[11px] text-rose-700 dark:text-rose-300 bg-rose-50/90 dark:bg-rose-950/60 p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60 animate-fadeIn">
+                  <img
+                    src={`https://img.youtube.com/vi/${extractYouTubeId(quickVideoUrl)}/hqdefault.jpg`}
+                    alt="Thumbnail preview"
+                    className="w-16 h-10 object-cover rounded-lg border border-rose-200 dark:border-rose-800 shadow-2xs shrink-0"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const ytId = extractYouTubeId(quickVideoUrl);
+                      if (ytId) {
+                        (e.currentTarget as HTMLImageElement).src = `https://i.ytimg.com/vi/${ytId}/mqdefault.jpg`;
+                      }
+                    }}
+                  />
+                  <div className="space-y-0.5">
+                    <span className="font-bold flex items-center gap-1 text-slate-900 dark:text-white">
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ID YouTube Terdeteksi: <code className="font-mono bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-rose-200 dark:border-slate-700 text-rose-600 dark:text-rose-400">{extractYouTubeId(quickVideoUrl)}</code>
+                    </span>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Thumbnail resmi dan pemutar in-app akan dibuat otomatis saat tombol Simpan diklik.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Collapsible Advanced Fields */}
+              {isQuickVideoExpanded && (
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 animate-fadeIn">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                      Kategori Video
+                    </label>
+                    <input
+                      type="text"
+                      value={quickVideoKategori}
+                      onChange={(e) => setQuickVideoKategori(e.target.value)}
+                      placeholder="Contoh: Dokumentasi Inovasi"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                      Narasumber / Tim
+                    </label>
+                    <input
+                      type="text"
+                      value={quickVideoNarasumber}
+                      onChange={(e) => setQuickVideoNarasumber(e.target.value)}
+                      placeholder="Contoh: Satgas PASS TEMENAN SPANJU"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                      Estimasi Durasi
+                    </label>
+                    <input
+                      type="text"
+                      value={quickVideoDurasi}
+                      onChange={(e) => setQuickVideoDurasi(e.target.value)}
+                      placeholder="Contoh: 04:30"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono"
+                    />
+                  </div>
+                </div>
+              )}
+            </form>
           </div>
 
           {filteredVideo.length === 0 ? (
-            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-              <Video className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-                Tidak ada video yang sesuai dengan filter.
-              </p>
+            <div className="p-8 sm:p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-2xs">
+              <div className="w-14 h-14 mx-auto rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 flex items-center justify-center text-rose-600">
+                <Video className="w-7 h-7" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1">
+                <h3 className="text-sm sm:text-base font-bold text-slate-800 dark:text-white">
+                  Tidak Ada Video yang Sesuai
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  {searchQuery || selectedCategoryFilter !== 'Semua'
+                    ? `Pencarian "${searchQuery || selectedCategoryFilter}" tidak menemukan video. Coba reset filter.`
+                    : 'Data video belum dimuat atau kosong di penyimpanan lokal browser Anda.'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                {(searchQuery || selectedCategoryFilter !== 'Semua') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategoryFilter('Semua');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Reset Filter & Kategori
+                  </button>
+                )}
+                <button
+                  onClick={handleResetVideos}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Muat Ulang 7 Video Resmi SPANJU</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredVideo.map((video) => (
-                <div
-                  key={video.id}
-                  className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-lg transition-all flex flex-col group"
-                >
-                  {/* Thumbnail / Player Preview */}
+              {filteredVideo.map((video) => {
+                const ytId = video.youtubeId || extractYouTubeId(video.videoUrl);
+                const watchUrl = getYouTubeWatchUrl(video.videoUrl);
+                const thumbSrc =
+                  video.thumbnailUrl ||
+                  (ytId
+                    ? getYouTubeThumbnail(ytId)
+                    : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80');
+
+                return (
                   <div
-                    onClick={() => setSelectedVideo(video)}
-                    className="relative aspect-video bg-black cursor-pointer overflow-hidden flex items-center justify-center"
+                    key={video.id}
+                    className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-lg transition-all flex flex-col group"
                   >
-                    <img
-                      src={
-                        video.thumbnailUrl ||
-                        (video.youtubeId
-                          ? `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`
-                          : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80')
-                      }
-                      alt={video.judul}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-85 group-hover:opacity-95"
-                      referrerPolicy="no-referrer"
-                    />
+                    {/* Thumbnail / Player Preview */}
+                    <div
+                      onClick={() => setSelectedVideo(video)}
+                      className="relative aspect-video bg-black cursor-pointer overflow-hidden flex items-center justify-center"
+                    >
+                      <img
+                        src={thumbSrc}
+                        alt={video.judul}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          if (ytId) {
+                            (e.currentTarget as HTMLImageElement).src = `https://i.ytimg.com/vi/${ytId}/mqdefault.jpg`;
+                          } else {
+                            (e.currentTarget as HTMLImageElement).src =
+                              'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80';
+                          }
+                        }}
+                      />
 
-                    {/* Play Button Overlay */}
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-rose-600 group-hover:bg-rose-500 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all">
-                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      {/* Play Button Overlay */}
+                      <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-rose-600 group-hover:bg-rose-500 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all">
+                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Top Tag & Duration */}
-                    <div className="absolute top-2.5 left-2.5">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-xs">
-                        {video.kategori}
-                      </span>
-                    </div>
-
-                    {video.durasi && (
-                      <div className="absolute bottom-2.5 right-2.5">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-black/80 text-white flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-rose-400" />
-                          {video.durasi}
+                      {/* Top Badges */}
+                      <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-xs">
+                          {video.kategori}
                         </span>
+                        {ytId ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-600 text-white flex items-center gap-1 shadow-xs">
+                            <Play className="w-2.5 h-2.5 fill-current" />
+                            YouTube
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-white flex items-center gap-1 shadow-xs">
+                            <Video className="w-2.5 h-2.5" />
+                            Video
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Content Details */}
-                  <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
-                        {video.judul}
-                      </h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
-                        {video.deskripsi}
-                      </p>
+                      {video.durasi && (
+                        <div className="absolute bottom-2.5 right-2.5">
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-black/80 text-white flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-rose-400" />
+                            {video.durasi}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                      <span className="truncate max-w-[140px] text-[11px]">
-                        {video.narasumber || 'SPANJU'}
-                      </span>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
+                    {/* Content Details */}
+                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                      <div>
+                        <h3
                           onClick={() => setSelectedVideo(video)}
-                          className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                          className="text-sm font-bold text-slate-900 dark:text-white leading-snug group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors cursor-pointer"
                         >
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                          <span>Putar</span>
-                        </button>
+                          {video.judul}
+                        </h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed font-sans">
+                          {video.deskripsi}
+                        </p>
+                      </div>
 
-                        <a
-                          href={video.videoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-                          title="Buka Video di YouTube"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-2">
+                        <span className="truncate max-w-[120px] text-[11px]">
+                          {video.narasumber || 'UPT SMPN 7 Pasuruan'}
+                        </span>
 
-                        <button
-                          onClick={() => handleDeleteItem('video', video.id, video.judul)}
-                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Hapus Video Ini"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => setSelectedVideo(video)}
+                            className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Tonton video dalam aplikasi"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Putar</span>
+                          </button>
+
+                          <a
+                            href={watchUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer"
+                            title="Buka langsung di YouTube"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            <span className="hidden sm:inline">YouTube</span>
+                          </a>
+
+                          <button
+                            onClick={() => handleDeleteItem('video', video.id, video.judul)}
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Hapus Video Ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1063,6 +1824,28 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
         onClose={() => setIsTambahModalOpen(false)}
         defaultTab={activeTab}
         onSuccess={() => onRefresh()}
+      />
+
+      <TambahVideoModal
+        isOpen={isTambahVideoModalOpen}
+        onClose={() => setIsTambahVideoModalOpen(false)}
+        onSuccess={() => {
+          setSelectedCategoryFilter('Semua');
+          setSearchQuery('');
+          setActiveTab('video');
+          onRefresh();
+        }}
+      />
+
+      <TambahPosterModal
+        isOpen={isTambahPosterModalOpen}
+        onClose={() => setIsTambahPosterModalOpen(false)}
+        onSuccess={() => {
+          setSelectedCategoryFilter('Semua');
+          setSearchQuery('');
+          setActiveTab('poster');
+          onRefresh();
+        }}
       />
     </div>
   );

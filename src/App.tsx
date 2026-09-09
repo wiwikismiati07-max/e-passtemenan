@@ -279,9 +279,18 @@ export default function App() {
     }
   };
 
-  const handleNavigate = (viewKey: string, tab: string = 'form') => {
+  const handleNavigate = (viewKey: string, tab?: string) => {
     setActiveView(viewKey);
-    setActiveTab(tab);
+    if (viewKey === 'media-edukasi') {
+      const validMediaTabs = ['materi', 'poster', 'infografis', 'video', 'pesan'];
+      if (tab && validMediaTabs.includes(tab)) {
+        setActiveTab(tab);
+      } else {
+        setActiveTab('materi');
+      }
+    } else {
+      setActiveTab(tab || 'form');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -578,7 +587,11 @@ export default function App() {
                 <MediaEdukasiView
                   db={db}
                   onRefresh={refreshDb}
-                  initialTab={(activeTab as any) || 'materi'}
+                  initialTab={
+                    ['materi', 'poster', 'infografis', 'video', 'pesan'].includes(activeTab)
+                      ? (activeTab as any)
+                      : 'materi'
+                  }
                 />
               )}
 
