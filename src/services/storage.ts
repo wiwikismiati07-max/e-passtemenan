@@ -13,8 +13,11 @@ import {
   SiswaItem,
   GuruItem,
   ClassAssignmentItem,
+  MediaEdukasiDatabase,
+  MediaEdukasiSubTab,
 } from '../types';
 import { INITIAL_CLASS_ZONE_DATA } from '../data/classZoneData';
+import { INITIAL_MEDIA_EDUKASI } from '../data/mediaEdukasiData';
 
 const STORAGE_KEY = 'PASS_TEMENAN_SPANJU_DB_V1';
 const DELETED_IDS_STORAGE_KEY = 'PASS_TEMENAN_DELETED_IDS_V1';
@@ -278,6 +281,7 @@ export const DEFAULT_DATABASE: AppDatabase = {
   masterSiswa: INITIAL_MASTER_SISWA,
   masterGuru: INITIAL_MASTER_GURU,
   classAssignments: {},
+  mediaEdukasi: INITIAL_MEDIA_EDUKASI,
   supabaseConfig: {
     url: 'https://oshvgrglseefguybezdh.supabase.co',
     anonKey: 'sb_publishable_G3RlEXsgYJfeqa9AMP7HyA_3aKPEJ9M',
@@ -378,6 +382,33 @@ export class StorageService {
           masterSiswa: (Array.isArray(parsed.masterSiswa) ? parsed.masterSiswa : DEFAULT_DATABASE.masterSiswa).filter(isValidItem),
           masterGuru: (Array.isArray(parsed.masterGuru) ? parsed.masterGuru : DEFAULT_DATABASE.masterGuru).filter(isValidItem),
           classAssignments: parsed.classAssignments || DEFAULT_DATABASE.classAssignments || {},
+          mediaEdukasi: (() => {
+            if (!parsed.mediaEdukasi || !parsed.mediaEdukasi.materi) {
+              return INITIAL_MEDIA_EDUKASI;
+            }
+            // Check if existing video list contains old mock videos or missing the new 7 official videos
+            const currentVideos = Array.isArray(parsed.mediaEdukasi.video) ? parsed.mediaEdukasi.video : [];
+            const hasOldMock = currentVideos.some(
+              (v: any) =>
+                ['L_LUpnjgPso', 'bVde8cR0P8A', 'ynTuA_St464', 'Y9n9eB2Qo6s', 'fJ9rUzIMcZQ'].includes(v.youtubeId) ||
+                (typeof v.videoUrl === 'string' && v.videoUrl.includes('dQw4w9WgXcQ'))
+            );
+            const hasOfficialVideos = currentVideos.some((v: any) => v.youtubeId === 'GQbqfdsPO-g');
+            if (hasOldMock || !hasOfficialVideos) {
+              // Replace mock videos with the 7 official videos while preserving any user-created custom videos
+              const customVideos = currentVideos.filter(
+                (v: any) =>
+                  !['vid-1', 'vid-2', 'vid-3', 'vid-4', 'vid-5'].includes(v.id) &&
+                  !['L_LUpnjgPso', 'bVde8cR0P8A', 'ynTuA_St464', 'Y9n9eB2Qo6s', 'fJ9rUzIMcZQ'].includes(v.youtubeId) &&
+                  !INITIAL_MEDIA_EDUKASI.video.some((nv) => nv.youtubeId === v.youtubeId)
+              );
+              return {
+                ...parsed.mediaEdukasi,
+                video: [...INITIAL_MEDIA_EDUKASI.video, ...customVideos],
+              };
+            }
+            return parsed.mediaEdukasi;
+          })(),
           supabaseConfig: {
             url: finalUrl,
             anonKey: finalKey,
@@ -460,6 +491,61 @@ export class StorageService {
       saveToIndexedDB(STORAGE_KEY, this.db);
       window.dispatchEvent(new Event('pass-temenan-db-updated'));
     }
+  }
+
+  // --- MEDIA EDUKASI DIGITAL METHODS ---
+  public static saveMediaEdukasiItem(tab: MediaEdukasiSubTab, item: any): void {
+    const db = this.getDb();
+    if (!db.mediaEdukasi) {
+      db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI };
+    }
+    const list = db.mediaEdukasi[tab] as any[];
+    const idx = list.findIndex((x: any) => x.id === item.id);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...item };
+    } else {
+      list.unshift(item);
+    }
+    this.saveDb();
+  }
+
+  public static deleteMediaEdukasiItem(tab: MediaEdukasiSubTab, id: string): void {
+    const db = this.getDb();
+    if (!db.mediaEdukasi) return;
+    const list = db.mediaEdukasi[tab] as any[];
+    db.mediaEdukasi[tab] = list.filter((x: any) => x.id !== id) as any;
+    this.saveDb();
+  }
+
+  public static toggleSukaPesan(id: string): void {
+    const db = this.getDb();
+    if (!db.mediaEdukasi?.pesan) return;
+    const target = db.mediaEdukasi.pesan.find((p) => p.id === id);
+    if (target) {
+      target.sukaCount = (target.sukaCount || 0) + 1;
+      this.saveDb();
+    }
+  }
+
+  public static incrementUnduhanMedia(tab: 'materi' | 'poster', id: string): void {
+    const db = this.getDb();
+    if (!db.mediaEdukasi) return;
+    const list = db.mediaEdukasi[tab];
+    const target = list.find((item: any) => item.id === id);
+    if (target) {
+      target.unduhanCount = (target.unduhanCount || 0) + 1;
+      this.saveDb();
+    }
+  }
+
+  public static resetMediaEdukasiVideos(): void {
+    const db = this.getDb();
+    if (!db.mediaEdukasi) {
+      db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI };
+    } else {
+      db.mediaEdukasi.video = [...INITIAL_MEDIA_EDUKASI.video];
+    }
+    this.saveDb();
   }
 
   // --- SUPABASE CLIENT & CLOUD SYNC ---

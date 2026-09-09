@@ -14,6 +14,7 @@ import {
   GraduationCap,
   ArrowRight,
   TrendingUp,
+  BookOpen,
 } from 'lucide-react';
 import { AppDatabase } from '../types';
 import { RencanaInovasiModal } from './RencanaInovasiModal';
@@ -90,6 +91,20 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       textColor: 'text-teal-600 dark:text-teal-400',
       bgColor: 'bg-teal-50/80 dark:bg-teal-950/30 border-teal-200 dark:border-teal-800/40',
       target: 'buku-tamu',
+    },
+    {
+      title: 'Media Edukasi Digital',
+      count:
+        (db.mediaEdukasi?.materi?.length || 0) +
+        (db.mediaEdukasi?.poster?.length || 0) +
+        (db.mediaEdukasi?.infografis?.length || 0) +
+        (db.mediaEdukasi?.video?.length || 0) +
+        (db.mediaEdukasi?.pesan?.length || 0),
+      icon: BookOpen,
+      tag: 'Edukasi',
+      textColor: 'text-teal-600 dark:text-teal-400',
+      bgColor: 'bg-teal-50/80 dark:bg-teal-950/30 border-teal-200 dark:border-teal-800/40',
+      target: 'media-edukasi',
     },
     {
       title: 'Master Siswa',

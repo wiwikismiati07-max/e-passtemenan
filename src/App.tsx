@@ -49,6 +49,7 @@ import { MasterGuruView } from './components/MasterGuruView';
 import { LoginScreen, UserSession } from './components/LoginScreen';
 import { ExitAppModal } from './components/ExitAppModal';
 import { InstallModal } from './components/InstallModal';
+import { MediaEdukasiView } from './components/MediaEdukasiView';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
@@ -65,7 +66,7 @@ export default function App() {
 
   const [db, setDb] = useState<AppDatabase>(StorageService.getDb());
   const [activeView, setActiveView] = useState<string>('flowchart-intro');
-  const [activeTab, setActiveTab] = useState<'form' | 'rekap' | 'statistik'>('form');
+  const [activeTab, setActiveTab] = useState<string>('form');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -271,12 +272,14 @@ export default function App() {
         return 'Master Data Siswa';
       case 'master-guru':
         return 'Master Data Guru';
+      case 'media-edukasi':
+        return 'Media Edukasi Digital';
       default:
         return activeCustomLink ? activeCustomLink.title : 'Aplikasi';
     }
   };
 
-  const handleNavigate = (viewKey: string, tab: 'form' | 'rekap' | 'statistik' = 'form') => {
+  const handleNavigate = (viewKey: string, tab: string = 'form') => {
     setActiveView(viewKey);
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -570,6 +573,13 @@ export default function App() {
               )}
               {activeView === 'master-guru' && (
                 <MasterGuruView db={db} onRefresh={refreshDb} />
+              )}
+              {activeView === 'media-edukasi' && (
+                <MediaEdukasiView
+                  db={db}
+                  onRefresh={refreshDb}
+                  initialTab={(activeTab as any) || 'materi'}
+                />
               )}
 
               {/* Custom Web Embed View */}

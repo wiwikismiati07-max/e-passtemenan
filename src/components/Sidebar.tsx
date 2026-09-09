@@ -15,6 +15,7 @@ import {
   Workflow,
   Users,
   GraduationCap,
+  BookOpen,
   ChevronRight,
   UserCheck,
   PanelLeftClose,
@@ -54,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('Semua');
 
-  const categories = ['Semua', 'Utama', 'Program', 'Master'];
+  const categories = ['Semua', 'Utama', 'Edukasi', 'Program', 'Master'];
 
   const menuSections = [
     {
@@ -82,6 +83,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800',
           activeBg: 'bg-blue-600 text-white shadow-blue-600/20',
           count: undefined,
+        },
+      ],
+    },
+    {
+      sectionTitle: 'Media & Literasi Digital',
+      category: 'Edukasi',
+      items: [
+        {
+          id: 'media-edukasi',
+          title: 'Media Edukasi Digital',
+          tag: 'Edukasi',
+          category: 'Edukasi',
+          subtitle: 'Materi, Poster, Infografis, Video & Pesan',
+          icon: BookOpen,
+          color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 border-teal-200 dark:border-teal-800',
+          activeBg: 'bg-teal-600 text-white shadow-teal-600/20',
+          count:
+            (db.mediaEdukasi?.materi?.length || 0) +
+            (db.mediaEdukasi?.poster?.length || 0) +
+            (db.mediaEdukasi?.infografis?.length || 0) +
+            (db.mediaEdukasi?.video?.length || 0) +
+            (db.mediaEdukasi?.pesan?.length || 0),
         },
       ],
     },

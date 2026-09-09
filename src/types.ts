@@ -168,6 +168,80 @@ export interface ClassAssignmentItem {
   updatedAt?: string;
 }
 
+export type MediaEdukasiSubTab = 'materi' | 'poster' | 'infografis' | 'video' | 'pesan';
+
+export interface MateriEdukasiItem {
+  id: string;
+  judul: string;
+  kategori: string;
+  ringkasan: string;
+  kontenLengkap?: string;
+  penulis?: string;
+  tanggal: string;
+  linkDokumen?: string;
+  fileFormat?: 'PDF' | 'DOCX' | 'SLIDES' | 'ARTIKEL';
+  bacaanMenit?: number;
+  tags: string[];
+  unduhanCount?: number;
+}
+
+export interface PosterEdukasiItem {
+  id: string;
+  judul: string;
+  tema: string;
+  deskripsi: string;
+  gambarUrl: string;
+  kreator?: string;
+  tanggal: string;
+  resolusi?: string;
+  unduhanCount?: number;
+  isKaryaSiswa?: boolean;
+}
+
+export interface InfografisEdukasiItem {
+  id: string;
+  judul: string;
+  fokus: string;
+  deskripsi: string;
+  gambarUrl: string;
+  sumber?: string;
+  poinPenting: string[];
+  tanggal: string;
+  alurTahapan?: { nomor: number; langkah: string; keterangan: string }[];
+}
+
+export interface VideoEdukasiItem {
+  id: string;
+  judul: string;
+  kategori: string;
+  deskripsi: string;
+  videoUrl: string;
+  youtubeId?: string;
+  durasi: string;
+  narasumber?: string;
+  tanggal: string;
+  thumbnailUrl?: string;
+}
+
+export interface PesanEdukatifItem {
+  id: string;
+  kutipan: string;
+  penulis: string;
+  topik: string;
+  kategori: string;
+  tanggal?: string;
+  rekomendasiUntuk: string;
+  sukaCount?: number;
+}
+
+export interface MediaEdukasiDatabase {
+  materi: MateriEdukasiItem[];
+  poster: PosterEdukasiItem[];
+  infografis: InfografisEdukasiItem[];
+  video: VideoEdukasiItem[];
+  pesan: PesanEdukatifItem[];
+}
+
 export interface AppDatabase {
   customLinks: CustomLink[];
   piketHarian: PiketHarian[];
@@ -179,6 +253,7 @@ export interface AppDatabase {
   masterSiswa: SiswaItem[];
   masterGuru: GuruItem[];
   classAssignments?: Record<string, ClassAssignmentItem>;
+  mediaEdukasi?: MediaEdukasiDatabase;
   supabaseConfig: SupabaseConfig;
   pejabatConfig?: PejabatConfig;
   version: number;
