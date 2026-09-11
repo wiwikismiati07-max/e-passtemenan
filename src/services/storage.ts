@@ -391,13 +391,10 @@ export class StorageService {
               ? parsed.mediaEdukasi.infografis.filter((i: any) => i.id !== 'info-3' && i.id !== 'info-4')
               : INITIAL_MEDIA_EDUKASI.infografis;
 
-            // Remove all mock/default posters (pos-1, pos-2, pos-3, pos-4, pos-5)
+            // Remove legacy mock posters (pos-1 to pos-5) while preserving all user-added posters
             const cleanedPoster = Array.isArray(parsed.mediaEdukasi.poster)
               ? parsed.mediaEdukasi.poster.filter(
-                  (p: any) =>
-                    !['pos-1', 'pos-2', 'pos-3', 'pos-4', 'pos-5'].includes(p.id) &&
-                    !p.judul?.includes('Katakan TIDAK Pada Bullying') &&
-                    !p.judul?.includes('Stop Cyberbullying: Jarimu Harimaumu')
+                  (p: any) => !['pos-1', 'pos-2', 'pos-3', 'pos-4', 'pos-5'].includes(p.id)
                 )
               : [];
 
@@ -485,6 +482,29 @@ export class StorageService {
               });
             }
           });
+
+          // Also restore mediaEdukasi (posters, custom materi, etc.) from IndexedDB if missing in localStorage
+          if (idbData.mediaEdukasi && typeof idbData.mediaEdukasi === 'object' && this.db.mediaEdukasi) {
+            (['poster', 'materi', 'infografis', 'video', 'pesan'] as const).forEach((subTab) => {
+              const idbItems = (idbData.mediaEdukasi as any)[subTab];
+              const currentItems = (this.db.mediaEdukasi as any)[subTab];
+              if (Array.isArray(idbItems) && Array.isArray(currentItems)) {
+                idbItems.forEach((idbItem: any) => {
+                  if (idbItem && idbItem.id && !deletedIds.has(idbItem.id)) {
+                    if (subTab === 'poster' && ['pos-1', 'pos-2', 'pos-3', 'pos-4', 'pos-5'].includes(idbItem.id)) {
+                      return; // skip old deleted mock posters
+                    }
+                    const exists = currentItems.some((c: any) => c.id === idbItem.id);
+                    if (!exists) {
+                      currentItems.unshift(idbItem);
+                      hasNewerPhotos = true;
+                    }
+                  }
+                });
+              }
+            });
+          }
+
           if (hasNewerPhotos) {
             this.saveDb();
             window.dispatchEvent(new Event('pass-temenan-db-updated'));
@@ -520,31 +540,43 @@ export class StorageService {
     if (!db.mediaEdukasi) {
       db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI };
     }
-    if (!Array.isArray(db.mediaEdukasi[tab])) {
-      db.mediaEdukasi[tab] = Array.isArray(INITIAL_MEDIA_EDUKASI[tab])
-        ? [...(INITIAL_MEDIA_EDUKASI[tab] as any[])]
-        : [];
-    }
-    const list = db.mediaEdukasi[tab] as any[];
+    const currentList = Array.isArray(db.mediaEdukasi[tab])
+      ? (db.mediaEdukasi[tab] as any[])
+      : [];
+    const list = [...currentList];
     const idx = list.findIndex((x: any) => x.id === item.id);
     if (idx >= 0) {
       list[idx] = { ...list[idx], ...item };
     } else {
       list.unshift(item);
     }
+    db.mediaEdukasi = {
+      ...db.mediaEdukasi,
+      [tab]: list,
+    };
+    this.db = {
+      ...this.db,
+      mediaEdukasi: db.mediaEdukasi,
+    };
+    this.unmarkDeleted(item.id);
     this.saveDb();
   }
 
   public static deleteMediaEdukasiItem(tab: MediaEdukasiSubTab, id: string): void {
     const db = this.getDb();
     if (!db.mediaEdukasi) return;
-    if (!Array.isArray(db.mediaEdukasi[tab])) {
-      db.mediaEdukasi[tab] = Array.isArray(INITIAL_MEDIA_EDUKASI[tab])
-        ? [...(INITIAL_MEDIA_EDUKASI[tab] as any[])]
-        : [];
-    }
-    const list = db.mediaEdukasi[tab] as any[];
-    db.mediaEdukasi[tab] = list.filter((x: any) => x.id !== id) as any;
+    const currentList = Array.isArray(db.mediaEdukasi[tab])
+      ? (db.mediaEdukasi[tab] as any[])
+      : [];
+    db.mediaEdukasi = {
+      ...db.mediaEdukasi,
+      [tab]: currentList.filter((x: any) => x.id !== id),
+    };
+    this.db = {
+      ...this.db,
+      mediaEdukasi: db.mediaEdukasi,
+    };
+    this.markAsDeleted(id);
     this.saveDb();
   }
 
@@ -558,10 +590,11 @@ export class StorageService {
     }
   }
 
-  public static incrementUnduhanMedia(tab: 'materi' | 'poster', id: string): void {
+  public static incrementUnduhanMedia(tab: 'materi' | 'poster' | 'infografis', id: string): void {
     const db = this.getDb();
     if (!db.mediaEdukasi) return;
     const list = db.mediaEdukasi[tab];
+    if (!Array.isArray(list)) return;
     const target = list.find((item: any) => item.id === id);
     if (target) {
       target.unduhanCount = (target.unduhanCount || 0) + 1;
@@ -599,11 +632,22 @@ export class StorageService {
 
   public static clearAllPosters(): void {
     const db = this.getDb();
+    const existingPosters = Array.isArray(db.mediaEdukasi?.poster) ? db.mediaEdukasi.poster : [];
+    existingPosters.forEach((p: any) => {
+      if (p.id) this.markAsDeleted(p.id);
+    });
     if (!db.mediaEdukasi) {
       db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI, poster: [] };
     } else {
-      db.mediaEdukasi.poster = [];
+      db.mediaEdukasi = {
+        ...db.mediaEdukasi,
+        poster: [],
+      };
     }
+    this.db = {
+      ...this.db,
+      mediaEdukasi: db.mediaEdukasi,
+    };
     this.saveDb();
   }
 

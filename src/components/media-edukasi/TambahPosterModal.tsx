@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { PosterEdukasiItem } from '../../types';
 import { StorageService } from '../../services/storage';
+import { compressImage } from '../../utils/imageCompressor';
 
 interface TambahPosterModalProps {
   isOpen: boolean;
@@ -61,9 +62,8 @@ export const TambahPosterModal: React.FC<TambahPosterModalProps> = ({
       return;
     }
 
-    // Limit to 10MB
-    if (file.size > 10 * 1024 * 1024) {
-      setErrorMsg('Ukuran file gambar maksimal 10MB.');
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorMsg('Ukuran file gambar maksimal 15MB.');
       return;
     }
 
@@ -71,42 +71,35 @@ export const TambahPosterModal: React.FC<TambahPosterModalProps> = ({
     setIsUploading(true);
 
     try {
-      // 1. Try cloud upload if configured
-      const uploadRes = await StorageService.uploadPhotoToSupabase(file, 'poster-edukasi');
-      if (uploadRes.url) {
-        setGambarUrl(uploadRes.url);
-        setPreviewUrl(uploadRes.url);
-        if (!judul) {
-          const fileNameClean = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-          setJudul(`Poster ${fileNameClean}`);
-        }
-      } else {
-        // Fallback to local DataURL
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const dataUrl = reader.result as string;
-          setGambarUrl(dataUrl);
-          setPreviewUrl(dataUrl);
+      // 1. Client-side compression for high clarity, fast loading, and quota safety
+      const compressed = await compressImage(file, 1200, 0.76);
+
+      // 2. Try cloud upload with compressed blob if configured
+      try {
+        const uploadRes = await StorageService.uploadPhotoToSupabase(compressed.blob, 'poster-edukasi');
+        if (uploadRes.url) {
+          setGambarUrl(uploadRes.url);
+          setPreviewUrl(uploadRes.url);
           if (!judul) {
             const fileNameClean = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
             setJudul(`Poster ${fileNameClean}`);
           }
-          setIsUploading(false);
-        };
-        reader.readAsDataURL(file);
-        return;
+          return;
+        }
+      } catch (cloudErr) {
+        console.warn('Cloud poster upload fallback to local storage:', cloudErr);
       }
-    } catch {
-      // Fallback
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        setGambarUrl(dataUrl);
-        setPreviewUrl(dataUrl);
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
-      return;
+
+      // 3. Fallback to compressed DataURL
+      setGambarUrl(compressed.dataUrl);
+      setPreviewUrl(compressed.dataUrl);
+      if (!judul) {
+        const fileNameClean = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        setJudul(`Poster ${fileNameClean}`);
+      }
+    } catch (err) {
+      console.error('Error handling poster file:', err);
+      setErrorMsg('Gagal memproses file gambar. Silakan gunakan format JPG atau PNG.');
     } finally {
       setIsUploading(false);
     }

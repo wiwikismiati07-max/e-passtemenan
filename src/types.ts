@@ -207,6 +207,7 @@ export interface InfografisEdukasiItem {
   sumber?: string;
   poinPenting: string[];
   tanggal: string;
+  unduhanCount?: number;
   alurTahapan?: { nomor: number; langkah: string; keterangan: string }[];
 }
 

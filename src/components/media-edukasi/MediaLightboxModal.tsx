@@ -12,6 +12,7 @@ import {
   Share2,
   Check,
 } from 'lucide-react';
+import { downloadFileSafely, openDocumentSafely } from '../../utils/fileDownloader';
 
 interface MediaLightboxModalProps {
   isOpen: boolean;
@@ -71,14 +72,8 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
 
   const handleDownloadImage = () => {
     if (onDownload) onDownload();
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `${title.toLowerCase().replace(/\s+/g, '-')}.jpg`;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const cleanFilename = `${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.jpg`;
+    downloadFileSafely(imageUrl, cleanFilename);
   };
 
   return (
@@ -262,17 +257,30 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
               </div>
             )}
 
-            {/* External Link */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-              <a
-                href={imageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+            {/* External / Download Link */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadImage}
+                className="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh Gambar</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (imageUrl.startsWith('data:')) {
+                    downloadFileSafely(imageUrl, `${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.jpg`);
+                  } else {
+                    window.open(imageUrl, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                title="Buka Berkas Asli"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>Buka Gambar Asli di Tab Baru</span>
-              </a>
+              </button>
             </div>
           </div>
         </div>

@@ -44,6 +44,7 @@ import {
   PesanEdukatifItem,
 } from '../types';
 import { StorageService } from '../services/storage';
+import { compressImage } from '../utils/imageCompressor';
 import { INITIAL_MEDIA_EDUKASI } from '../data/mediaEdukasiData';
 import {
   extractYouTubeId,
@@ -58,6 +59,8 @@ import { TambahMediaModal } from './media-edukasi/TambahMediaModal';
 import { TambahVideoModal } from './media-edukasi/TambahVideoModal';
 import { TambahPosterModal } from './media-edukasi/TambahPosterModal';
 import { TambahMateriModal } from './media-edukasi/TambahMateriModal';
+import { KonfirmasiHapusModal } from './media-edukasi/KonfirmasiHapusModal';
+import { downloadFileSafely } from '../utils/fileDownloader';
 
 interface MediaEdukasiViewProps {
   db: AppDatabase;
@@ -152,6 +155,39 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   // Feedback states
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // In-App Confirmation Dialog States (Bypasses iframe window.confirm restriction)
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    isOpen: boolean;
+    tab: MediaEdukasiSubTab;
+    id: string;
+    title: string;
+    isBatchClear?: boolean;
+    customModalTitle?: string;
+    customDesc?: string;
+  }>({
+    isOpen: false,
+    tab: 'poster',
+    id: '',
+    title: '',
+    isBatchClear: false,
+  });
+
+  const [resetConfirmDialog, setResetConfirmDialog] = useState<{
+    isOpen: boolean;
+    type: 'video' | 'infografis';
+    title: string;
+    desc: string;
+  } | null>(null);
+
+  const [toastNotification, setToastNotification] = useState<string>('');
+
+  const showToast = (msg: string) => {
+    setToastNotification(msg);
+    setTimeout(() => {
+      setToastNotification('');
+    }, 3500);
+  };
+
   // Safe data extraction with fallback to initial data if empty
   const mediaDb = db.mediaEdukasi || {
     materi: [],
@@ -193,14 +229,11 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
     }
     return combined;
   }, [mediaDb.materi]);
-  // Exclude legacy mock posters (pos-1, pos-2, pos-3, pos-4, pos-5)
+  // Filter poster list while safely preserving all user-added posters
   const posterList = useMemo(() => {
     const stored = Array.isArray(mediaDb.poster) ? mediaDb.poster : [];
     return stored.filter(
-      (p) =>
-        !['pos-1', 'pos-2', 'pos-3', 'pos-4', 'pos-5'].includes(p.id) &&
-        !p.judul?.includes('Katakan TIDAK Pada Bullying') &&
-        !p.judul?.includes('Stop Cyberbullying: Jarimu Harimaumu')
+      (p) => !['pos-1', 'pos-2', 'pos-3', 'pos-4', 'pos-5'].includes(p.id)
     );
   }, [mediaDb.poster]);
   const infografisList = useMemo(() => {
@@ -347,17 +380,133 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   };
 
   const handleDeleteItem = (tab: MediaEdukasiSubTab, id: string, title: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus item "${title}"?`)) {
-      StorageService.deleteMediaEdukasiItem(tab, id);
-      onRefresh();
+    setDeleteConfirmDialog({
+      isOpen: true,
+      tab,
+      id,
+      title,
+      isBatchClear: false,
+      customModalTitle:
+        tab === 'poster'
+          ? 'Hapus Poster Kampanye'
+          : tab === 'materi'
+          ? 'Hapus Dokumen Materi'
+          : tab === 'infografis'
+          ? 'Hapus Infografis'
+          : tab === 'video'
+          ? 'Hapus Video Edukasi'
+          : 'Hapus Pesan Edukatif',
+      customDesc: 'Item ini akan segera dihapus dari daftar dan galeri media.',
+    });
+  };
+
+  const executeConfirmedDelete = () => {
+    if (deleteConfirmDialog.isBatchClear) {
+      if (deleteConfirmDialog.tab === 'poster') {
+        StorageService.clearAllPosters();
+        showToast('Semua poster berhasil dikosongkan dari galeri.');
+      }
+    } else if (deleteConfirmDialog.id) {
+      StorageService.deleteMediaEdukasiItem(deleteConfirmDialog.tab, deleteConfirmDialog.id);
+      showToast(`"${deleteConfirmDialog.title}" berhasil dihapus.`);
     }
+    setDeleteConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+    onRefresh();
   };
 
   const handleResetVideos = () => {
-    if (window.confirm('Muat ulang dan sinkronkan koleksi ke 7 video resmi dokumentasi inovasi PASS TEMENAN SMPN 7 Pasuruan?')) {
+    setResetConfirmDialog({
+      isOpen: true,
+      type: 'video',
+      title: 'Muat Ulang Koleksi Video Resmi',
+      desc: 'Apakah Anda ingin memuat ulang dan menyinkronkan 7 video dokumentasi resmi PASS TEMENAN SPANJU?',
+    });
+  };
+
+  const handleResetInfografis = () => {
+    setResetConfirmDialog({
+      isOpen: true,
+      type: 'infografis',
+      title: 'Sinkronkan Infografis Resmi',
+      desc: 'Apakah Anda ingin memuat ulang dan menyinkronkan bagan & alur penanganan resmi PASS TEMENAN SPANJU?',
+    });
+  };
+
+  const executeResetAction = () => {
+    if (!resetConfirmDialog) return;
+    if (resetConfirmDialog.type === 'video') {
       StorageService.resetMediaEdukasiVideos();
-      onRefresh();
+      showToast('Koleksi 7 video dokumentasi resmi berhasil disinkronkan.');
+    } else {
+      StorageService.resetMediaEdukasiInfografis();
+      showToast('Infografis resmi berhasil disinkronkan.');
     }
+    setResetConfirmDialog(null);
+    onRefresh();
+  };
+
+  const handleDownloadMateri = (item: MateriEdukasiItem) => {
+    if (!item.linkDokumen) {
+      setSelectedMateri(item);
+      return;
+    }
+    const cleanFilename = item.judul
+      ? `${item.judul.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 50)}.pdf`
+      : 'dokumen_materi.pdf';
+    downloadFileSafely(item.linkDokumen, cleanFilename);
+    StorageService.incrementUnduhanMedia('materi', item.id);
+    showToast(`Mengunduh dokumen "${item.judul}"...`);
+  };
+
+  const handleDownloadPoster = (poster: PosterEdukasiItem) => {
+    const cleanFilename = poster.judul
+      ? `${poster.judul.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 50)}.jpg`
+      : 'poster_edukasi.jpg';
+    downloadFileSafely(poster.gambarUrl, cleanFilename);
+    StorageService.incrementUnduhanMedia('poster', poster.id);
+    showToast(`Mengunduh poster "${poster.judul}"...`);
+  };
+
+  const handleDownloadInfografis = (info: InfografisEdukasiItem) => {
+    const cleanFilename = info.judul
+      ? `${info.judul.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 50)}.jpg`
+      : 'infografis_edukasi.jpg';
+    downloadFileSafely(info.gambarUrl, cleanFilename);
+    StorageService.incrementUnduhanMedia('infografis', info.id);
+    showToast(`Mengunduh infografis "${info.judul}"...`);
+  };
+
+  const handleLoadContohPoster = () => {
+    const contohPosters: PosterEdukasiItem[] = [
+      {
+        id: `pos-${Date.now()}-1`,
+        judul: 'Bersama Wujudkan Sekolah Ramah Anak Bebas Perundungan',
+        tema: 'Sekolah Ramah Anak',
+        deskripsi: 'Poster edukasi kampanye lingkungan belajar aman, saling menghargai, dan bebas dari perundungan di UPT SMPN 7 Pasuruan.',
+        gambarUrl: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1080&q=80',
+        kreator: 'Satgas Anti-Perundungan & BK SMPN 7 Pasuruan',
+        tanggal: new Date().toISOString().split('T')[0],
+        resolusi: 'HD (1080 x 1350 px)',
+        unduhanCount: 45,
+        isKaryaSiswa: false,
+      },
+      {
+        id: `pos-${Date.now()}-2`,
+        judul: 'Keren Tanpa Menindas: Jadilah Upstander, Lindungi Temanmu!',
+        tema: 'Keberanian & Kepedulian',
+        deskripsi: 'Poster ajakan bagi seluruh siswa SPANJU untuk berani membela teman dan segera melapor bila melihat perundungan.',
+        gambarUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1080&q=80',
+        kreator: 'Duta Anti-Bullying SPANJU',
+        tanggal: new Date().toISOString().split('T')[0],
+        resolusi: 'HD (1080 x 1350 px)',
+        unduhanCount: 62,
+        isKaryaSiswa: true,
+      },
+    ];
+    contohPosters.forEach((p) => StorageService.saveMediaEdukasiItem('poster', p));
+    setSelectedCategoryFilter('Semua');
+    setSearchQuery('');
+    onRefresh();
   };
 
   const handleQuickMateriFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -509,41 +658,40 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       setQuickPosterError('File harus berupa gambar yang valid (JPG, PNG, WEBP).');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setQuickPosterError('Ukuran file gambar maksimal 10MB.');
+    if (file.size > 15 * 1024 * 1024) {
+      setQuickPosterError('Ukuran file gambar maksimal 15MB.');
       return;
     }
     setQuickPosterUploading(true);
     setQuickPosterError('');
     try {
-      const res = await StorageService.uploadPhotoToSupabase(file, 'poster-edukasi');
-      if (res.url) {
-        setQuickPosterUrl(res.url);
-        if (!quickPosterJudul) {
-          const nameClean = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-          setQuickPosterJudul(`Poster ${nameClean}`);
-        }
-      } else {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setQuickPosterUrl(reader.result as string);
+      // 1. Client-side image compression: maintains high clarity, ~50-80KB size (fits localStorage safely!)
+      const compressed = await compressImage(file, 1200, 0.76);
+
+      // 2. Try Supabase cloud upload with compressed blob if configured
+      try {
+        const res = await StorageService.uploadPhotoToSupabase(compressed.blob, 'poster-edukasi');
+        if (res.url) {
+          setQuickPosterUrl(res.url);
           if (!quickPosterJudul) {
             const nameClean = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
             setQuickPosterJudul(`Poster ${nameClean}`);
           }
-          setQuickPosterUploading(false);
-        };
-        reader.readAsDataURL(file);
-        return;
+          return;
+        }
+      } catch (cloudErr) {
+        console.warn('Cloud poster upload fallback to local storage:', cloudErr);
       }
-    } catch {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setQuickPosterUrl(reader.result as string);
-        setQuickPosterUploading(false);
-      };
-      reader.readAsDataURL(file);
-      return;
+
+      // 3. Fallback: lightweight compressed DataURL
+      setQuickPosterUrl(compressed.dataUrl);
+      if (!quickPosterJudul) {
+        const nameClean = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        setQuickPosterJudul(`Poster ${nameClean}`);
+      }
+    } catch (err) {
+      console.error('Error processing poster image:', err);
+      setQuickPosterError('Gagal memproses file gambar. Silakan gunakan format JPG atau PNG.');
     } finally {
       setQuickPosterUploading(false);
     }
@@ -597,17 +745,15 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   };
 
   const handleClearAllPosters = () => {
-    if (window.confirm('Hapus semua poster di galeri? Galeri poster akan dikosongkan.')) {
-      StorageService.clearAllPosters();
-      onRefresh();
-    }
-  };
-
-  const handleResetInfografis = () => {
-    if (window.confirm('Muat ulang dan sinkronkan infografis ke bagan & alur resmi inovasi PASS TEMENAN SMPN 7 Pasuruan?')) {
-      StorageService.resetMediaEdukasiInfografis();
-      onRefresh();
-    }
+    setDeleteConfirmDialog({
+      isOpen: true,
+      tab: 'poster',
+      id: '',
+      title: 'Semua Poster di Galeri',
+      isBatchClear: true,
+      customModalTitle: 'Kosongkan Seluruh Galeri Poster',
+      customDesc: 'Semua poster yang ada di galeri akan dibersihkan.',
+    });
   };
 
   const openLightbox = (
@@ -1049,7 +1195,10 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white leading-snug group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                    <h3
+                      onClick={() => setSelectedMateri(item)}
+                      className="text-base font-bold text-slate-900 dark:text-white leading-snug group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors cursor-pointer"
+                    >
                       {item.judul}
                     </h3>
 
@@ -1099,16 +1248,15 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                       </button>
 
                       {item.linkDokumen && (
-                        <a
-                          href={item.linkDokumen}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold flex items-center gap-1 transition-colors"
-                          title="Buka / Unduh Berkas Dokumen"
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadMateri(item)}
+                          className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Unduh Berkas PDF Dokumen"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span className="hidden sm:inline">Unduh</span>
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1373,7 +1521,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                 Semua poster bawaan lama telah dibersihkan. Tambahkan poster kampanye baru melalui formulir manual di atas atau klik tombol di bawah untuk membuka popup.
               </p>
-              <div className="pt-2">
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsTambahPosterModalOpen(true)}
@@ -1381,6 +1529,22 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                 >
                   <Plus className="w-4 h-4" />
                   <span>+ Buka Popup Tambah Poster</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickPosterExpanded(true)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold inline-flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Upload className="w-4 h-4 text-amber-500" />
+                  <span>Isi Formulir Unggah Cepat</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLoadContohPoster}
+                  className="px-4 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50/60 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-xs font-bold inline-flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>Muat Contoh Poster Edukasi SPANJU</span>
                 </button>
               </div>
             </div>
@@ -1456,17 +1620,14 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                           <span>Lihat</span>
                         </button>
 
-                        <a
-                          href={poster.gambarUrl}
-                          download={`${poster.judul}.jpg`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => StorageService.incrementUnduhanMedia('poster', poster.id)}
-                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadPoster(poster)}
+                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                           title="Unduh Poster"
                         >
                           <Download className="w-3.5 h-3.5" />
-                        </a>
+                        </button>
 
                         <button
                           onClick={() => {
@@ -1607,16 +1768,14 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                           <span>Buka Detail</span>
                         </button>
 
-                        <a
-                          href={info.gambarUrl}
-                          download={`${info.judul}.jpg`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadInfografis(info)}
+                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                           title="Unduh Infografis"
                         >
                           <Download className="w-3.5 h-3.5" />
-                        </a>
+                        </button>
 
                         <button
                           onClick={() => handleDeleteItem('infografis', info.id, info.judul)}
@@ -2178,6 +2337,37 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
           onRefresh();
         }}
       />
+
+      {/* Custom Confirmation Modals for iFrame-Safe Actions */}
+      <KonfirmasiHapusModal
+        isOpen={deleteConfirmDialog.isOpen}
+        onClose={() => setDeleteConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={executeConfirmedDelete}
+        title={deleteConfirmDialog.customModalTitle || 'Konfirmasi Hapus'}
+        itemName={deleteConfirmDialog.title}
+        description={deleteConfirmDialog.customDesc}
+        confirmLabel={deleteConfirmDialog.isBatchClear ? 'Ya, Kosongkan Galeri' : 'Ya, Hapus Sekarang'}
+        isDanger={true}
+      />
+
+      <KonfirmasiHapusModal
+        isOpen={!!resetConfirmDialog}
+        onClose={() => setResetConfirmDialog(null)}
+        onConfirm={executeResetAction}
+        title={resetConfirmDialog?.title || 'Konfirmasi Sinkronisasi'}
+        itemName={resetConfirmDialog?.title || ''}
+        description={resetConfirmDialog?.desc}
+        confirmLabel="Ya, Sinkronkan Sekarang"
+        isDanger={false}
+      />
+
+      {/* Floating Toast Notification */}
+      {toastNotification && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2.5 animate-in slide-in-from-bottom-5 duration-200">
+          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="text-xs font-semibold">{toastNotification}</span>
+        </div>
+      )}
     </div>
   );
 };

@@ -106,7 +106,20 @@ export default function App() {
   }, []);
 
   const refreshDb = () => {
-    setDb({ ...StorageService.getDb() });
+    const freshDb = StorageService.getDb();
+    setDb({
+      ...freshDb,
+      mediaEdukasi: freshDb.mediaEdukasi
+        ? {
+            ...freshDb.mediaEdukasi,
+            poster: Array.isArray(freshDb.mediaEdukasi.poster) ? [...freshDb.mediaEdukasi.poster] : [],
+            materi: Array.isArray(freshDb.mediaEdukasi.materi) ? [...freshDb.mediaEdukasi.materi] : [],
+            video: Array.isArray(freshDb.mediaEdukasi.video) ? [...freshDb.mediaEdukasi.video] : [],
+            infografis: Array.isArray(freshDb.mediaEdukasi.infografis) ? [...freshDb.mediaEdukasi.infografis] : [],
+            pesan: Array.isArray(freshDb.mediaEdukasi.pesan) ? [...freshDb.mediaEdukasi.pesan] : [],
+          }
+        : undefined,
+    });
   };
 
   useEffect(() => {

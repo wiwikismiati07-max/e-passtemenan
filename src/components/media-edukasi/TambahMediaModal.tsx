@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { MediaEdukasiSubTab } from '../../types';
 import { StorageService } from '../../services/storage';
+import { compressImage } from '../../utils/imageCompressor';
 
 interface TambahMediaModalProps {
   isOpen: boolean;
@@ -54,18 +55,31 @@ export const TambahMediaModal: React.FC<TambahMediaModalProps> = ({
     setIsUploading(true);
     setErrorMessage('');
     try {
-      const res = await StorageService.uploadPhotoToSupabase(file, 'media-edukasi');
-      if (res.url) {
-        setUrlMedia(res.url);
+      if (file.type.startsWith('image/')) {
+        const compressed = await compressImage(file, 1200, 0.76);
+        try {
+          const res = await StorageService.uploadPhotoToSupabase(compressed.blob, 'media-edukasi');
+          if (res.url) {
+            setUrlMedia(res.url);
+            return;
+          }
+        } catch (cloudErr) {
+          console.warn('Cloud upload fallback:', cloudErr);
+        }
+        setUrlMedia(compressed.dataUrl);
       } else {
-        // Fallback to data URL
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setUrlMedia(reader.result as string);
-          setIsUploading(false);
-        };
-        reader.readAsDataURL(file);
-        return;
+        const res = await StorageService.uploadPhotoToSupabase(file, 'media-edukasi');
+        if (res.url) {
+          setUrlMedia(res.url);
+        } else {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setUrlMedia(reader.result as string);
+            setIsUploading(false);
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
       }
     } catch {
       setErrorMessage('Gagal mengunggah file. Silakan masukkan link URL langsung.');

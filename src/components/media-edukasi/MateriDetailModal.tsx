@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   BookOpen,
@@ -15,9 +15,11 @@ import {
   Eye,
   Printer,
   FileCheck,
-  Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 import { MateriEdukasiItem } from '../../types';
+import { downloadFileSafely, openDocumentSafely } from '../../utils/fileDownloader';
+import { PdfViewer } from './PdfViewer';
 
 interface MateriDetailModalProps {
   isOpen: boolean;
@@ -34,6 +36,23 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
 }) => {
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [viewTab, setViewTab] = useState<'reader' | 'embed'>('reader');
+  const [toastMsg, setToastMsg] = useState<string>('');
+
+  const showInModalToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3000);
+  };
+
+  // Smart view selection: if newly uploaded PDF without text content, open interactive preview by default
+  useEffect(() => {
+    if (materi) {
+      if (materi.linkDokumen && (!materi.kontenLengkap || materi.kontenLengkap.trim().length < 40)) {
+        setViewTab('embed');
+      } else {
+        setViewTab('reader');
+      }
+    }
+  }, [materi]);
 
   if (!isOpen || !materi) return null;
 
@@ -46,6 +65,30 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadFile = () => {
+    if (!materi.linkDokumen) {
+      window.print();
+      return;
+    }
+    const cleanFilename = materi.judul
+      ? `${materi.judul.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 50)}.pdf`
+      : 'dokumen_materi_spanju.pdf';
+
+    downloadFileSafely(materi.linkDokumen, cleanFilename);
+    showInModalToast('Berkas sedang diunduh ke perangkat Anda.');
+    onDownload?.();
+  };
+
+  const handleOpenInNewTab = () => {
+    if (!materi.linkDokumen) return;
+    const opened = openDocumentSafely(materi.linkDokumen, materi.judul);
+    if (!opened) {
+      // Fallback to in-app interactive tab if popups are restricted in iframe
+      setViewTab('embed');
+      showInModalToast('Pratinjau dibuka langsung di dalam aplikasi.');
+    }
   };
 
   const getFormatBadge = (fmt?: string) => {
@@ -62,15 +105,6 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
   };
 
   const hasDocumentLink = !!materi.linkDokumen;
-  const isBase64Pdf = materi.linkDokumen?.startsWith('data:application/pdf') || materi.linkDokumen?.startsWith('data:');
-  const isHttpUrl = materi.linkDokumen?.startsWith('http');
-
-  // If remote HTTP and not direct PDF, we can also prepare google docs viewer or direct iframe
-  const embedUrl = isHttpUrl
-    ? materi.linkDokumen.endsWith('.pdf')
-      ? materi.linkDokumen
-      : `https://docs.google.com/viewer?url=${encodeURIComponent(materi.linkDokumen)}&embedded=true`
-    : materi.linkDokumen;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
@@ -138,11 +172,11 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 viewTab === 'reader'
                   ? 'bg-teal-600 text-white shadow-xs'
-                  : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                  : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
               }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>Naskah & Format PDF</span>
+              <span>Naskah & Panduan Teks</span>
             </button>
 
             {hasDocumentLink && (
@@ -152,47 +186,37 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewTab === 'embed'
                     ? 'bg-teal-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                    : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Pratinjau Berkas Interaktif</span>
+                <span>Pratinjau Dokumen PDF</span>
               </button>
             )}
           </div>
 
           <div className="flex items-center gap-2">
             {hasDocumentLink && (
-              <a
-                href={materi.linkDokumen}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => onDownload?.()}
+              <button
+                type="button"
+                onClick={handleOpenInNewTab}
                 className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Buka Dokumen di Tab Baru atau Jendela Terpisah"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 <span>Buka di Tab Baru</span>
-              </a>
+              </button>
             )}
 
-            <a
-              href={materi.linkDokumen || '#'}
-              download={
-                materi.judul ? `${materi.judul.replace(/[^a-zA-Z0-9]/g, '_')}.pdf` : 'dokumen_materi.pdf'
-              }
-              onClick={(e) => {
-                if (!materi.linkDokumen) {
-                  e.preventDefault();
-                  window.print();
-                } else {
-                  onDownload?.();
-                }
-              }}
-              className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            <button
+              type="button"
+              onClick={handleDownloadFile}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              title="Unduh file dokumen ke perangkat"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Unduh Berkas PDF</span>
-            </a>
+            </button>
           </div>
         </div>
 
@@ -261,7 +285,7 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
                 </div>
 
                 {/* Konten Lengkap Naskah / Uraian Regulasi */}
-                {materi.kontenLengkap && (
+                {materi.kontenLengkap ? (
                   <div className="space-y-3 pt-2">
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <FileCheck className="w-4 h-4 text-teal-600" />
@@ -271,7 +295,37 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
                       {materi.kontenLengkap}
                     </div>
                   </div>
-                )}
+                ) : hasDocumentLink ? (
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-center space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-600 flex items-center justify-center mx-auto">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Dokumen ini tersimpan dalam format berkas digital ({materi.fileFormat || 'PDF'}).
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                      Anda dapat melihat pratinjau visual berkas secara interaktif atau langsung mengunduhnya ke perangkat Anda.
+                    </p>
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setViewTab('embed')}
+                        className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Buka Pratinjau PDF</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDownloadFile}
+                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Unduh Berkas</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Tags */}
                 {materi.tags && materi.tags.length > 0 && (
@@ -296,57 +350,14 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
             </div>
           )}
 
-          {/* VIEW MODE 2: INTERACTIVE EMBED / IFRAME / OBJECT VIEWER */}
+          {/* VIEW MODE 2: INTERACTIVE PDF CANVAS VIEWER */}
           {viewTab === 'embed' && hasDocumentLink && (
-            <div className="space-y-4">
-              <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 truncate">
-                  <div className="p-2 rounded-xl bg-teal-600 text-white shrink-0">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div className="truncate">
-                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                      {materi.judul}
-                    </p>
-                    <p className="text-[11px] text-teal-700 dark:text-teal-300">
-                      Pratinjau Berkas {materi.fileFormat || 'PDF'}
-                    </p>
-                  </div>
-                </div>
-
-                <a
-                  href={materi.linkDokumen}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1 shrink-0"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Buka Layar Penuh</span>
-                </a>
-              </div>
-
-              {/* Embed Frame */}
-              <div className="w-full h-[60vh] min-h-[420px] bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative shadow-inner">
-                {isBase64Pdf ? (
-                  <object
-                    data={materi.linkDokumen}
-                    type="application/pdf"
-                    className="w-full h-full border-none"
-                  >
-                    <iframe
-                      src={materi.linkDokumen}
-                      title={materi.judul}
-                      className="w-full h-full border-none"
-                    />
-                  </object>
-                ) : (
-                  <iframe
-                    src={embedUrl}
-                    title={materi.judul}
-                    className="w-full h-full border-none"
-                  />
-                )}
-              </div>
+            <div className="space-y-3">
+              <PdfViewer
+                source={materi.linkDokumen!}
+                title={materi.judul}
+                onDownload={handleDownloadFile}
+              />
             </div>
           )}
         </div>
@@ -367,6 +378,14 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* In-Modal Toast */}
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-60 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2 text-xs font-semibold animate-fadeIn">
+          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
     </div>
   );
 };
