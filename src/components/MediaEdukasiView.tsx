@@ -31,6 +31,8 @@ import {
   Link as LinkIcon,
   AlertCircle,
   Upload,
+  FileText,
+  FileCheck,
 } from 'lucide-react';
 import {
   AppDatabase,
@@ -55,6 +57,7 @@ import { VideoPlayerModal } from './media-edukasi/VideoPlayerModal';
 import { TambahMediaModal } from './media-edukasi/TambahMediaModal';
 import { TambahVideoModal } from './media-edukasi/TambahVideoModal';
 import { TambahPosterModal } from './media-edukasi/TambahPosterModal';
+import { TambahMateriModal } from './media-edukasi/TambahMateriModal';
 
 interface MediaEdukasiViewProps {
   db: AppDatabase;
@@ -92,10 +95,22 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
 
   // Modal States
   const [isTambahModalOpen, setIsTambahModalOpen] = useState<boolean>(false);
+  const [isTambahMateriModalOpen, setIsTambahMateriModalOpen] = useState<boolean>(false);
   const [isTambahVideoModalOpen, setIsTambahVideoModalOpen] = useState<boolean>(false);
   const [isTambahPosterModalOpen, setIsTambahPosterModalOpen] = useState<boolean>(false);
   const [selectedMateri, setSelectedMateri] = useState<MateriEdukasiItem | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<VideoEdukasiItem | null>(null);
+
+  // Quick Manual Materi / PDF Field States
+  const [quickMateriUrl, setQuickMateriUrl] = useState('');
+  const [quickMateriJudul, setQuickMateriJudul] = useState('');
+  const [quickMateriFormat, setQuickMateriFormat] = useState<'PDF' | 'DOCX' | 'SLIDES' | 'ARTIKEL'>('PDF');
+  const [quickMateriFileName, setQuickMateriFileName] = useState('');
+  const [quickMateriFileSize, setQuickMateriFileSize] = useState('');
+  const [quickMateriSuccess, setQuickMateriSuccess] = useState(false);
+  const [quickMateriError, setQuickMateriError] = useState('');
+  const [quickMateriUploading, setQuickMateriUploading] = useState(false);
+  const quickMateriFileRef = useRef<HTMLInputElement>(null);
 
   // Quick Manual Poster Field States
   const [quickPosterUrl, setQuickPosterUrl] = useState('');
@@ -146,15 +161,38 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
     pesan: [],
   };
 
-  // If video list is empty in storage, auto hydrate with the 7 official videos
+  // If video or materi list is empty in storage, auto hydrate with official items
   useEffect(() => {
+    let shouldRefresh = false;
     if (!mediaDb.video || !Array.isArray(mediaDb.video) || mediaDb.video.length === 0) {
       StorageService.resetMediaEdukasiVideos();
+      shouldRefresh = true;
+    }
+    if (!mediaDb.materi || !Array.isArray(mediaDb.materi) || mediaDb.materi.length === 0) {
+      INITIAL_MEDIA_EDUKASI.materi.forEach((m) => {
+        StorageService.saveMediaEdukasiItem('materi', m);
+      });
+      shouldRefresh = true;
+    }
+    if (shouldRefresh) {
       onRefresh();
     }
   }, []);
 
-  const materiList = mediaDb.materi || [];
+  const materiList = useMemo(() => {
+    const stored = Array.isArray(mediaDb.materi) ? mediaDb.materi : [];
+    const officialMateri = INITIAL_MEDIA_EDUKASI.materi;
+    if (stored.length === 0) {
+      return officialMateri;
+    }
+    const combined: MateriEdukasiItem[] = [...stored];
+    for (const off of officialMateri) {
+      if (!combined.some((m) => m.id === off.id)) {
+        combined.push(off);
+      }
+    }
+    return combined;
+  }, [mediaDb.materi]);
   // Exclude legacy mock posters (pos-1, pos-2, pos-3, pos-4, pos-5)
   const posterList = useMemo(() => {
     const stored = Array.isArray(mediaDb.poster) ? mediaDb.poster : [];
@@ -320,6 +358,99 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       StorageService.resetMediaEdukasiVideos();
       onRefresh();
     }
+  };
+
+  const handleQuickMateriFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') {
+      setQuickMateriFormat('PDF');
+    } else if (ext === 'docx' || ext === 'doc') {
+      setQuickMateriFormat('DOCX');
+    } else if (ext === 'pptx' || ext === 'ppt') {
+      setQuickMateriFormat('SLIDES');
+    }
+
+    setQuickMateriFileName(file.name);
+    const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+    setQuickMateriFileSize(`${sizeInMB} MB`);
+
+    if (!quickMateriJudul) {
+      const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+      setQuickMateriJudul(cleanName);
+    }
+
+    setQuickMateriUploading(true);
+    setQuickMateriError('');
+
+    try {
+      const res = await StorageService.uploadPhotoToSupabase(file, 'materi-dokumen');
+      if (res.url) {
+        setQuickMateriUrl(res.url);
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setQuickMateriUrl(reader.result as string);
+          setQuickMateriUploading(false);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+    } catch {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setQuickMateriUrl(reader.result as string);
+        setQuickMateriUploading(false);
+      };
+      reader.readAsDataURL(file);
+      return;
+    } finally {
+      setQuickMateriUploading(false);
+    }
+  };
+
+  const handleSaveQuickMateri = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setQuickMateriError('');
+
+    if (!quickMateriUrl.trim()) {
+      setQuickMateriError('Harap pilih file PDF atau tempel link URL dokumen.');
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const resolvedTitle =
+      quickMateriJudul.trim() || quickMateriFileName || 'Dokumen Materi & Regulasi PDF';
+
+    const newMateri: MateriEdukasiItem = {
+      id: `mat-${Date.now()}`,
+      judul: resolvedTitle,
+      kategori: 'Regulasi & Dokumen Resmi',
+      ringkasan: `Dokumen berkas ${quickMateriFormat || 'PDF'}: ${resolvedTitle}. Siap diunduh dan dipelajari.`,
+      penulis: 'Satgas PASS TEMENAN SPANJU',
+      tanggal: todayStr,
+      linkDokumen: quickMateriUrl.trim(),
+      fileFormat: quickMateriFormat || 'PDF',
+      bacaanMenit: 5,
+      tags: ['Dokumen', 'PDF', 'Regulasi'],
+      unduhanCount: 0,
+    };
+
+    StorageService.saveMediaEdukasiItem('materi', newMateri);
+    setSelectedCategoryFilter('Semua');
+    setSearchQuery('');
+    setQuickMateriSuccess(true);
+    setQuickMateriUrl('');
+    setQuickMateriJudul('');
+    setQuickMateriFileName('');
+    setQuickMateriFileSize('');
+    onRefresh();
+
+    setTimeout(() => {
+      setQuickMateriSuccess(false);
+    }, 4000);
   };
 
   const handleQuickSaveVideo = (e?: React.FormEvent) => {
@@ -557,11 +688,29 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
           {/* Action Button */}
           <div className="shrink-0 flex items-center gap-2">
             <button
-              onClick={() => setIsTambahModalOpen(true)}
+              onClick={() => {
+                if (activeTab === 'materi') {
+                  setIsTambahMateriModalOpen(true);
+                } else if (activeTab === 'poster') {
+                  setIsTambahPosterModalOpen(true);
+                } else if (activeTab === 'video') {
+                  setIsTambahVideoModalOpen(true);
+                } else {
+                  setIsTambahModalOpen(true);
+                }
+              }}
               className="px-4 py-2.5 rounded-xl bg-white hover:bg-teal-50 text-teal-900 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all hover:scale-[1.02] cursor-pointer"
             >
               <Plus className="w-4 h-4 text-teal-700" />
-              <span>Tambah Media Edukasi</span>
+              <span>
+                {activeTab === 'materi'
+                  ? '+ Upload / Tambah Materi PDF'
+                  : activeTab === 'poster'
+                  ? '+ Tambah Poster'
+                  : activeTab === 'video'
+                  ? '+ Tambah Video'
+                  : '+ Tambah Media Edukasi'}
+              </span>
             </button>
           </div>
         </div>
@@ -697,23 +846,157 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
 
       {/* TAB 1: DOKUMENTASI MATERI */}
       {activeTab === 'materi' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-teal-600" />
-              Daftar Materi Edukasi & Regulasi ({filteredMateri.length})
-            </h2>
-            <span className="text-[11px] text-slate-400">
-              Klik baca materi untuk melihat dokumen lengkap
-            </span>
+        <div className="space-y-5">
+          {/* Header Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4 text-teal-600" />
+                Daftar Materi Edukasi & Regulasi Kebijakan ({filteredMateri.length})
+              </h2>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                Dokumen PDF, regulasi PPKSP, dan modul yang tersimpan langsung tampil di koleksi dan siap dibaca/diunduh
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsTambahMateriModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Upload / Tambah Materi PDF (Popup Modal)</span>
+              </button>
+            </div>
           </div>
 
+          {/* Quick Manual PDF / Document Upload Field */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-teal-200 dark:border-teal-900/50 p-4 sm:p-5 shadow-2xs">
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shrink-0">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                  Upload Berkas / Regulasi PDF
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Pilih file PDF dari perangkat atau tempel link dokumen, otomatis tersimpan & tampil di daftar
+                </p>
+              </div>
+            </div>
+
+            {quickMateriError && (
+              <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{quickMateriError}</span>
+              </div>
+            )}
+
+            {quickMateriSuccess && (
+              <div className="mb-3 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Dokumen PDF berhasil disimpan dan langsung tampil di daftar!</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveQuickMateri} className="space-y-3">
+              {/* File Upload Trigger & Direct URL Input */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5">
+                <div className="md:col-span-5 flex items-center gap-2">
+                  <input
+                    ref={quickMateriFileRef}
+                    type="file"
+                    accept=".pdf,.docx,.doc,.pptx,.ppt,application/pdf"
+                    onChange={handleQuickMateriFile}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={quickMateriUploading}
+                    onClick={() => quickMateriFileRef.current?.click()}
+                    className={`w-full py-2.5 px-3.5 rounded-xl border-2 border-dashed text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      quickMateriUrl
+                        ? 'border-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300'
+                        : 'border-teal-300 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-950/20 hover:bg-teal-100/50 text-teal-800 dark:text-teal-200'
+                    }`}
+                  >
+                    {quickMateriUploading ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
+                    ) : quickMateriUrl ? (
+                      <FileCheck className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <Upload className="w-4 h-4 text-teal-600" />
+                    )}
+                    <span className="truncate">
+                      {quickMateriUploading
+                        ? 'Memproses file...'
+                        : quickMateriFileName
+                        ? `${quickMateriFileName.slice(0, 22)}...`
+                        : 'Pilih File PDF / Dokumen'}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="md:col-span-7 relative">
+                  <LinkIcon className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    value={quickMateriUrl}
+                    onChange={(e) => setQuickMateriUrl(e.target.value)}
+                    placeholder="Atau tempel link URL PDF / Google Drive / dokumen online..."
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+              </div>
+
+              {/* Title & Submit Button */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                <div className="sm:col-span-8">
+                  <input
+                    type="text"
+                    value={quickMateriJudul}
+                    onChange={(e) => setQuickMateriJudul(e.target.value)}
+                    placeholder="Judul Dokumen / Regulasi (opsional, otomatis dari nama file)"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-4">
+                  <button
+                    type="submit"
+                    disabled={quickMateriUploading}
+                    className="w-full py-2 px-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Simpan Dokumen PDF</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          {/* Cards Grid */}
           {filteredMateri.length === 0 ? (
-            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-              <BookOpen className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-                Tidak ada materi yang sesuai dengan pencarian atau filter.
+            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950 text-teal-600 flex items-center justify-center mx-auto border border-teal-200 dark:border-teal-800">
+                <FileText className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                Belum ada materi atau regulasi yang sesuai.
               </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                Silakan gunakan form upload cepat di atas atau klik tombol popup modal untuk menambahkan berkas PDF/Regulasi baru.
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsTambahMateriModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold inline-flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Upload Dokumen PDF Sekarang</span>
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -729,18 +1012,39 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                         {item.kategori}
                       </span>
                       <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-                        <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold">
-                          {item.fileFormat || 'PDF'}
+                        <span className={`px-2 py-0.5 rounded-lg font-mono text-[10px] font-extrabold flex items-center gap-1 border ${
+                          item.fileFormat === 'PDF' || !item.fileFormat
+                            ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200'
+                        }`}>
+                          <FileText className="w-3 h-3" />
+                          <span>{item.fileFormat || 'PDF'}</span>
                         </span>
-                        {item.id.startsWith('mat-') && !['mat-1', 'mat-2', 'mat-3', 'mat-4', 'mat-5'].includes(item.id) && (
-                          <button
-                            onClick={() => handleDeleteItem('materi', item.id, item.judul)}
-                            className="p-1 hover:text-rose-600 transition-colors"
-                            title="Hapus Materi"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+
+                        <button
+                          onClick={() => {
+                            const url = item.linkDokumen || window.location.href;
+                            navigator.clipboard.writeText(url);
+                            setCopiedId(item.id);
+                            setTimeout(() => setCopiedId(null), 2000);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                          title="Salin Tautan Dokumen"
+                        >
+                          {copiedId === item.id ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteItem('materi', item.id, item.judul)}
+                          className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-600 transition-colors"
+                          title="Hapus Materi"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
 
@@ -788,10 +1092,10 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => setSelectedMateri(item)}
-                        className="px-3 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900 text-teal-700 dark:text-teal-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs hover:scale-[1.02] cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Baca Materi</span>
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Buka & Baca PDF</span>
                       </button>
 
                       {item.linkDokumen && (
@@ -799,10 +1103,11 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                           href={item.linkDokumen}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-                          title="Buka Dokumen / Link Asli"
+                          className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold flex items-center gap-1 transition-colors"
+                          title="Buka / Unduh Berkas Dokumen"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <Download className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Unduh</span>
                         </a>
                       )}
                     </div>
@@ -1859,6 +2164,17 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
           setSelectedCategoryFilter('Semua');
           setSearchQuery('');
           setActiveTab('poster');
+          onRefresh();
+        }}
+      />
+
+      <TambahMateriModal
+        isOpen={isTambahMateriModalOpen}
+        onClose={() => setIsTambahMateriModalOpen(false)}
+        onSuccess={() => {
+          setSelectedCategoryFilter('Semua');
+          setSearchQuery('');
+          setActiveTab('materi');
           onRefresh();
         }}
       />
