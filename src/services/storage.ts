@@ -18,6 +18,7 @@ import {
 } from '../types';
 import { INITIAL_CLASS_ZONE_DATA } from '../data/classZoneData';
 import { INITIAL_MEDIA_EDUKASI } from '../data/mediaEdukasiData';
+import { ALL_STUDENTS_DATA } from '../data/allStudentsData';
 
 const STORAGE_KEY = 'PASS_TEMENAN_SPANJU_DB_V1';
 const DELETED_IDS_STORAGE_KEY = 'PASS_TEMENAN_DELETED_IDS_V1';
@@ -138,62 +139,22 @@ export const INITIAL_KEBUN_BERSERI: KebunLuasBerseri[] = [];
 export const INITIAL_SENANDUNG_SERASI: SenandungSerasi[] = [];
 export const INITIAL_E_LAPOR: ELaporPerundungan[] = [];
 export const INITIAL_BUKU_TAMU: BukuTamu[] = [];
-export const LEGACY_MOCK_IDS = new Set(['piket-1', 'piket-2', 'ceri-1', 'kebun-1', 'senandung-1', 'senandung-2', 'lapor-1', 'tamu-1']);
+export const LEGACY_MOCK_IDS = new Set([
+  'piket-1',
+  'piket-2',
+  'ceri-1',
+  'kebun-1',
+  'senandung-1',
+  'senandung-2',
+  'lapor-1',
+  'tamu-1',
+  'sis-1',
+  'sis-2',
+  'sis-3',
+  'sis-4',
+]);
 
-export const INITIAL_MASTER_SISWA: SiswaItem[] = [
-  {
-    id: 'sis-1',
-    nisn: '0081234561',
-    nis: '1001',
-    namaLengkap: 'Ahmad Fauzi Ramadhan',
-    kelas: '7A',
-    jenisKelamin: 'L',
-    alamat: 'Jl. Panglima Sudirman No. 45, Pasuruan',
-    noHp: '081234567890',
-    keterangan: 'Aktif / Kader Pass Temenan',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'sis-2',
-    nisn: '0081234562',
-    nis: '1002',
-    namaLengkap: 'Siti Nur Aisyah',
-    kelas: '7A',
-    jenisKelamin: 'P',
-    alamat: 'Jl. Dr. Wahidin Sudirohusodo No. 12, Pasuruan',
-    noHp: '081234567891',
-    keterangan: 'Aktif',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'sis-3',
-    nisn: '0079876541',
-    nis: '9501',
-    namaLengkap: 'Budi Santoso',
-    kelas: '8B',
-    jenisKelamin: 'L',
-    alamat: 'Jl. Untung Suropati No. 88, Pasuruan',
-    noHp: '081987654321',
-    keterangan: 'Aktif',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'sis-4',
-    nisn: '0079876542',
-    nis: '9502',
-    namaLengkap: 'Dewi Lestari',
-    kelas: '9C',
-    jenisKelamin: 'P',
-    alamat: 'Jl. Diponegoro No. 20, Pasuruan',
-    noHp: '081555666777',
-    keterangan: 'Aktif / Pengurus Kelas',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+export const INITIAL_MASTER_SISWA: SiswaItem[] = ALL_STUDENTS_DATA;
 
 export const INITIAL_MASTER_GURU: GuruItem[] = [
   {
@@ -379,7 +340,15 @@ export class StorageService {
           senandungSerasi: (Array.isArray(parsed.senandungSerasi) ? parsed.senandungSerasi : []).filter(isValidItem),
           eLaporPerundungan: (Array.isArray(parsed.eLaporPerundungan) ? parsed.eLaporPerundungan : []).filter(isValidItem),
           bukuTamu: (Array.isArray(parsed.bukuTamu) ? parsed.bukuTamu : []).filter(isValidItem),
-          masterSiswa: (Array.isArray(parsed.masterSiswa) ? parsed.masterSiswa : DEFAULT_DATABASE.masterSiswa).filter(isValidItem),
+          masterSiswa: (() => {
+            const raw = (Array.isArray(parsed.masterSiswa) ? parsed.masterSiswa : DEFAULT_DATABASE.masterSiswa).filter(isValidItem);
+            const existingNis = new Set(raw.map((s: any) => s.nis || s.nisn));
+            const missingFromInitial = INITIAL_MASTER_SISWA.filter((s) => !existingNis.has(s.nis));
+            if (missingFromInitial.length > 0) {
+              return [...raw, ...missingFromInitial];
+            }
+            return raw;
+          })(),
           masterGuru: (Array.isArray(parsed.masterGuru) ? parsed.masterGuru : DEFAULT_DATABASE.masterGuru).filter(isValidItem),
           classAssignments: parsed.classAssignments || DEFAULT_DATABASE.classAssignments || {},
           mediaEdukasi: (() => {

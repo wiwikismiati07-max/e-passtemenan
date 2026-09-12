@@ -35,6 +35,7 @@ import { SignatureCanvas } from './SignatureCanvas';
 import { PhotoUploadArea } from './PhotoUploadArea';
 import { OfficialReportModal } from './OfficialReportModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { StudentPickerWidget } from './StudentPickerWidget';
 import confetti from 'canvas-confetti';
 import {
   getRealtimeDateISO,
@@ -63,7 +64,7 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
   const [hariTanggalText, setHariTanggalText] = useState('');
   const [waktu, setWaktu] = useState(() => getRealtimeTimeString());
   const [namaAnggota, setNamaAnggota] = useState('');
-  const [kelas, setKelas] = useState('');
+  const [kelas, setKelas] = useState('Kelas 7A');
   const [hasilTemuan, setHasilTemuan] = useState('');
   const [linkFoto, setLinkFoto] = useState('');
   const [tandaTangan, setTandaTangan] = useState('');
@@ -124,7 +125,7 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
     setDateInput(getRealtimeDateISO());
     setWaktu(getRealtimeTimeString());
     setNamaAnggota('');
-    setKelas('');
+    setKelas('Kelas 7A');
     setHasilTemuan('');
     setLinkFoto('');
     setTandaTangan('');
@@ -180,7 +181,7 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
       hariTanggal: finalDate.trim(),
       waktu: waktu.trim(),
       namaAnggota: namaAnggota.trim(),
-      kelas: kelas.trim() || 'Tim Piket SPANJU',
+      kelas: kelas.trim() || 'Kelas 7A',
       hasilTemuan: hasilTemuan.trim(),
       linkFoto: linkFoto.trim(),
       tandaTangan: tandaTangan.trim(),
@@ -411,19 +412,37 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
               </div>
             </div>
 
+            {/* Student Picker Widget matching attachment */}
+            <StudentPickerWidget
+              title="Pilih atau Input Nama Anggota / Kader Piket:"
+              targetRoleLabel="Nama Kader Piket"
+              value={namaAnggota}
+              classValue={kelas}
+              onValueChange={setNamaAnggota}
+              onClassChange={setKelas}
+              defaultClass="7A"
+              colorScheme="red"
+              autoFormatClassPrefix={true}
+            />
+
             {/* Nama & Kelas Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-blue-600" />
-                  <span>Nama Anggota / Guru / Kader Piket</span>
-                  <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-blue-600" />
+                    <span>Hasil Nama Anggota / Kader Piket</span>
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                    Bisa diedit manual
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={namaAnggota}
                   onChange={(e) => setNamaAnggota(e.target.value)}
-                  placeholder="Contoh: Ahmad Rizki (Kader PASS Temenan), Ibu Siti, M.Pd"
+                  placeholder="Nama anggota piket otomatis terisi dari pemilih di atas..."
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-xs text-slate-800 dark:text-white font-medium focus:outline-none focus:border-blue-500"
                   required
                 />
@@ -438,7 +457,7 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
                   type="text"
                   value={kelas}
                   onChange={(e) => setKelas(e.target.value)}
-                  placeholder="Contoh: Kelas VIII-A / Pokja Kedisiplinan / Tim TPPK"
+                  placeholder="Contoh: Kelas 7A / Kader PASS Temenan"
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-xs text-slate-800 dark:text-white font-medium focus:outline-none focus:border-blue-500"
                 />
               </div>

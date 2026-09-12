@@ -21,6 +21,7 @@ import { SignatureCanvas } from './SignatureCanvas';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { KopSurat } from './KopSurat';
 import { OfficialReportModal } from './OfficialReportModal';
+import { StudentPickerWidget } from './StudentPickerWidget';
 import { exportToExcel, exportToWord } from '../utils/exportUtils';
 import confetti from 'canvas-confetti';
 import {
@@ -51,7 +52,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
   const [hariTanggal, setHariTanggal] = useState(() => getRealtimeFullFormattedDate());
   const [waktuKejadian, setWaktuKejadian] = useState(() => getRealtimeTimeString());
   const [namaSiswa, setNamaSiswa] = useState('');
-  const [kelas, setKelas] = useState('');
+  const [kelas, setKelas] = useState('7A');
   const [kronologi, setKronologi] = useState('');
   const [penyadaran, setPenyadaran] = useState('');
   const [pencegahan, setPencegahan] = useState('');
@@ -84,7 +85,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
     setHariTanggal(getRealtimeFullFormattedDate());
     setWaktuKejadian(getRealtimeTimeString());
     setNamaSiswa('');
-    setKelas('');
+    setKelas('7A');
     setKronologi('');
     setPenyadaran('');
     setPencegahan('');
@@ -474,16 +475,34 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
               </div>
             </div>
 
+            {/* Student Picker Widget matching attachment */}
+            <StudentPickerWidget
+              title="Pilih atau Input Siswa / Terkait Perundungan:"
+              targetRoleLabel="Nama Siswa"
+              value={namaSiswa}
+              classValue={kelas}
+              onValueChange={setNamaSiswa}
+              onClassChange={setKelas}
+              defaultClass="7A"
+              colorScheme="red"
+              autoFormatClassPrefix={false}
+            />
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Nama Siswa / Korban / Terkait *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Nama Siswa / Korban / Terkait *
+                  </label>
+                  <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
+                    Bisa diedit manual
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={namaSiswa}
                   onChange={(e) => setNamaSiswa(e.target.value)}
-                  placeholder="Nama lengkap atau inisial siswa..."
+                  placeholder="Nama siswa otomatis terisi dari pemilih di atas..."
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-rose-500"
                   required
                 />
@@ -497,7 +516,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
                   type="text"
                   value={kelas}
                   onChange={(e) => setKelas(e.target.value)}
-                  placeholder="Contoh: 7A, 8B, 9C"
+                  placeholder="Contoh: 7A"
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-rose-500"
                 />
               </div>

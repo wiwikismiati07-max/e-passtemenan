@@ -380,7 +380,7 @@ export const SenandungSerasiForm: React.FC<Props> = ({
                 type="text"
                 value={keterangan}
                 onChange={(e) => setKeterangan(e.target.value)}
-                placeholder="Contoh: Seluruh Siswa Kelas 7-9 via Audio Sentral & Apel Pagi"
+                placeholder="Contoh: Siswa Kelas 7A / Seluruh Siswa via Audio Sentral & Apel Pagi"
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-500"
               />
             </div>

@@ -23,7 +23,7 @@ export const INITIAL_CLASS_ZONE_DATA: ClassZoneInfo[] = [
     tingkat: '7',
     namaKelas: '7A',
     waliKelas: 'Dra. Hj. Siti Aminah, M.Pd',
-    dutaAntiBullying: 'Muhammad Arya & Nabila Putri',
+    dutaAntiBullying: 'AJENG FIKA RAMADHANI & ALIF NURROHMAN',
     statusZona: 'ZONA_HIJAU',
     kasusVerbal: 0,
     kasusFisik: 0,

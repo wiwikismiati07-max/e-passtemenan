@@ -37,7 +37,7 @@ interface MasterSiswaViewProps {
 export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedClass, setSelectedClass] = useState('Semua');
+  const [selectedClass, setSelectedClass] = useState('7A');
   const [selectedGender, setSelectedGender] = useState('Semua');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isFetchingSupabase, setIsFetchingSupabase] = useState(false);
@@ -74,7 +74,12 @@ export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const kelasOptions = ['Semua', '7A', '7B', '7C', '8A', '8B', '8C', '9A', '9B', '9C'];
+  const kelasOptions = [
+    'Semua',
+    '7A', '7B', '7C', '7D', '7E', '7F', '7G', '7H',
+    '8A', '8B', '8C', '8D', '8E', '8F', '8G', '8H',
+    '9A', '9B', '9C', '9D', '9E', '9F', '9G', '9H',
+  ];
 
   // Filtered students
   const filteredStudents = (db.masterSiswa || []).filter((s) => {
@@ -332,22 +337,22 @@ try {
   const handleDownloadTemplate = () => {
     const templateData = [
       {
-        NISN: '0081234561',
-        NIS: '1001',
-        'Nama Lengkap': 'Ahmad Fauzi Ramadhan',
+        NISN: '0119854721',
+        NIS: '9563',
+        'Nama Lengkap': 'AJENG FIKA RAMADHANI',
         Kelas: '7A',
-        'Jenis Kelamin (L/P)': 'L',
-        Alamat: 'Jl. Panglima Sudirman No. 45, Pasuruan',
+        'Jenis Kelamin (L/P)': 'P',
+        Alamat: 'Jl. Panglima Sudirman, Pasuruan',
         'No HP': '081234567890',
         Keterangan: 'Aktif',
       },
       {
-        NISN: '0081234562',
-        NIS: '1002',
-        'Nama Lengkap': 'Siti Nur Aisyah',
+        NISN: '0119854722',
+        NIS: '9564',
+        'Nama Lengkap': 'ALIF NURROHMAN',
         Kelas: '7A',
-        'Jenis Kelamin (L/P)': 'P',
-        Alamat: 'Jl. Dr. Wahidin No. 12, Pasuruan',
+        'Jenis Kelamin (L/P)': 'L',
+        Alamat: 'Jl. Kebonagung, Pasuruan',
         'No HP': '081234567891',
         Keterangan: 'Aktif',
       },
@@ -529,6 +534,41 @@ try {
         </div>
       )}
 
+      {/* Class Banner Header matching official roster */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="px-3 py-1.5 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-xs">
+            {selectedClass === 'Semua' ? '7A - 9H' : `Kelas ${selectedClass}`}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm">
+                {selectedClass === 'Semua' ? 'Daftar Seluruh Siswa SMPN 7 Pasuruan (7A-7H, 8A-8H, 9A-9H)' : `Daftar Siswa Kelas ${selectedClass}`}
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                Periode 2026 ({filteredStudents.length} Siswa)
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {selectedClass === 'Semua' 
+                ? 'Menampilkan seluruh siswa tingkat 7, 8, dan 9 sesuai database akademik terintegrasi.' 
+                : `Menampilkan seluruh siswa resmi Kelas ${selectedClass} UPT SMP Negeri 7 Pasuruan.`}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          <span className="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-800">
+            Terdata: {filteredStudents.length} Siswa
+          </span>
+          <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">
+            Laki-laki (L): {filteredStudents.filter((s) => s.jenisKelamin === 'L').length}
+          </span>
+          <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">
+            Perempuan (P): {filteredStudents.filter((s) => s.jenisKelamin === 'P').length}
+          </span>
+        </div>
+      </div>
+
       {/* Student Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         {filteredStudents.length === 0 ? (
@@ -580,7 +620,14 @@ try {
                       <td className="p-4 text-xs font-medium text-slate-500">{idx + 1}</td>
                       <td className="p-4">
                         <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">{s.nisn}</div>
-                        {s.nis && <div className="text-[11px] text-slate-400">NIS: {s.nis}</div>}
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          {s.nis && <span className="text-[11px] text-slate-500 font-mono font-medium">NIS: {s.nis}</span>}
+                          {s.kelas === '7A' && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                              Periode 2026
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4 font-bold text-slate-900 dark:text-slate-100">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -688,7 +735,7 @@ try {
                     type="text"
                     value={nis}
                     onChange={(e) => setNis(e.target.value)}
-                    placeholder="Contoh: 1001"
+                    placeholder="Contoh: 9563"
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
