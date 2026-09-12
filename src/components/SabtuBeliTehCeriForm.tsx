@@ -166,7 +166,9 @@ export const SabtuBeliTehCeriForm: React.FC<Props> = ({ initialTab = 'form', use
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    setIsSyncing(true);
+    try {
     e.preventDefault();
     const finalDate = hariTanggalText || formatDateToIndonesian(dateInput);
     if (!finalDate.trim() || !hasilTemuan1Minggu.trim()) {
@@ -174,7 +176,7 @@ export const SabtuBeliTehCeriForm: React.FC<Props> = ({ initialTab = 'form', use
       return;
     }
 
-    StorageService.saveSabtuBeliTehCeri({
+    await await StorageService.saveSabtuBeliTehCeri({
       id: editingItem?.id,
       hariTanggal: finalDate.trim(),
       waktu: waktu.trim(),
@@ -198,6 +200,11 @@ export const SabtuBeliTehCeriForm: React.FC<Props> = ({ initialTab = 'form', use
     resetForm();
     loadData();
     setActiveTab('rekap');
+    } catch (err: any) {
+      alert(err.message || 'Gagal menyimpan data langsung ke Supabase.');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleExportCSV = () => {

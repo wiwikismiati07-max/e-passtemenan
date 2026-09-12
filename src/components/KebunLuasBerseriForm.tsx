@@ -255,7 +255,9 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    setIsSyncing(true);
+    try {
     e.preventDefault();
     const finalDate = hariTanggalText || formatDateToIndonesian(dateInput);
     if (!finalDate.trim() || !evaluasiBerhasil.trim()) {
@@ -263,7 +265,7 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
       return;
     }
 
-    StorageService.saveKebunLuasBerseri({
+    await await StorageService.saveKebunLuasBerseri({
       id: editingItem?.id,
       hariTanggal: finalDate.trim(),
       waktu: waktu.trim(),
@@ -289,6 +291,11 @@ export const KebunLuasBerseriForm: React.FC<Props> = ({ initialTab = 'form', use
     resetForm();
     loadData();
     setActiveTab('rekap');
+    } catch (err: any) {
+      alert(err.message || 'Gagal menyimpan data langsung ke Supabase.');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const filteredList = dataList.filter((item) => {

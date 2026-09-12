@@ -35,6 +35,7 @@ interface MasterSiswaViewProps {
 }
 
 export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh }) => {
+  const [isSyncing, setIsSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState('Semua');
   const [selectedGender, setSelectedGender] = useState('Semua');
@@ -116,14 +117,15 @@ export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh 
     setIsModalOpen(true);
   };
 
-  const handleSaveSiswa = (e: React.FormEvent) => {
+  const handleSaveSiswa = async (e: React.FormEvent) => {
+try {
     e.preventDefault();
     if (!namaLengkap.trim()) {
       alert('Nama lengkap siswa wajib diisi.');
       return;
     }
 
-    StorageService.saveSiswa({
+    await StorageService.saveSiswa({
       id: editingSiswa ? editingSiswa.id : undefined,
       nisn: nisn.trim() || ('00' + Math.floor(Math.random() * 90000000 + 10000000)),
       nis: nis.trim() || String(Math.floor(Math.random() * 9000 + 1000)),
@@ -137,6 +139,7 @@ export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh 
 
     setIsModalOpen(false);
     onRefresh();
+} catch (e: any) { alert(e.message || 'Gagal'); }
   };
 
   // Delete Confirmation Modal State

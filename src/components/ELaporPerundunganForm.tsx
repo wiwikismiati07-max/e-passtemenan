@@ -37,6 +37,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
   initialTab = 'form',
   userRole = 'admin',
 }) => {
+  const [isSyncing, setIsSyncing] = useState(false);
   const [dataList, setDataList] = useState<ELaporPerundungan[]>([]);
   const [activeTab, setActiveTab] = useState<'form' | 'rekap'>(initialTab);
   const [editingItem, setEditingItem] = useState<ELaporPerundungan | null>(null);
@@ -121,7 +122,9 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+  setIsSyncing(true);
+  try {
     e.preventDefault();
     if (!hariTanggal || !waktuKejadian || !namaSiswa || !kronologi) {
       alert('Mohon lengkapi data wajib (Hari/Tanggal, Waktu Kejadian, Nama Siswa, dan Kronologi)!');
@@ -146,13 +149,18 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
       keterangan,
     };
 
-    StorageService.saveELapor(payload);
+    await StorageService.saveELapor(payload);
     loadData();
     resetForm();
     setSavedSuccess(true);
     confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 } });
     setTimeout(() => setSavedSuccess(false), 4000);
-  };
+  } catch (err: any) {
+    alert(err.message || 'Gagal menyimpan ke Supabase');
+  } finally {
+    setIsSyncing(false);
+  }
+};
 
   const handleDelete = (item: ELaporPerundungan) => {
     if (userRole !== 'admin') {

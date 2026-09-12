@@ -79,9 +79,20 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       ? (initialTab as MediaEdukasiSubTab)
       : 'materi';
 
+  const [isSyncing, setIsSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<MediaEdukasiSubTab>(resolvedTab);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('Semua');
+
+  useEffect(() => {
+    const handleDbUpdate = () => {
+      onRefresh(); // Trigger refresh to load latest db state
+    };
+    window.addEventListener('pass-temenan-db-updated', handleDbUpdate);
+    return () => {
+      window.removeEventListener('pass-temenan-db-updated', handleDbUpdate);
+    };
+  }, [onRefresh]);
 
   // Sync tab when initialTab prop updates
   useEffect(() => {
@@ -105,16 +116,15 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   const [selectedVideo, setSelectedVideo] = useState<VideoEdukasiItem | null>(null);
 
   // Quick Manual Materi / PDF Field States
-  const [quickMateriUrl, setQuickMateriUrl] = useState('');
+    const [quickMateriUrl, setQuickMateriUrl] = useState('');
   const [quickMateriJudul, setQuickMateriJudul] = useState('');
+  const [quickMateriKategori, setQuickMateriKategori] = useState('Regulasi & Dokumen Resmi');
+  const [quickMateriDeskripsi, setQuickMateriDeskripsi] = useState('');
+  const [isQuickMateriExpanded, setIsQuickMateriExpanded] = useState(false);
   const [quickMateriFormat, setQuickMateriFormat] = useState<'PDF' | 'DOCX' | 'SLIDES' | 'ARTIKEL'>('PDF');
-  const [quickMateriFileName, setQuickMateriFileName] = useState('');
-  const [quickMateriFileSize, setQuickMateriFileSize] = useState('');
-  const [quickMateriSuccess, setQuickMateriSuccess] = useState(false);
+      const [quickMateriSuccess, setQuickMateriSuccess] = useState(false);
   const [quickMateriError, setQuickMateriError] = useState('');
-  const [quickMateriUploading, setQuickMateriUploading] = useState(false);
-  const quickMateriFileRef = useRef<HTMLInputElement>(null);
-
+    
   // Quick Manual Poster Field States
   const [quickPosterUrl, setQuickPosterUrl] = useState('');
   const [quickPosterJudul, setQuickPosterJudul] = useState('');
@@ -199,20 +209,21 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
 
   // If video or materi list is empty in storage, auto hydrate with official items
   useEffect(() => {
-    let shouldRefresh = false;
-    if (!mediaDb.video || !Array.isArray(mediaDb.video) || mediaDb.video.length === 0) {
-      StorageService.resetMediaEdukasiVideos();
-      shouldRefresh = true;
-    }
-    if (!mediaDb.materi || !Array.isArray(mediaDb.materi) || mediaDb.materi.length === 0) {
-      INITIAL_MEDIA_EDUKASI.materi.forEach((m) => {
-        StorageService.saveMediaEdukasiItem('materi', m);
-      });
-      shouldRefresh = true;
-    }
-    if (shouldRefresh) {
-      onRefresh();
-    }
+    const hydrateData = async () => {
+      let shouldRefresh = false;
+      if (!mediaDb.video || !Array.isArray(mediaDb.video) || mediaDb.video.length === 0) {
+        StorageService.resetMediaEdukasiVideos();
+        shouldRefresh = true;
+      }
+      if (!mediaDb.materi || !Array.isArray(mediaDb.materi) || mediaDb.materi.length === 0) {
+        await Promise.all(INITIAL_MEDIA_EDUKASI.materi.map(m => StorageService.saveMediaEdukasiItem('materi', m)));
+        shouldRefresh = true;
+      }
+      if (shouldRefresh) {
+        onRefresh();
+      }
+    };
+    hydrateData();
   }, []);
 
   const materiList = useMemo(() => {
@@ -476,7 +487,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
     showToast(`Mengunduh infografis "${info.judul}"...`);
   };
 
-  const handleLoadContohPoster = () => {
+  const handleLoadContohPoster = async () => {
     const contohPosters: PosterEdukasiItem[] = [
       {
         id: `pos-${Date.now()}-1`,
@@ -503,61 +514,10 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
         isKaryaSiswa: true,
       },
     ];
-    contohPosters.forEach((p) => StorageService.saveMediaEdukasiItem('poster', p));
+    await Promise.all(contohPosters.map(p => StorageService.saveMediaEdukasiItem('poster', p)));
     setSelectedCategoryFilter('Semua');
     setSearchQuery('');
     onRefresh();
-  };
-
-  const handleQuickMateriFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    if (ext === 'pdf') {
-      setQuickMateriFormat('PDF');
-    } else if (ext === 'docx' || ext === 'doc') {
-      setQuickMateriFormat('DOCX');
-    } else if (ext === 'pptx' || ext === 'ppt') {
-      setQuickMateriFormat('SLIDES');
-    }
-
-    setQuickMateriFileName(file.name);
-    const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
-    setQuickMateriFileSize(`${sizeInMB} MB`);
-
-    if (!quickMateriJudul) {
-      const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-      setQuickMateriJudul(cleanName);
-    }
-
-    setQuickMateriUploading(true);
-    setQuickMateriError('');
-
-    try {
-      const res = await StorageService.uploadPhotoToSupabase(file, 'materi-dokumen');
-      if (res.url) {
-        setQuickMateriUrl(res.url);
-      } else {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setQuickMateriUrl(reader.result as string);
-          setQuickMateriUploading(false);
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
-    } catch {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setQuickMateriUrl(reader.result as string);
-        setQuickMateriUploading(false);
-      };
-      reader.readAsDataURL(file);
-      return;
-    } finally {
-      setQuickMateriUploading(false);
-    }
   };
 
   const handleSaveQuickMateri = (e?: React.FormEvent) => {
@@ -565,19 +525,19 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
     setQuickMateriError('');
 
     if (!quickMateriUrl.trim()) {
-      setQuickMateriError('Harap pilih file PDF atau tempel link URL dokumen.');
+      setQuickMateriError('Harap tempel link URL dokumen PDF atau Google Drive.');
       return;
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
     const resolvedTitle =
-      quickMateriJudul.trim() || quickMateriFileName || 'Dokumen Materi & Regulasi PDF';
+      quickMateriJudul.trim() || 'Dokumen Materi & Regulasi PDF';
 
     const newMateri: MateriEdukasiItem = {
       id: `mat-${Date.now()}`,
       judul: resolvedTitle,
-      kategori: 'Regulasi & Dokumen Resmi',
-      ringkasan: `Dokumen berkas ${quickMateriFormat || 'PDF'}: ${resolvedTitle}. Siap diunduh dan dipelajari.`,
+      kategori: quickMateriKategori || 'Regulasi & Dokumen Resmi',
+      ringkasan: quickMateriDeskripsi || `Dokumen berkas PDF: ${resolvedTitle}. Siap diunduh dan dipelajari.`,
       penulis: 'Satgas PASS TEMENAN SPANJU',
       tanggal: todayStr,
       linkDokumen: quickMateriUrl.trim(),
@@ -593,8 +553,8 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
     setQuickMateriSuccess(true);
     setQuickMateriUrl('');
     setQuickMateriJudul('');
-    setQuickMateriFileName('');
-    setQuickMateriFileSize('');
+    setQuickMateriDeskripsi('');
+    setIsQuickMateriExpanded(false);
     onRefresh();
 
     setTimeout(() => {
@@ -1019,17 +979,29 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
 
           {/* Quick Manual PDF / Document Upload Field */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-teal-200 dark:border-teal-900/50 p-4 sm:p-5 shadow-2xs">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shrink-0">
-                <FileText className="w-4 h-4" />
+                        <div className="flex items-center gap-2.5 mb-3 justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shrink-0">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                    Upload Berkas / Regulasi PDF
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Tempel link dokumen PDF atau Google Drive, otomatis tersimpan & tampil di daftar
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                  Upload Berkas / Regulasi PDF
-                </h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Pilih file PDF dari perangkat atau tempel link dokumen, otomatis tersimpan & tampil di daftar
-                </p>
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickMateriExpanded(!isQuickMateriExpanded)}
+                  className="text-xs text-teal-700 dark:text-teal-300 hover:text-teal-800 font-semibold flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-teal-100/60 dark:hover:bg-teal-900/40 transition-colors cursor-pointer"
+                >
+                  <span>{isQuickMateriExpanded ? 'Tutup Opsi Detail' : 'Opsi Detail (Kategori/Deskripsi)'}</span>
+                  {isQuickMateriExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
               </div>
             </div>
 
@@ -1048,53 +1020,16 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
             )}
 
             <form onSubmit={handleSaveQuickMateri} className="space-y-3">
-              {/* File Upload Trigger & Direct URL Input */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5">
-                <div className="md:col-span-5 flex items-center gap-2">
-                  <input
-                    ref={quickMateriFileRef}
-                    type="file"
-                    accept=".pdf,.docx,.doc,.pptx,.ppt,application/pdf"
-                    onChange={handleQuickMateriFile}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    disabled={quickMateriUploading}
-                    onClick={() => quickMateriFileRef.current?.click()}
-                    className={`w-full py-2.5 px-3.5 rounded-xl border-2 border-dashed text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                      quickMateriUrl
-                        ? 'border-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300'
-                        : 'border-teal-300 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-950/20 hover:bg-teal-100/50 text-teal-800 dark:text-teal-200'
-                    }`}
-                  >
-                    {quickMateriUploading ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
-                    ) : quickMateriUrl ? (
-                      <FileCheck className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <Upload className="w-4 h-4 text-teal-600" />
-                    )}
-                    <span className="truncate">
-                      {quickMateriUploading
-                        ? 'Memproses file...'
-                        : quickMateriFileName
-                        ? `${quickMateriFileName.slice(0, 22)}...`
-                        : 'Pilih File PDF / Dokumen'}
-                    </span>
-                  </button>
-                </div>
-
-                <div className="md:col-span-7 relative">
-                  <LinkIcon className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    value={quickMateriUrl}
-                    onChange={(e) => setQuickMateriUrl(e.target.value)}
-                    placeholder="Atau tempel link URL PDF / Google Drive / dokumen online..."
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
+              {/* Direct Link Input */}
+              <div className="relative">
+                <LinkIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <input
+                  type="text"
+                  value={quickMateriUrl}
+                  onChange={(e) => setQuickMateriUrl(e.target.value)}
+                  placeholder="Tempel link URL PDF / Google Drive / dokumen online (contoh: https://...)"
+                  className="w-full pl-10 pr-3 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
               </div>
 
               {/* Title & Submit Button */}
@@ -1112,8 +1047,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                 <div className="sm:col-span-4">
                   <button
                     type="submit"
-                    disabled={quickMateriUploading}
-                    className="w-full py-2 px-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                    className="w-full py-2 px-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
                   >
                     <Check className="w-3.5 h-3.5" />
                     <span>Simpan Dokumen PDF</span>

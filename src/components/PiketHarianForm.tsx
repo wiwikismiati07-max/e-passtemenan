@@ -165,7 +165,9 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    setIsSyncing(true);
+    try {
     e.preventDefault();
     const finalDate = hariTanggalText || formatDateToIndonesian(dateInput);
     if (!finalDate.trim() || !namaAnggota.trim() || !hasilTemuan.trim()) {
@@ -173,7 +175,7 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
       return;
     }
 
-    StorageService.savePiketHarian({
+    await StorageService.savePiketHarian({
       id: editingItem?.id,
       hariTanggal: finalDate.trim(),
       waktu: waktu.trim(),
@@ -197,6 +199,11 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
     resetForm();
     loadData();
     setActiveTab('rekap');
+    } catch (err: any) {
+      alert(err.message || 'Gagal menyimpan data langsung ke Supabase.');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleExportCSV = () => {

@@ -39,6 +39,7 @@ export const BukuTamuForm: React.FC<Props> = ({
   initialTab = 'form',
   userRole = 'admin',
 }) => {
+  const [isSyncing, setIsSyncing] = useState(false);
   const [dataList, setDataList] = useState<BukuTamu[]>([]);
   const [activeTab, setActiveTab] = useState<'form' | 'rekap'>(initialTab);
   const [editingItem, setEditingItem] = useState<BukuTamu | null>(null);
@@ -113,7 +114,9 @@ export const BukuTamuForm: React.FC<Props> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+  setIsSyncing(true);
+  try {
     e.preventDefault();
     if (!hariTanggal || !jamKedatangan || !namaLengkap || !instansiAsal || !tujuanKunjungan) {
       alert('Mohon lengkapi data wajib (Hari/Tanggal, Jam, Nama Tamu, Instansi, dan Tujuan Kunjungan)!');
@@ -135,13 +138,18 @@ export const BukuTamuForm: React.FC<Props> = ({
       keterangan,
     };
 
-    StorageService.saveBukuTamu(payload);
+    await StorageService.saveBukuTamu(payload);
     loadData();
     resetForm();
     setSavedSuccess(true);
     confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 } });
     setTimeout(() => setSavedSuccess(false), 4000);
-  };
+  } catch (err: any) {
+    alert(err.message || 'Gagal menyimpan ke Supabase');
+  } finally {
+    setIsSyncing(false);
+  }
+};
 
   const handleDelete = (item: BukuTamu) => {
     if (userRole !== 'admin') {

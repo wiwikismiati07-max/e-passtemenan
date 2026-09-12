@@ -40,6 +40,7 @@ interface MasterGuruViewProps {
 }
 
 export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh }) => {
+  const [isSyncing, setIsSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJabatan, setSelectedJabatan] = useState('Semua');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -184,14 +185,15 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
     setIsModalOpen(true);
   };
 
-  const handleSaveGuru = (e: React.FormEvent) => {
+  const handleSaveGuru = async (e: React.FormEvent) => {
+try {
     e.preventDefault();
     if (!namaLengkap.trim()) {
       alert('Nama lengkap guru wajib diisi.');
       return;
     }
 
-    StorageService.saveGuru({
+    await StorageService.saveGuru({
       id: editingGuru ? editingGuru.id : undefined,
       nip: nip.trim() || ('19' + Math.floor(Math.random() * 9000000000 + 1000000000)),
       namaLengkap: namaLengkap.trim(),
@@ -204,6 +206,7 @@ export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh })
 
     setIsModalOpen(false);
     onRefresh();
+} catch (e: any) { alert(e.message || 'Gagal'); }
   };
 
   // Delete Confirmation Modal State

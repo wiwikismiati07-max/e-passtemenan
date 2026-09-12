@@ -38,6 +38,7 @@ export const SenandungSerasiForm: React.FC<Props> = ({
   initialTab = 'form',
   userRole = 'admin',
 }) => {
+  const [isSyncing, setIsSyncing] = useState(false);
   const [dataList, setDataList] = useState<SenandungSerasi[]>([]);
   const [activeTab, setActiveTab] = useState<'form' | 'rekap'>(initialTab);
   const [editingItem, setEditingItem] = useState<SenandungSerasi | null>(null);
@@ -98,7 +99,9 @@ export const SenandungSerasiForm: React.FC<Props> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+  setIsSyncing(true);
+  try {
     e.preventDefault();
     if (!hariTanggal || !waktu || !pesanDisampaikan) {
       alert('Mohon lengkapi Hari/Tanggal, Waktu, dan Pesan yang Disampaikan!');
@@ -115,13 +118,18 @@ export const SenandungSerasiForm: React.FC<Props> = ({
       keterangan,
     };
 
-    StorageService.saveSenandungSerasi(payload);
+    await StorageService.saveSenandungSerasi(payload);
     loadData();
     resetForm();
     setSavedSuccess(true);
     confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 } });
     setTimeout(() => setSavedSuccess(false), 4000);
-  };
+  } catch (err: any) {
+    alert(err.message || 'Gagal menyimpan ke Supabase');
+  } finally {
+    setIsSyncing(false);
+  }
+};
 
   const handleDelete = (item: SenandungSerasi) => {
     if (userRole !== 'admin') {
