@@ -16,9 +16,14 @@ import {
   Printer,
   FileCheck,
   AlertCircle,
+  Loader2,
+  ShieldCheck,
 } from 'lucide-react';
 import { MateriEdukasiItem } from '../../types';
 import { downloadFileSafely, openDocumentSafely } from '../../utils/fileDownloader';
+import { triggerPrintElement, exportElementToPDF } from '../../utils/exportUtils';
+import { StorageService } from '../../services/storage';
+import { KopSurat } from '../KopSurat';
 import { PdfViewer } from './PdfViewer';
 
 interface MateriDetailModalProps {
@@ -37,6 +42,14 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [viewTab, setViewTab] = useState<'reader' | 'embed'>('reader');
   const [toastMsg, setToastMsg] = useState<string>('');
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+  const [pejabatConfig, setPejabatConfig] = useState(StorageService.getPejabatConfig());
+
+  useEffect(() => {
+    if (isOpen) {
+      setPejabatConfig(StorageService.getPejabatConfig());
+    }
+  }, [isOpen]);
 
   const showInModalToast = (msg: string) => {
     setToastMsg(msg);
@@ -61,15 +74,38 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
     navigator.clipboard.writeText(textToCopy);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2500);
+    showInModalToast('Teks materi berhasil disalin!');
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!materi) return;
+    showInModalToast('Mempersiapkan dialog cetak resmi...');
+    triggerPrintElement('materi-detail-printable-area', `Materi Edukasi - ${materi.judul}`);
+  };
+
+  const handleExportPdf = async () => {
+    if (!materi || isExportingPdf) return;
+    setIsExportingPdf(true);
+    showInModalToast('Membuat berkas PDF dokumen resmi...');
+    const cleanFilename = `Materi_${materi.judul.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 45)}_${Date.now()}`;
+
+    try {
+      await exportElementToPDF('materi-detail-printable-area', cleanFilename);
+      showInModalToast('Dokumen PDF berhasil diunduh ke perangkat.');
+      StorageService.incrementUnduhanMedia('materi', materi.id);
+      onDownload?.();
+    } catch (err) {
+      console.warn('Export PDF error, fallback to print dialog:', err);
+      showInModalToast('Mengalihkan ke dialog cetak...');
+      triggerPrintElement('materi-detail-printable-area', `Materi Edukasi - ${materi.judul}`);
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   const handleDownloadFile = () => {
     if (!materi.linkDokumen) {
-      window.print();
+      handleExportPdf();
       return;
     }
     const cleanFilename = materi.judul
@@ -77,7 +113,8 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
       : 'dokumen_materi_spanju.pdf';
 
     downloadFileSafely(materi.linkDokumen, cleanFilename);
-    showInModalToast('Berkas sedang diunduh ke perangkat Anda.');
+    StorageService.incrementUnduhanMedia('materi', materi.id);
+    showInModalToast('Berkas dokumen sedang diunduh ke perangkat Anda.');
     onDownload?.();
   };
 
@@ -105,6 +142,214 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
   };
 
   const hasDocumentLink = !!materi.linkDokumen;
+
+  // Signatory details from config
+  const kepalaNama = pejabatConfig.kepalaSekolahNama || 'NUR FADILAH, S.Pd., M.Pd';
+  const kepalaNip = pejabatConfig.kepalaSekolahNip || '19860410 201001 2 030';
+  const kepalaJabatan = pejabatConfig.kepalaSekolahJabatan || 'Kepala UPT SMP Negeri 7 Pasuruan';
+  const kepalaTtd = pejabatConfig.kepalaSekolahTtd || '';
+
+  const guruNama = materi.penulis || pejabatConfig.selectedGuruBK || 'Wiwik Ismiati, S.Pd';
+  const guruNip = pejabatConfig.guruBKNip || '19810505 200801 2 018';
+  const guruJabatan = pejabatConfig.guruBKJabatan || 'Guru Pendamping BK / Koordinator TPPK';
+  const guruTtd = pejabatConfig.guruBKTtd || '';
+
+  // Render Printable Document Card Content
+  const renderPrintableDocument = () => (
+    <div
+      id="materi-detail-printable-area"
+      className="bg-white text-slate-900 print:text-black rounded-2xl border border-slate-200 dark:border-slate-700 print:border-none p-6 sm:p-8 print:p-0 shadow-sm space-y-6 print:space-y-4"
+    >
+      {/* Official Government Kop Surat */}
+      <KopSurat
+        judulLaporan="DOKUMEN RESMI MATERI EDUKASI"
+        nomorSurat={`PPKSP-MAT/SPANJU/${(materi.kategori || 'EDUKASI').toUpperCase().replace(/[^A-Z0-9]/g, '-')}/${materi.id}`}
+        tanggalSurat={materi.tanggal || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+      />
+
+      {/* Document Identity & Category Badge */}
+      <div className="space-y-2 border-b border-slate-200 print:border-black pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="inline-block px-3 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-900 text-xs font-bold uppercase tracking-wider print:border-black print:bg-transparent">
+            Kategori: {materi.kategori || 'Materi Edukasi'}
+          </span>
+          <span className="text-[11px] font-mono text-slate-500 print:text-black">
+            Format Berkas: {materi.fileFormat || 'PDF'}
+          </span>
+        </div>
+
+        <h2 className="text-xl sm:text-2xl print:text-[14pt] font-black text-slate-900 print:text-black leading-tight">
+          {materi.judul}
+        </h2>
+
+        {/* Metadata Bar */}
+        <div className="flex flex-wrap items-center gap-y-2 gap-x-5 text-xs print:text-[9pt] text-slate-600 print:text-black pt-1">
+          {materi.penulis && (
+            <div className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-teal-600 print:hidden" />
+              <span>Penyusun / Narasumber: <strong className="text-slate-900 print:text-black">{materi.penulis}</strong></span>
+            </div>
+          )}
+          {materi.tanggal && (
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-amber-500 print:hidden" />
+              <span>Tanggal Terbit: {materi.tanggal}</span>
+            </div>
+          )}
+          {materi.bacaanMenit && (
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-emerald-500 print:hidden" />
+              <span>Estimasi Waktu Baca: ± {materi.bacaanMenit} menit</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Ringkasan Intisari Box */}
+      <div className="p-4 rounded-xl bg-teal-50/70 border border-teal-200 print:border-black print:bg-transparent space-y-1.5 print:break-inside-avoid">
+        <h3 className="text-xs print:text-[10pt] font-black uppercase tracking-wider text-teal-950 print:text-black flex items-center gap-1.5">
+          <BookmarkCheck className="w-4 h-4 text-teal-600 print:hidden" />
+          <span>Ringkasan Intisari Dokumen:</span>
+        </h3>
+        <p className="text-xs sm:text-sm print:text-[10pt] text-slate-800 print:text-black leading-relaxed font-sans text-justify">
+          {materi.ringkasan}
+        </p>
+      </div>
+
+      {/* Konten Lengkap Naskah / Uraian Panduan */}
+      <div className="space-y-3 pt-1">
+        <h3 className="text-xs print:text-[10pt] font-black uppercase tracking-wider text-slate-800 print:text-black flex items-center gap-1.5">
+          <FileCheck className="w-4 h-4 text-teal-600 print:hidden" />
+          <span>Naskah & Panduan Lengkap:</span>
+        </h3>
+
+        {materi.kontenLengkap ? (
+          <div className="p-5 sm:p-6 print:p-2 rounded-2xl print:rounded-none bg-slate-50 print:bg-transparent border border-slate-200 print:border-black text-xs sm:text-sm print:text-[9.5pt] text-slate-800 print:text-black leading-relaxed font-sans whitespace-pre-line text-justify">
+            {materi.kontenLengkap}
+          </div>
+        ) : (
+          <div className="p-5 print:p-2 rounded-2xl print:rounded-none bg-slate-50 print:bg-transparent border border-slate-200 print:border-black text-xs sm:text-sm print:text-[9.5pt] text-slate-700 print:text-black leading-relaxed space-y-2">
+            <p>
+              Materi edukasi ini disajikan dalam format berkas digital lengkap (PDF/Dokumen Resmi) dan dapat diakses langsung oleh seluruh siswa, guru, dan wali murid melalui portal E-PASS TEMENAN SPANJU.
+            </p>
+            {hasDocumentLink && (
+              <p className="font-mono text-[11px] print:text-[8pt] text-teal-800 print:text-black break-all">
+                Tautan Dokumen Rujukan: {materi.linkDokumen}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Tags / Kata Kunci */}
+      {materi.tags && materi.tags.length > 0 && (
+        <div className="pt-2 border-t border-slate-100 print:border-black print:break-inside-avoid">
+          <span className="text-xs print:text-[8.5pt] font-bold text-slate-500 print:text-black block mb-1.5">
+            Kata Kunci & Klasifikasi Regulasi:
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {materi.tags.map((tag, idx) => (
+              <span
+                key={idx}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-100 print:bg-transparent border border-slate-200 print:border-black text-[11px] print:text-[8pt] font-semibold text-slate-700 print:text-black"
+              >
+                <Tag className="w-3 h-3 text-teal-600 print:hidden" />
+                #{tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lembar Tanda Tangan & Pengesahan Resmi Dua Sisi */}
+      <div className="pt-4 border-t-2 border-slate-900 print:border-black print:break-inside-avoid">
+        <table className="w-full border-none border-collapse text-xs print:text-[9pt] text-center table-fixed m-0 p-0 select-none">
+          <tbody>
+            <tr>
+              {/* Kolom Kiri: Tim Penyusun / Guru Pendamping BK / Koordinator TPPK */}
+              <td className="w-1/2 align-top p-2 print:p-1">
+                <p className="text-slate-600 print:text-black m-0">Pasuruan, {materi.tanggal || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                <p className="font-bold text-slate-900 print:text-black m-0 leading-tight">
+                  {guruJabatan}
+                </p>
+
+                {/* Signature Box */}
+                <div className="h-20 sm:h-24 print:h-20 mx-auto w-full max-w-[170px] flex items-center justify-center my-1">
+                  {guruTtd && guruTtd.startsWith('data:image') ? (
+                    <img
+                      src={guruTtd}
+                      alt="Tanda Tangan Guru BK"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  ) : (
+                    <div className="h-14 border-b border-dashed border-slate-300 print:border-black w-36 mx-auto flex items-end justify-center pb-1 text-[10px] text-slate-400 print:text-transparent">
+                      (Tanda Tangan)
+                    </div>
+                  )}
+                </div>
+
+                <p className="font-bold text-slate-900 print:text-black underline uppercase m-0">
+                  {guruNama}
+                </p>
+                <p className="text-[11px] print:text-[8pt] text-slate-600 print:text-black m-0">
+                  NIP. {guruNip}
+                </p>
+              </td>
+
+              {/* Kolom Kanan: Mengetahui, Kepala UPT SMP Negeri 7 Pasuruan */}
+              <td className="w-1/2 align-top p-2 print:p-1">
+                <p className="text-slate-600 print:text-black m-0">Mengetahui,</p>
+                <p className="font-bold text-slate-900 print:text-black m-0 leading-tight">
+                  {kepalaJabatan}
+                </p>
+
+                {/* Signature Box with Official Stamp */}
+                <div className="relative h-20 sm:h-24 print:h-20 mx-auto w-full max-w-[170px] flex items-center justify-center my-1">
+                  {kepalaTtd && kepalaTtd.startsWith('data:image') ? (
+                    <img
+                      src={kepalaTtd}
+                      alt="Tanda Tangan Kepala Sekolah"
+                      className="max-h-full max-w-full object-contain relative z-10"
+                    />
+                  ) : (
+                    <div className="h-14 border-b border-dashed border-slate-300 print:border-black w-36 mx-auto flex items-end justify-center pb-1 text-[10px] text-slate-400 print:text-transparent">
+                      (Tanda Tangan & Stempel)
+                    </div>
+                  )}
+
+                  {/* Stempel Resmi Sekolah */}
+                  <img
+                    src="https://i.ibb.co.com/wrcwZdrK/STEMPEL.png"
+                    alt="Stempel Resmi UPT SMPN 7 Pasuruan"
+                    className="absolute left-1/2 top-1/2 -translate-x-[60%] -translate-y-1/2 w-20 h-20 sm:w-24 sm:h-24 print:w-20 print:h-20 object-contain pointer-events-none opacity-85 z-20 mix-blend-multiply select-none"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+
+                <p className="font-bold text-slate-900 print:text-black underline uppercase m-0">
+                  {kepalaNama}
+                </p>
+                <p className="text-[11px] print:text-[8pt] text-slate-600 print:text-black m-0">
+                  NIP. {kepalaNip}
+                </p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Digital Footer Verification */}
+      <div className="pt-3 border-t border-slate-200 print:border-black flex flex-wrap items-center justify-between text-[9.5px] print:text-[7.5pt] text-slate-500 print:text-black print:break-inside-avoid">
+        <div className="flex items-center gap-1">
+          <ShieldCheck className="w-3 h-3 text-teal-600 print:hidden" />
+          <span>Dokumen Resmi E-PASS TEMENAN SPANJU • UPT SMP Negeri 7 Pasuruan</span>
+        </div>
+        <div>
+          Waktu Cetak: {new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
@@ -144,13 +389,29 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
               <span className="hidden sm:inline">{isCopied ? 'Tersalin' : 'Bagikan'}</span>
             </button>
 
+            {/* Cetak PDF / Print Button */}
             <button
               onClick={handlePrint}
-              title="Cetak Dokumen"
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+              title="Cetak Naskah Dokumen Resmi (Buka Dialog Cetak)"
+              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white transition-all flex items-center gap-1.5 text-xs font-bold shadow-md cursor-pointer active:scale-95"
             >
               <Printer className="w-4 h-4" />
-              <span className="hidden sm:inline">Cetak PDF</span>
+              <span>Cetak Dokumen</span>
+            </button>
+
+            {/* Unduh PDF Button */}
+            <button
+              onClick={handleExportPdf}
+              disabled={isExportingPdf}
+              title="Unduh Berkas PDF Dokumen Resmi"
+              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white transition-all flex items-center gap-1.5 text-xs font-bold shadow-md cursor-pointer active:scale-95 disabled:opacity-50"
+            >
+              {isExportingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">{isExportingPdf ? 'Memproses...' : 'Unduh PDF'}</span>
             </button>
 
             <button
@@ -190,21 +451,31 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Pratinjau Dokumen PDF</span>
+                <span>Pratinjau Berkas Digital</span>
               </button>
             )}
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Cetak Naskah Resmi Sekarang"
+            >
+              <Printer className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+              <span>Cetak / PDF</span>
+            </button>
+
             {hasDocumentLink && (
               <button
                 type="button"
                 onClick={handleOpenInNewTab}
                 className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Buka Dokumen di Tab Baru atau Jendela Terpisah"
+                title="Buka Dokumen di Tab Baru"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>Buka di Tab Baru</span>
+                <span>Buka Tab Baru</span>
               </button>
             )}
 
@@ -212,141 +483,20 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
               type="button"
               onClick={handleDownloadFile}
               className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-              title="Unduh file dokumen ke perangkat"
+              title="Unduh Berkas ke Perangkat"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Unduh Berkas PDF</span>
+              <span>Unduh Berkas</span>
             </button>
           </div>
         </div>
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-          {/* VIEW MODE 1: RICH FORMATTED DOCUMENT READER */}
+          {/* VIEW MODE 1: OFFICIAL PRINTABLE DOCUMENT (Visible in reader mode) */}
           {viewTab === 'reader' && (
             <div className="space-y-6">
-              {/* Document Paper Container (styled like an official A4 document) */}
-              <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 sm:p-8 shadow-sm space-y-6">
-                {/* Official Letterhead Header */}
-                <div className="border-b-2 border-slate-900 dark:border-slate-300 pb-4 text-center space-y-1">
-                  <p className="text-[11px] font-black uppercase tracking-widest text-teal-800 dark:text-teal-300">
-                    PEMERINTAH KOTA PASURUAN • DINAS PENDIDIKAN DAN KEBUDAYAAN
-                  </p>
-                  <h1 className="text-base sm:text-lg font-black uppercase text-slate-900 dark:text-white tracking-wide">
-                    UPT SATUAN PENDIDIKAN SMP NEGERI 7 PASURUAN
-                  </h1>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                    TIM PENCEGAHAN DAN PENANGANAN KEKERASAN (TPPK) • INOVASI PASS TEMENAN
-                  </p>
-                </div>
-
-                {/* Title & Metadata Box */}
-                <div className="space-y-3">
-                  <div className="inline-block px-3 py-1 rounded-lg bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-200 text-xs font-bold">
-                    DOKUMEN RESMI / MATERI EDUKASI
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
-                    {materi.judul}
-                  </h2>
-
-                  <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700">
-                    {materi.penulis && (
-                      <div className="flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5 text-teal-600" />
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {materi.penulis}
-                        </span>
-                      </div>
-                    )}
-                    {materi.tanggal && (
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Diterbitkan: {materi.tanggal}</span>
-                      </div>
-                    )}
-                    {materi.bacaanMenit && (
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Estimasi Baca: ± {materi.bacaanMenit} menit</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Ringkasan Intisari Box */}
-                <div className="p-4 rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 space-y-1.5">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-teal-900 dark:text-teal-200 flex items-center gap-1.5">
-                    <BookmarkCheck className="w-4 h-4 text-teal-600" />
-                    Ringkasan Intisari Dokumen:
-                  </h3>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
-                    {materi.ringkasan}
-                  </p>
-                </div>
-
-                {/* Konten Lengkap Naskah / Uraian Regulasi */}
-                {materi.kontenLengkap ? (
-                  <div className="space-y-3 pt-2">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <FileCheck className="w-4 h-4 text-teal-600" />
-                      Naskah & Panduan Lengkap:
-                    </h3>
-                    <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-sans whitespace-pre-line shadow-2xs">
-                      {materi.kontenLengkap}
-                    </div>
-                  </div>
-                ) : hasDocumentLink ? (
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-center space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-600 flex items-center justify-center mx-auto">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Dokumen ini tersimpan dalam format berkas digital ({materi.fileFormat || 'PDF'}).
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                      Anda dapat melihat pratinjau visual berkas secara interaktif atau langsung mengunduhnya ke perangkat Anda.
-                    </p>
-                    <div className="flex items-center justify-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setViewTab('embed')}
-                        className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Buka Pratinjau PDF</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDownloadFile}
-                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Unduh Berkas</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-
-                {/* Tags */}
-                {materi.tags && materi.tags.length > 0 && (
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
-                    <span className="text-xs font-semibold text-slate-400 block mb-2">
-                      Kata Kunci & Topik Terkait:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {materi.tags.map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 text-xs font-medium text-slate-700 dark:text-slate-300"
-                        >
-                          <Tag className="w-3 h-3 text-teal-600" />
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              {renderPrintableDocument()}
             </div>
           )}
 
@@ -357,7 +507,15 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
                 source={materi.linkDokumen!}
                 title={materi.judul}
                 onDownload={handleDownloadFile}
+                onPrint={handlePrint}
               />
+            </div>
+          )}
+
+          {/* ALWAYS MOUNTED HIDDEN PRINTABLE CONTAINER WHEN IN EMBED MODE */}
+          {viewTab === 'embed' && (
+            <div className="hidden">
+              {renderPrintableDocument()}
             </div>
           )}
         </div>
@@ -369,6 +527,14 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Cetak Dokumen</span>
+            </button>
+
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer"

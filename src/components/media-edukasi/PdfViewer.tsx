@@ -32,12 +32,14 @@ interface PdfViewerProps {
   source: string; // Base64 data URL, Blob URL, or HTTP URL
   title?: string;
   onDownload?: () => void;
+  onPrint?: () => void;
 }
 
 export const PdfViewer: React.FC<PdfViewerProps> = ({
   source,
   title = 'Dokumen PDF',
   onDownload,
+  onPrint,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -231,6 +233,67 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
   };
 
   const handlePrint = () => {
+    if (onPrint) {
+      onPrint();
+      return;
+    }
+    // Fallback: If canvas is available, print the rendered canvas image cleanly
+    if (canvasRef.current) {
+      try {
+        const dataUrl = canvasRef.current.toDataURL('image/png');
+        const iframe = document.createElement('iframe');
+        iframe.id = 'pdf-canvas-print-iframe';
+        iframe.style.position = 'fixed';
+        iframe.style.left = '-9999px';
+        iframe.style.top = '-9999px';
+        iframe.style.width = '1024px';
+        iframe.style.height = '768px';
+        iframe.style.opacity = '0.01';
+        iframe.style.pointerEvents = 'none';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow?.document;
+        if (doc) {
+          doc.open();
+          doc.write(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta charset="utf-8" />
+                <title>${title}</title>
+                <style>
+                  @page { size: A4 portrait; margin: 10mm; }
+                  body { margin: 0; padding: 0; background: #fff; display: flex; justify-content: center; }
+                  img { max-width: 100%; height: auto; object-fit: contain; }
+                </style>
+              </head>
+              <body>
+                <img src="${dataUrl}" />
+              </body>
+            </html>
+          `);
+          doc.close();
+
+          setTimeout(() => {
+            try {
+              iframe.contentWindow?.focus();
+              iframe.contentWindow?.print();
+            } catch {
+              window.print();
+            } finally {
+              setTimeout(() => {
+                if (document.body.contains(iframe)) {
+                  document.body.removeChild(iframe);
+                }
+              }, 3000);
+            }
+          }, 350);
+          return;
+        }
+      } catch (e) {
+        console.warn('Canvas print error, falling back to window.print():', e);
+      }
+    }
     window.print();
   };
 

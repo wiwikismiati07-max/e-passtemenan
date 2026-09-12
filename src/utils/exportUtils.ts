@@ -330,19 +330,27 @@ export async function exportElementToPDF(elementId: string, filename: string) {
 export function triggerPrintElement(elementId: string, docTitle: string = 'Laporan Resmi') {
   const element = document.getElementById(elementId);
   if (!element) {
+    console.warn(`Element #${elementId} not found, falling back to window.print()`);
     window.print();
     return;
+  }
+
+  // Remove existing print iframe if any
+  const existingIframe = document.getElementById('print-engine-iframe');
+  if (existingIframe && document.body.contains(existingIframe)) {
+    document.body.removeChild(existingIframe);
   }
 
   const iframe = document.createElement('iframe');
   iframe.id = 'print-engine-iframe';
   iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0px';
-  iframe.style.height = '0px';
+  iframe.style.left = '-9999px';
+  iframe.style.top = '-9999px';
+  iframe.style.width = '1024px';
+  iframe.style.height = '768px';
   iframe.style.border = 'none';
-  iframe.style.visibility = 'hidden';
+  iframe.style.opacity = '0.01';
+  iframe.style.pointerEvents = 'none';
   document.body.appendChild(iframe);
 
   const iframeDoc = iframe.contentWindow?.document;
@@ -370,19 +378,26 @@ export function triggerPrintElement(elementId: string, docTitle: string = 'Lapor
         <style>
           @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 12mm 10mm 15mm 10mm;
           }
           *, *::before, *::after {
             box-sizing: border-box !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          body {
+          html, body {
             background-color: #ffffff !important;
-            color: #000000 !important;
+            color: #0f172a !important;
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
             margin: 0 !important;
-            padding: 10px !important;
+            padding: 0 !important;
+          }
+          .printable-root {
+            padding: 12px 20px !important;
+            width: 100% !important;
+            max-width: 210mm !important;
+            margin: 0 auto !important;
+            background: #ffffff !important;
           }
           .print\\:hidden, button, .no-print {
             display: none !important;
@@ -413,7 +428,7 @@ export function triggerPrintElement(elementId: string, docTitle: string = 'Lapor
         if (document.body.contains(iframe)) {
           document.body.removeChild(iframe);
         }
-      }, 1500);
+      }, 3000);
     }
-  }, 600);
+  }, 450);
 }

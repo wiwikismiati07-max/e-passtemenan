@@ -33,6 +33,7 @@ import {
   Upload,
   FileText,
   FileCheck,
+  Printer,
 } from 'lucide-react';
 import {
   AppDatabase,
@@ -1178,7 +1179,17 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                         className="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs hover:scale-[1.02] cursor-pointer"
                       >
                         <FileText className="w-3.5 h-3.5" />
-                        <span>Buka & Baca PDF</span>
+                        <span>Buka & Baca</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMateri(item)}
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Cetak Naskah Dokumen Materi Resmi"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                        <span className="hidden sm:inline">Cetak</span>
                       </button>
 
                       {item.linkDokumen && (
