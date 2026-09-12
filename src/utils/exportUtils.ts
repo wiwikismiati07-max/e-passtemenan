@@ -282,21 +282,30 @@ export async function exportElementToPDF(elementId: string, filename: string): P
     return false;
   }
 
-  const opt = {
-    margin: [8, 8, 8, 8],
-    filename: `${filename}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-    },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-  };
-
+  // Fallback to triggerPrintElement / window.print() if html2canvas encounters oklch or canvas errors in sandboxed iframe
   try {
+    const opt = {
+      margin: [8, 8, 8, 8],
+      filename: `${filename}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        onclone: (doc: Document) => {
+          // Remove stylesheets containing oklch color definitions to prevent html2canvas color parsing crashes
+          doc.querySelectorAll('style, link[rel="stylesheet"]').forEach((el) => {
+            if (el.textContent && el.textContent.includes('oklch')) {
+              el.remove();
+            }
+          });
+        },
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+    };
+
     // Dynamically resolve html2pdf in case of module differences
     // @ts-ignore
     const h2p = (typeof html2pdf === 'function' ? html2pdf : (html2pdf as any)?.default) || (window as any).html2pdf;
@@ -305,15 +314,24 @@ export async function exportElementToPDF(elementId: string, filename: string): P
       return true;
     }
     throw new Error('html2pdf function not directly callable');
-  } catch (err) {
-    console.warn('html2pdf direct run warning, attempting canvas/jsPDF fallback:', err);
+  } catch (err: any) {
+    console.warn('html2pdf warning, attempting canvas/jsPDF fallback:', err);
     try {
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
+      
+      // Clean clone or element without oklch styles
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
+        onclone: (doc: Document) => {
+          doc.querySelectorAll('style, link[rel="stylesheet"]').forEach((el) => {
+            if (el.textContent && el.textContent.includes('oklch')) {
+              el.remove();
+            }
+          });
+        },
       });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -337,7 +355,7 @@ export async function exportElementToPDF(elementId: string, filename: string): P
       pdf.save(`${filename}.pdf`);
       return true;
     } catch (fallbackErr) {
-      console.error('PDF generation failed completely:', fallbackErr);
+      console.error('PDF canvas export failed, triggering print dialog:', fallbackErr);
       try {
         window.print();
         return true;

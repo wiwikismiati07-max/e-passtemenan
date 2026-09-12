@@ -658,7 +658,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
     }
   };
 
-  const handleSaveQuickPoster = (e?: React.FormEvent) => {
+  const handleSaveQuickPoster = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setQuickPosterError('');
 
@@ -687,7 +687,11 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       isKaryaSiswa: quickPosterIsKaryaSiswa,
     };
 
-    StorageService.saveMediaEdukasiItem('poster', newPoster);
+    try {
+      await StorageService.saveMediaEdukasiItem('poster', newPoster);
+    } catch (err) {
+      console.warn('Save quick poster error notice:', err);
+    }
 
     // Automatically reset category and search filters so the new poster displays immediately!
     setSelectedCategoryFilter('Semua');

@@ -509,15 +509,29 @@ export class StorageService {
     if (!db.mediaEdukasi) {
       db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI };
     }
+
+    // If item has a base64 gambarUrl, upload to Supabase storage for cloud persistence across devices (phone and laptop)
+    let finalItem = { ...item };
+    if (finalItem.gambarUrl && finalItem.gambarUrl.startsWith('data:')) {
+      try {
+        const uploadRes = await this.uploadBase64ToSupabase(finalItem.gambarUrl, tab === 'poster' ? 'poster-edukasi' : 'media-edukasi');
+        if (uploadRes.url) {
+          finalItem.gambarUrl = uploadRes.url;
+        }
+      } catch (uploadErr) {
+        console.warn('Cloud storage image upload fallback notice:', uploadErr);
+      }
+    }
+
     const currentList = Array.isArray(db.mediaEdukasi[tab])
       ? (db.mediaEdukasi[tab] as any[])
       : [];
     const list = [...currentList];
-    const idx = list.findIndex((x: any) => x.id === item.id);
+    const idx = list.findIndex((x: any) => x.id === finalItem.id);
     if (idx >= 0) {
-      list[idx] = { ...list[idx], ...item };
+      list[idx] = { ...list[idx], ...finalItem };
     } else {
-      list.unshift(item);
+      list.unshift(finalItem);
     }
     db.mediaEdukasi = {
       ...db.mediaEdukasi,
@@ -527,24 +541,28 @@ export class StorageService {
       ...this.db,
       mediaEdukasi: db.mediaEdukasi,
     };
-    this.unmarkDeleted(item.id);
+    this.unmarkDeleted(finalItem.id);
     this.saveDb();
 
     // Sync media edukasi to Supabase
-    const upsertRes = await this.safeUpsert('custom_links', {
-      id: '__APP_SETTING_MEDIA_EDUKASI__',
-      title: 'Media Edukasi',
-      url: 'system://media',
-      description: JSON.stringify(db.mediaEdukasi),
-      category: '__SYSTEM_SETTINGS__',
-      icon_name: 'Book',
-      color: '#0d9488',
-      is_custom: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-    if (upsertRes.error) {
-      throw new Error(upsertRes.error.message || 'Gagal menyimpan Media Edukasi ke Supabase');
+    try {
+      const upsertRes = await this.safeUpsert('custom_links', {
+        id: '__APP_SETTING_MEDIA_EDUKASI__',
+        title: 'Media Edukasi',
+        url: 'system://media',
+        description: JSON.stringify(db.mediaEdukasi),
+        category: '__SYSTEM_SETTINGS__',
+        icon_name: 'Book',
+        color: '#0d9488',
+        is_custom: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      if (upsertRes.error) {
+        console.warn('Supabase media edukasi sync warning:', upsertRes.error);
+      }
+    } catch (syncErr) {
+      console.warn('Supabase media edukasi sync exception:', syncErr);
     }
   }
 

@@ -118,7 +118,7 @@ export const TambahPosterModal: React.FC<TambahPosterModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -147,7 +147,11 @@ export const TambahPosterModal: React.FC<TambahPosterModalProps> = ({
       isKaryaSiswa,
     };
 
-    StorageService.saveMediaEdukasiItem('poster', newPoster);
+    try {
+      await StorageService.saveMediaEdukasiItem('poster', newPoster);
+    } catch (err) {
+      console.warn('Save poster error notice:', err);
+    }
 
     // Reset & close
     setJudul('');
