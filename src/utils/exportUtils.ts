@@ -275,11 +275,11 @@ export function exportOfficialReportToWordDoc(
 /**
  * Utility to export a DOM element directly to a downloadable PDF file (.pdf)
  */
-export async function exportElementToPDF(elementId: string, filename: string) {
+export async function exportElementToPDF(elementId: string, filename: string): Promise<boolean> {
   const element = document.getElementById(elementId);
   if (!element) {
     console.error(`Element with id '${elementId}' not found for PDF export.`);
-    return;
+    return false;
   }
 
   const opt = {
@@ -297,10 +297,16 @@ export async function exportElementToPDF(elementId: string, filename: string) {
   };
 
   try {
+    // Dynamically resolve html2pdf in case of module differences
     // @ts-ignore
-    await html2pdf().set(opt).from(element).save();
+    const h2p = (typeof html2pdf === 'function' ? html2pdf : (html2pdf as any)?.default) || (window as any).html2pdf;
+    if (typeof h2p === 'function') {
+      await h2p().set(opt).from(element).save();
+      return true;
+    }
+    throw new Error('html2pdf function not directly callable');
   } catch (err) {
-    console.error('html2pdf error, attempting canvas fallback:', err);
+    console.warn('html2pdf direct run warning, attempting canvas/jsPDF fallback:', err);
     try {
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
@@ -313,12 +319,32 @@ export async function exportElementToPDF(elementId: string, filename: string) {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let heightLeft = pdfHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+
       pdf.save(`${filename}.pdf`);
+      return true;
     } catch (fallbackErr) {
       console.error('PDF generation failed completely:', fallbackErr);
-      alert('Gagal mengunduh PDF secara langsung. Membuka dialog cetak...');
-      window.print();
+      try {
+        window.print();
+        return true;
+      } catch (winErr) {
+        console.error('window.print also failed:', winErr);
+        return false;
+      }
     }
   }
 }
@@ -326,13 +352,32 @@ export async function exportElementToPDF(elementId: string, filename: string) {
 /**
  * Utility to trigger browser print dialog cleanly for a specific DOM element.
  * Works reliably inside iframe, desktop, and mobile browsers.
+ * If print dialog is blocked in sandboxed iframe, automatically falls back to direct PDF download.
  */
-export function triggerPrintElement(elementId: string, docTitle: string = 'Laporan Resmi') {
+export async function triggerPrintElement(
+  elementId: string,
+  docTitle: string = 'Laporan Resmi',
+  onFallbackPdf?: () => void
+) {
   const element = document.getElementById(elementId);
   if (!element) {
     console.warn(`Element #${elementId} not found, falling back to window.print()`);
-    window.print();
+    try {
+      window.print();
+    } catch (e) {
+      console.warn('window.print failed:', e);
+    }
     return;
+  }
+
+  const isInsideIframe = window.self !== window.top;
+
+  // If inside an iframe (like AI Studio preview), browser sandbox commonly blocks window.print()
+  // Trigger PDF download alongside print attempt so user never experiences "Cetak tidak jalan"
+  if (isInsideIframe) {
+    onFallbackPdf?.();
+    const cleanDocName = `${docTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
+    exportElementToPDF(elementId, cleanDocName);
   }
 
   // Remove existing print iframe if any
@@ -355,7 +400,11 @@ export function triggerPrintElement(elementId: string, docTitle: string = 'Lapor
 
   const iframeDoc = iframe.contentWindow?.document;
   if (!iframeDoc) {
-    window.print();
+    try {
+      window.print();
+    } catch (e) {
+      console.warn('Direct window.print error:', e);
+    }
     return;
   }
 
@@ -378,7 +427,7 @@ export function triggerPrintElement(elementId: string, docTitle: string = 'Lapor
         <style>
           @page {
             size: A4 portrait;
-            margin: 12mm 10mm 15mm 10mm;
+            margin: 10mm 10mm 12mm 10mm;
           }
           *, *::before, *::after {
             box-sizing: border-box !important;
@@ -393,7 +442,7 @@ export function triggerPrintElement(elementId: string, docTitle: string = 'Lapor
             padding: 0 !important;
           }
           .printable-root {
-            padding: 12px 20px !important;
+            padding: 10px 16px !important;
             width: 100% !important;
             max-width: 210mm !important;
             margin: 0 auto !important;
@@ -421,8 +470,16 @@ export function triggerPrintElement(elementId: string, docTitle: string = 'Lapor
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
     } catch (e) {
-      console.warn('Iframe print error, falling back to window.print():', e);
-      window.print();
+      console.warn('Iframe print error, falling back to window.print() or export:', e);
+      try {
+        window.print();
+      } catch (winErr) {
+        console.warn('window.print also blocked:', winErr);
+        if (!isInsideIframe) {
+          const cleanDocName = `${docTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
+          exportElementToPDF(elementId, cleanDocName);
+        }
+      }
     } finally {
       setTimeout(() => {
         if (document.body.contains(iframe)) {
