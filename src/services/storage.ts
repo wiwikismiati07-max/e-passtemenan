@@ -293,19 +293,87 @@ export class StorageService {
     }
   }
 
-  public static async deleteFromSupabase(table: string, id: string): Promise<void> {
-    if (!id) return;
+  public static removeRecordFromMemory(id: string): void {
+    if (!id || !this.db) return;
+    const db = this.db;
+    db.piketHarian = (db.piketHarian || []).filter((x) => x.id !== id);
+    db.sabtuBeliTehCeri = (db.sabtuBeliTehCeri || []).filter((x) => x.id !== id);
+    db.kebunLuasBerseri = (db.kebunLuasBerseri || []).filter((x) => x.id !== id);
+    db.senandungSerasi = (db.senandungSerasi || []).filter((x) => x.id !== id);
+    db.eLaporPerundungan = (db.eLaporPerundungan || []).filter((x) => x.id !== id);
+    db.bukuTamu = (db.bukuTamu || []).filter((x) => x.id !== id);
+    db.masterSiswa = (db.masterSiswa || []).filter((x) => x.id !== id);
+    db.masterGuru = (db.masterGuru || []).filter((x) => x.id !== id);
+    db.customLinks = (db.customLinks || []).filter((x) => x.id !== id);
+
+    if (db.mediaEdukasi) {
+      (['poster', 'materi', 'infografis', 'video', 'pesan'] as const).forEach((sub) => {
+        if (Array.isArray(db.mediaEdukasi![sub])) {
+          (db.mediaEdukasi as any)[sub] = (db.mediaEdukasi![sub] as any[]).filter((x) => x.id !== id);
+        }
+      });
+    }
+  }
+
+  public static async deleteFromSupabase(table: string, id: string): Promise<{ success: boolean; message?: string }> {
+    if (!id) return { success: false };
+    
+    // 1. Mark as deleted locally and purge from memory & localStorage immediately
+    this.markAsDeleted(id);
+    this.removeRecordFromMemory(id);
+    this.saveDb();
+
+    // 2. Broadcast local update immediately to all tabs in current browser
+    this.broadcastChange(table, 'delete', id);
+
     const client = this.getSupabaseClient();
-    if (!client) return;
+    if (!client) {
+      return { success: true };
+    }
+
     try {
+      // 3. Delete from remote Supabase table directly
       const { error } = await client.from(table).delete().eq('id', id);
       if (error) {
         console.warn(`Supabase delete from ${table} notice:`, error.message);
-      } else {
-        this.broadcastChange(table, 'delete', id);
       }
-    } catch (e) {
+
+      // 4. Record deletion tombstone in Supabase custom_links table so other devices (phone/laptop) synchronize deletion
+      try {
+        await client.from('custom_links').upsert({
+          id: '__DELETED_ID_' + id,
+          title: id,
+          url: `system://deleted/${table}/${id}`,
+          description: JSON.stringify({ id, table, deletedAt: new Date().toISOString() }),
+          category: '__DELETED_RECORD__',
+          icon_name: 'Trash2',
+          color: '#ef4444',
+          is_custom: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      } catch (tombErr) {
+        console.warn('Tombstone sync notice:', tombErr);
+      }
+
+      // 5. Update app_settings deleted_ids array in Supabase
+      try {
+        const deletedArr = Array.from(this.getDeletedIds()).slice(-300);
+        await client.from('app_settings').upsert({
+          key: 'deleted_ids',
+          value: JSON.stringify(deletedArr),
+          updated_at: new Date().toISOString(),
+        });
+      } catch (appSetErr) {
+        // Silently continue
+      }
+
+      // 6. Broadcast Realtime delete event across Supabase channel to all connected devices (phones, laptops, PCs)
+      await this.broadcastChange(table, 'delete', id);
+      return { success: true };
+    } catch (e: any) {
       console.warn(`Supabase delete exception on ${table}:`, e);
+      return { success: false, message: e?.message };
     }
   }
 
@@ -988,13 +1056,25 @@ export class StorageService {
       }
     });
 
-    // 3. Keep local items that are not yet in remote and sync them up
+    // 3. Keep local items that are not yet in remote and sync them up ONLY if they are fresh local drafts (< 5 mins old).
+    // If an item is older and missing from remote Supabase, it means it was deleted on another device (phone or laptop)!
     const missingInRemote: T[] = [];
+    const now = Date.now();
+    const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
     localMap.forEach((localItem, id) => {
       if (!remoteMap.has(id)) {
         if (!deletedIds.has(id) && !LEGACY_MOCK_IDS.has(id)) {
-          remoteMap.set(id, localItem);
-          missingInRemote.push(localItem);
+          const itemTime = new Date(localItem.createdAt || localItem.updatedAt || 0).getTime();
+          // If created very recently offline, push to remote
+          if (itemTime > 0 && now - itemTime < FIVE_MINUTES_MS) {
+            remoteMap.set(id, localItem);
+            missingInRemote.push(localItem);
+          } else {
+            // Older item no longer in remote Supabase means it was deleted from another device. Mark as deleted!
+            deletedIds.add(id);
+            StorageService.markAsDeleted(id);
+          }
         }
       }
     });
@@ -1184,8 +1264,14 @@ export class StorageService {
       });
 
       // 1. Listen for Supabase Broadcast (instant across all browsers/devices)
-      channel.on('broadcast', { event: 'db_changed' }, async (payload) => {
-        console.log('Realtime multi-user change received:', payload);
+      channel.on('broadcast', { event: 'db_changed' }, async (eventPayload) => {
+        const detail = eventPayload?.payload;
+        if (detail?.action === 'delete' && detail?.itemId) {
+          StorageService.markAsDeleted(detail.itemId);
+          StorageService.removeRecordFromMemory(detail.itemId);
+          StorageService.saveDb();
+          window.dispatchEvent(new Event('pass-temenan-db-updated'));
+        }
         await this.fetchFromSupabase();
         window.dispatchEvent(new Event('pass-temenan-db-updated'));
       });
@@ -1204,7 +1290,13 @@ export class StorageService {
         'custom_links',
       ];
       for (const t of tables) {
-        channel.on('postgres_changes', { event: '*', schema: 'public', table: t }, async () => {
+        channel.on('postgres_changes', { event: '*', schema: 'public', table: t }, async (payload: any) => {
+          if (payload.eventType === 'DELETE' && payload.old?.id) {
+            StorageService.markAsDeleted(payload.old.id);
+            StorageService.removeRecordFromMemory(payload.old.id);
+            StorageService.saveDb();
+            window.dispatchEvent(new Event('pass-temenan-db-updated'));
+          }
           await this.fetchFromSupabase();
           window.dispatchEvent(new Event('pass-temenan-db-updated'));
         });
@@ -1242,6 +1334,49 @@ export class StorageService {
     const errors: string[] = [];
 
     try {
+      // 0. Fetch Remote Deleted Records / Tombstones from Supabase to sync deletions across devices
+      try {
+        const { data: tombData } = await client
+          .from('custom_links')
+          .select('id, title')
+          .eq('category', '__DELETED_RECORD__')
+          .range(0, 999);
+        if (tombData && tombData.length > 0) {
+          tombData.forEach((row: any) => {
+            const delId = row.title || row.id.replace('__DELETED_ID_', '');
+            if (delId) {
+              deletedIds.add(delId);
+              this.markAsDeleted(delId);
+              this.removeRecordFromMemory(delId);
+            }
+          });
+        }
+      } catch (tombErr) {
+        // Silently continue
+      }
+
+      try {
+        const { data: appSettingDel } = await client
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'deleted_ids')
+          .maybeSingle();
+        if (appSettingDel && appSettingDel.value) {
+          const list = typeof appSettingDel.value === 'string' ? JSON.parse(appSettingDel.value) : appSettingDel.value;
+          if (Array.isArray(list)) {
+            list.forEach((id: string) => {
+              if (id) {
+                deletedIds.add(id);
+                this.markAsDeleted(id);
+                this.removeRecordFromMemory(id);
+              }
+            });
+          }
+        }
+      } catch (appErr) {
+        // Silently continue
+      }
+
       // 1. Fetch Master Siswa
       try {
         const { data: siswaData, error: siswaErr } = await client
@@ -2756,21 +2891,16 @@ export class StorageService {
   }
 
   public static deleteMultipleSiswa(ids: string[]): void {
-    ids.forEach((id) => this.markAsDeleted(id));
-    const db = this.getDb();
-    db.masterSiswa = db.masterSiswa.filter((s) => !ids.includes(s.id));
+    if (!ids || ids.length === 0) return;
+    ids.forEach((id) => {
+      this.markAsDeleted(id);
+      this.removeRecordFromMemory(id);
+    });
     this.saveDb();
 
-    const client = this.getSupabaseClient();
-    if (client && ids.length > 0) {
-      client
-        .from('master_siswa')
-        .delete()
-        .in('id', ids)
-        .then(({ error }) => {
-          if (error) console.warn('Supabase bulk delete siswa notice:', error.message);
-        });
-    }
+    ids.forEach((id) => {
+      this.deleteFromSupabase('master_siswa', id);
+    });
   }
 
   public static importSiswaBatch(
@@ -2957,21 +3087,16 @@ export class StorageService {
   }
 
   public static deleteMultipleGuru(ids: string[]): void {
-    ids.forEach((id) => this.markAsDeleted(id));
-    const db = this.getDb();
-    db.masterGuru = db.masterGuru.filter((g) => !ids.includes(g.id));
+    if (!ids || ids.length === 0) return;
+    ids.forEach((id) => {
+      this.markAsDeleted(id);
+      this.removeRecordFromMemory(id);
+    });
     this.saveDb();
 
-    const client = this.getSupabaseClient();
-    if (client && ids.length > 0) {
-      client
-        .from('master_guru')
-        .delete()
-        .in('id', ids)
-        .then(({ error }) => {
-          if (error) console.warn('Supabase bulk delete guru notice:', error.message);
-        });
-    }
+    ids.forEach((id) => {
+      this.deleteFromSupabase('master_guru', id);
+    });
   }
 
   public static importGuruBatch(
