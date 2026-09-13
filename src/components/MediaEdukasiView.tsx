@@ -137,6 +137,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   const [quickPosterSuccess, setQuickPosterSuccess] = useState(false);
   const [quickPosterError, setQuickPosterError] = useState('');
   const [quickPosterUploading, setQuickPosterUploading] = useState(false);
+  const [quickPosterSaving, setQuickPosterSaving] = useState(false);
   const quickPosterFileRef = useRef<HTMLInputElement>(null);
 
   // Quick Manual Video Field States
@@ -668,6 +669,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       return;
     }
 
+    setQuickPosterSaving(true);
     const todayStr = new Date().toISOString().split('T')[0];
     const resolvedTitle =
       quickPosterJudul.trim() || `Poster Kampanye: ${quickPosterTema}`;
@@ -691,6 +693,8 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       await StorageService.saveMediaEdukasiItem('poster', newPoster);
     } catch (err) {
       console.warn('Save quick poster error notice:', err);
+    } finally {
+      setQuickPosterSaving(false);
     }
 
     // Automatically reset category and search filters so the new poster displays immediately!
@@ -1448,11 +1452,19 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
               <div className="flex items-center justify-end pt-1">
                 <button
                   type="submit"
-                  disabled={quickPosterUploading}
+                  disabled={quickPosterUploading || quickPosterSaving}
                   className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Simpan Poster ke Galeri</span>
+                  {quickPosterSaving ? (
+                    <div className="w-3.5 h-3.5 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                  ) : (
+                    <Plus className="w-3.5 h-3.5" />
+                  )}
+                  <span>
+                    {quickPosterSaving
+                      ? 'Menyimpan ke Cloud Supabase & Galeri...'
+                      : 'Simpan Poster ke Galeri'}
+                  </span>
                 </button>
               </div>
             </form>

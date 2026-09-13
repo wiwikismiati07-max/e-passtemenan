@@ -46,6 +46,7 @@ export const TambahPosterModal: React.FC<TambahPosterModalProps> = ({
   const [gambarUrl, setGambarUrl] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [uploadTab, setUploadTab] = useState<'upload' | 'url'>('upload');
 
@@ -147,20 +148,23 @@ export const TambahPosterModal: React.FC<TambahPosterModalProps> = ({
       isKaryaSiswa,
     };
 
+    setIsSaving(true);
     try {
       await StorageService.saveMediaEdukasiItem('poster', newPoster);
-    } catch (err) {
+      // Reset & close
+      setJudul('');
+      setDeskripsi('');
+      setKreator('');
+      setGambarUrl('');
+      setPreviewUrl('');
+      onSuccess();
+      onClose();
+    } catch (err: any) {
       console.warn('Save poster error notice:', err);
+      setErrorMsg(err?.message || 'Gagal menyimpan poster ke Supabase.');
+    } finally {
+      setIsSaving(false);
     }
-
-    // Reset & close
-    setJudul('');
-    setDeskripsi('');
-    setKreator('');
-    setGambarUrl('');
-    setPreviewUrl('');
-    onSuccess();
-    onClose();
   };
 
   return (
@@ -403,11 +407,15 @@ export const TambahPosterModal: React.FC<TambahPosterModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isUploading}
+              disabled={isUploading || isSaving}
               className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>Simpan Poster ke Galeri</span>
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              <span>{isSaving ? 'Menyimpan ke Cloud Supabase...' : 'Simpan Poster ke Galeri'}</span>
             </button>
           </div>
         </form>

@@ -88,7 +88,9 @@ export const TambahMediaModal: React.FC<TambahMediaModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -97,6 +99,7 @@ export const TambahMediaModal: React.FC<TambahMediaModalProps> = ({
         setErrorMessage('Teks kutipan pesan edukatif wajib diisi.');
         return;
       }
+      setIsSaving(true);
       const newItem = {
         id: `pes-${Date.now()}`,
         kutipan: deskripsi.trim(),
@@ -107,7 +110,8 @@ export const TambahMediaModal: React.FC<TambahMediaModalProps> = ({
         rekomendasiUntuk: rekomendasi,
         sukaCount: 1,
       };
-      StorageService.saveMediaEdukasiItem('pesan', newItem);
+      await StorageService.saveMediaEdukasiItem('pesan', newItem);
+      setIsSaving(false);
       onSuccess();
       onClose();
       return;
@@ -118,91 +122,97 @@ export const TambahMediaModal: React.FC<TambahMediaModalProps> = ({
       return;
     }
 
+    setIsSaving(true);
     const todayStr = new Date().toISOString().split('T')[0];
 
-    switch (selectedTab) {
-      case 'materi': {
-        const tags = tagsInput
-          ? tagsInput.split(',').map((t) => t.trim()).filter(Boolean)
-          : ['Materi', 'Edukasi'];
-        const item = {
-          id: `mat-${Date.now()}`,
-          judul: judul.trim(),
-          kategori: kategori.trim() || 'Materi Edukasi',
-          ringkasan: deskripsi.trim() || judul.trim(),
-          kontenLengkap: deskripsi.trim(),
-          penulis: penulis.trim() || 'Guru / Satgas SPANJU',
-          tanggal: todayStr,
-          linkDokumen: urlMedia.trim() || undefined,
-          fileFormat: formatDokumen,
-          bacaanMenit: 5,
-          tags,
-          unduhanCount: 0,
-        };
-        StorageService.saveMediaEdukasiItem('materi', item);
-        break;
-      }
-      case 'poster': {
-        const item = {
-          id: `pos-${Date.now()}`,
-          judul: judul.trim(),
-          tema: kategori.trim() || 'Anti-Bullying',
-          deskripsi: deskripsi.trim() || judul.trim(),
-          gambarUrl: urlMedia.trim() || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1000&q=80',
-          kreator: penulis.trim() || 'Warga SMPN 7 Pasuruan',
-          tanggal: todayStr,
-          resolusi: 'HD (1080 x 1350 px)',
-          unduhanCount: 0,
-          isKaryaSiswa: true,
-        };
-        StorageService.saveMediaEdukasiItem('poster', item);
-        break;
-      }
-      case 'infografis': {
-        const poinPenting = poinPentingInput
-          ? poinPentingInput.split('\n').map((p) => p.trim()).filter(Boolean)
-          : ['Pencegahan perundungan di lingkungan sekolah.'];
-        const item = {
-          id: `info-${Date.now()}`,
-          judul: judul.trim(),
-          fokus: kategori.trim() || 'Infografis Edukasi',
-          deskripsi: deskripsi.trim() || judul.trim(),
-          gambarUrl: urlMedia.trim() || 'https://images.weserv.nl/?url=i.ibb.co/spq7dvH0/Diagram-Alur-Penilaian-Respon-Laporan.png&w=1200&output=jpg&q=85',
-          sumber: penulis.trim() || 'Satgas PPKSP SPANJU',
-          poinPenting,
-          tanggal: todayStr,
-        };
-        StorageService.saveMediaEdukasiItem('infografis', item);
-        break;
-      }
-      case 'video': {
-        let ytId = '';
-        if (urlMedia.includes('youtube.com/watch?v=') || urlMedia.includes('youtu.be/')) {
-          const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-          const match = urlMedia.match(regExp);
-          if (match && match[2].length === 11) ytId = match[2];
+    try {
+      switch (selectedTab) {
+        case 'materi': {
+          const tags = tagsInput
+            ? tagsInput.split(',').map((t) => t.trim()).filter(Boolean)
+            : ['Materi', 'Edukasi'];
+          const item = {
+            id: `mat-${Date.now()}`,
+            judul: judul.trim(),
+            kategori: kategori.trim() || 'Materi Edukasi',
+            ringkasan: deskripsi.trim() || judul.trim(),
+            kontenLengkap: deskripsi.trim(),
+            penulis: penulis.trim() || 'Guru / Satgas SPANJU',
+            tanggal: todayStr,
+            linkDokumen: urlMedia.trim() || undefined,
+            fileFormat: formatDokumen,
+            bacaanMenit: 5,
+            tags,
+            unduhanCount: 0,
+          };
+          await StorageService.saveMediaEdukasiItem('materi', item);
+          break;
         }
-        const item = {
-          id: `vid-${Date.now()}`,
-          judul: judul.trim(),
-          kategori: kategori.trim() || 'Video Edukasi',
-          deskripsi: deskripsi.trim() || judul.trim(),
-          videoUrl: urlMedia.trim() || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-          youtubeId: ytId || undefined,
-          durasi: durasi.trim() || '04:00',
-          narasumber: penulis.trim() || 'Tim Kesiswaan SPANJU',
-          tanggal: todayStr,
-          thumbnailUrl: ytId
-            ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
-            : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
-        };
-        StorageService.saveMediaEdukasiItem('video', item);
-        break;
+        case 'poster': {
+          const item = {
+            id: `pos-${Date.now()}`,
+            judul: judul.trim(),
+            tema: kategori.trim() || 'Anti-Bullying',
+            deskripsi: deskripsi.trim() || judul.trim(),
+            gambarUrl: urlMedia.trim() || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1000&q=80',
+            kreator: penulis.trim() || 'Warga SMPN 7 Pasuruan',
+            tanggal: todayStr,
+            resolusi: 'HD (1080 x 1350 px)',
+            unduhanCount: 0,
+            isKaryaSiswa: true,
+          };
+          await StorageService.saveMediaEdukasiItem('poster', item);
+          break;
+        }
+        case 'infografis': {
+          const poinPenting = poinPentingInput
+            ? poinPentingInput.split('\n').map((p) => p.trim()).filter(Boolean)
+            : ['Pencegahan perundungan di lingkungan sekolah.'];
+          const item = {
+            id: `info-${Date.now()}`,
+            judul: judul.trim(),
+            fokus: kategori.trim() || 'Infografis Edukasi',
+            deskripsi: deskripsi.trim() || judul.trim(),
+            gambarUrl: urlMedia.trim() || 'https://images.weserv.nl/?url=i.ibb.co/spq7dvH0/Diagram-Alur-Penilaian-Respon-Laporan.png&w=1200&output=jpg&q=85',
+            sumber: penulis.trim() || 'Satgas PPKSP SPANJU',
+            poinPenting,
+            tanggal: todayStr,
+          };
+          await StorageService.saveMediaEdukasiItem('infografis', item);
+          break;
+        }
+        case 'video': {
+          let ytId = '';
+          if (urlMedia.includes('youtube.com/watch?v=') || urlMedia.includes('youtu.be/')) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = urlMedia.match(regExp);
+            if (match && match[2].length === 11) ytId = match[2];
+          }
+          const item = {
+            id: `vid-${Date.now()}`,
+            judul: judul.trim(),
+            kategori: kategori.trim() || 'Video Edukasi',
+            deskripsi: deskripsi.trim() || judul.trim(),
+            videoUrl: urlMedia.trim() || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            youtubeId: ytId || undefined,
+            durasi: durasi.trim() || '04:00',
+            narasumber: penulis.trim() || 'Tim Kesiswaan SPANJU',
+            tanggal: todayStr,
+            thumbnailUrl: ytId
+              ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+              : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
+          };
+          await StorageService.saveMediaEdukasiItem('video', item);
+          break;
+        }
       }
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Gagal menyimpan media edukasi.');
+    } finally {
+      setIsSaving(false);
     }
-
-    onSuccess();
-    onClose();
   };
 
   return (
@@ -531,11 +541,15 @@ export const TambahMediaModal: React.FC<TambahMediaModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isUploading}
+              disabled={isUploading || isSaving}
               className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
             >
-              <Check className="w-4 h-4" />
-              <span>Simpan Media Edukasi</span>
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              <span>{isSaving ? 'Menyimpan ke Cloud Supabase...' : 'Simpan Media Edukasi'}</span>
             </button>
           </div>
         </form>

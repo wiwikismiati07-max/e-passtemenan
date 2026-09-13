@@ -510,8 +510,23 @@ export class StorageService {
       db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI };
     }
 
-    // If item has a base64 gambarUrl, upload to Supabase storage for cloud persistence across devices (phone and laptop)
     let finalItem = { ...item };
+
+    // 1. If item has a blob: URL (temporary local browser memory), convert to Blob and upload to Supabase Storage
+    if (finalItem.gambarUrl && finalItem.gambarUrl.startsWith('blob:')) {
+      try {
+        const blobResp = await fetch(finalItem.gambarUrl);
+        const blobData = await blobResp.blob();
+        const uploadRes = await this.uploadPhotoToSupabase(blobData, tab === 'poster' ? 'poster-edukasi' : 'media-edukasi');
+        if (uploadRes.url) {
+          finalItem.gambarUrl = uploadRes.url;
+        }
+      } catch (blobErr) {
+        console.warn('Blob URL cloud upload notice:', blobErr);
+      }
+    }
+
+    // 2. If item has a base64 data URL, upload to Supabase storage for cloud persistence across devices (phone and laptop)
     if (finalItem.gambarUrl && finalItem.gambarUrl.startsWith('data:')) {
       try {
         const uploadRes = await this.uploadBase64ToSupabase(finalItem.gambarUrl, tab === 'poster' ? 'poster-edukasi' : 'media-edukasi');
@@ -544,7 +559,34 @@ export class StorageService {
     this.unmarkDeleted(finalItem.id);
     this.saveDb();
 
-    // Sync media edukasi to Supabase
+    // 3. Save individual item into Supabase custom_links table for reliable multi-user and multi-device gallery access
+    const categoryMap: Record<MediaEdukasiSubTab, string> = {
+      poster: '__MEDIA_POSTER__',
+      materi: '__MEDIA_MATERI__',
+      infografis: '__MEDIA_INFOGRAFIS__',
+      video: '__MEDIA_VIDEO__',
+      pesan: '__MEDIA_PESAN__',
+    };
+    const itemCategory = categoryMap[tab] || '__SYSTEM_SETTINGS__';
+
+    try {
+      await this.safeUpsert('custom_links', {
+        id: finalItem.id,
+        title: finalItem.judul || finalItem.kutipan || 'Media Edukasi',
+        url: finalItem.gambarUrl || finalItem.videoUrl || finalItem.linkDokumen || 'system://media',
+        description: JSON.stringify(finalItem),
+        category: itemCategory,
+        icon_name: tab === 'poster' ? 'Image' : tab === 'video' ? 'Video' : 'Book',
+        color: '#f59e0b',
+        is_custom: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    } catch (indivErr) {
+      console.warn('Individual item cloud sync notice:', indivErr);
+    }
+
+    // 4. Also sync full media edukasi database state to Supabase system settings row
     try {
       const upsertRes = await this.safeUpsert('custom_links', {
         id: '__APP_SETTING_MEDIA_EDUKASI__',
@@ -583,22 +625,27 @@ export class StorageService {
     this.markAsDeleted(id);
     this.saveDb();
 
-    // Sync media edukasi deletion to Supabase
-    const upsertRes = await this.safeUpsert('custom_links', {
-      id: '__APP_SETTING_MEDIA_EDUKASI__',
-      title: 'Media Edukasi',
-      url: 'system://media',
-      description: JSON.stringify(db.mediaEdukasi),
-      category: '__SYSTEM_SETTINGS__',
-      icon_name: 'Book',
-      color: '#0d9488',
-      is_custom: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-    if (upsertRes.error) {
-      throw new Error(upsertRes.error.message || 'Gagal menghapus Media Edukasi di Supabase');
+    // Delete item directly from Supabase custom_links
+    const client = this.getSupabaseClient();
+    if (client) {
+      client.from('custom_links').delete().eq('id', id).then(() => {});
     }
+
+    // Sync updated media edukasi state to Supabase
+    try {
+      await this.safeUpsert('custom_links', {
+        id: '__APP_SETTING_MEDIA_EDUKASI__',
+        title: 'Media Edukasi',
+        url: 'system://media',
+        description: JSON.stringify(db.mediaEdukasi),
+        category: '__SYSTEM_SETTINGS__',
+        icon_name: 'Book',
+        color: '#0d9488',
+        is_custom: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    } catch (e) {}
   }
 
   public static toggleSukaPesan(id: string): void {
@@ -1675,7 +1722,7 @@ export class StorageService {
         // Silently handle
       }
 
-      // 9. Fetch Custom Links
+      // 9. Fetch Custom Links and Media Edukasi
       try {
         const { data: linkData, error: linkErr } = await client
           .from('custom_links')
@@ -1683,6 +1730,10 @@ export class StorageService {
           .range(0, 999);
 
         if (!linkErr && linkData) {
+          if (!db.mediaEdukasi) {
+            db.mediaEdukasi = { ...INITIAL_MEDIA_EDUKASI };
+          }
+
           // Extract system settings if stored in custom_links fallback
           const systemRows = linkData.filter((r: any) => r.category === '__SYSTEM_SETTINGS__' || r.id?.startsWith('__APP_SETTING_'));
           systemRows.forEach((r: any) => {
@@ -1695,8 +1746,57 @@ export class StorageService {
             } catch (err) {}
           });
 
-          // Standard user links (exclude system settings)
-          const userLinkRows = linkData.filter((r: any) => r.category !== '__SYSTEM_SETTINGS__' && !r.id?.startsWith('__APP_SETTING_'));
+          // Extract granular media edukasi items (Posters, Materi, Infografis, Video, Pesan) for cross-user gallery synchronization
+          const mediaTabConfigs: Array<{ category: string; tab: MediaEdukasiSubTab }> = [
+            { category: '__MEDIA_POSTER__', tab: 'poster' },
+            { category: '__MEDIA_MATERI__', tab: 'materi' },
+            { category: '__MEDIA_INFOGRAFIS__', tab: 'infografis' },
+            { category: '__MEDIA_VIDEO__', tab: 'video' },
+            { category: '__MEDIA_PESAN__', tab: 'pesan' },
+          ];
+
+          mediaTabConfigs.forEach(({ category, tab }) => {
+            const rows = linkData.filter((r: any) => r.category === category && !deletedIds.has(r.id));
+            if (rows.length > 0) {
+              const remoteItems = rows.map((r: any) => {
+                try {
+                  if (r.description && (r.description.startsWith('{') || r.description.startsWith('['))) {
+                    return JSON.parse(r.description);
+                  }
+                } catch (e) {}
+                return {
+                  id: r.id,
+                  judul: r.title,
+                  gambarUrl: r.url,
+                  tema: 'Kampanye Utama',
+                  deskripsi: r.description || '',
+                  kreator: 'Satgas SPANJU',
+                  tanggal: (r.created_at || new Date().toISOString()).split('T')[0],
+                  resolusi: 'HD Standard',
+                  unduhanCount: 0,
+                  isKaryaSiswa: true,
+                };
+              }).filter((it: any) => !deletedIds.has(it.id) && !['pos-1', 'pos-2', 'pos-3', 'pos-4', 'pos-5'].includes(it.id));
+
+              const currentList = Array.isArray(db.mediaEdukasi![tab]) ? (db.mediaEdukasi![tab] as any[]) : [];
+              const itemMap = new Map<string, any>();
+              remoteItems.forEach((it: any) => itemMap.set(it.id, it));
+              currentList.forEach((it: any) => {
+                if (!deletedIds.has(it.id)) {
+                  itemMap.set(it.id, { ...(itemMap.get(it.id) || {}), ...it });
+                }
+              });
+              (db.mediaEdukasi as any)[tab] = Array.from(itemMap.values());
+            }
+          });
+
+          // Standard user links (exclude system settings and media categories)
+          const userLinkRows = linkData.filter(
+            (r: any) =>
+              r.category !== '__SYSTEM_SETTINGS__' &&
+              !r.id?.startsWith('__APP_SETTING_') &&
+              !r.category?.startsWith('__MEDIA_')
+          );
           const remoteLinks: CustomLink[] = userLinkRows.map((row: any) => ({
             id: row.id,
             title: row.title,
@@ -1729,6 +1829,32 @@ export class StorageService {
                 updated_at: item.updatedAt,
               }))
             ).then(() => {});
+          }
+
+          // Push local posters to Supabase if not yet present in remote custom_links
+          if (Array.isArray(db.mediaEdukasi?.poster) && db.mediaEdukasi.poster.length > 0) {
+            const existingRemotePosterIds = new Set(
+              linkData.filter((r: any) => r.category === '__MEDIA_POSTER__').map((r: any) => r.id)
+            );
+            const postersToUpload = db.mediaEdukasi.poster.filter(
+              (p: any) => !existingRemotePosterIds.has(p.id) && !deletedIds.has(p.id)
+            );
+            if (postersToUpload.length > 0) {
+              client.from('custom_links').upsert(
+                postersToUpload.map((p: any) => ({
+                  id: p.id,
+                  title: p.judul,
+                  url: p.gambarUrl,
+                  description: JSON.stringify(p),
+                  category: '__MEDIA_POSTER__',
+                  icon_name: 'Image',
+                  color: '#f59e0b',
+                  is_custom: true,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }))
+              ).then(() => {});
+            }
           }
 
           const toPurge = linkData.filter((row: any) => deletedIds.has(row.id)).map((r: any) => r.id);
