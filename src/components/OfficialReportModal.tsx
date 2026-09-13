@@ -98,7 +98,16 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
 
   const loadConfig = () => {
     const cfg = StorageService.getPejabatConfig();
-    setPejabatConfig({ ...cfg });
+    setPejabatConfig({
+      kepalaSekolahNama: cfg.kepalaSekolahNama || DEFAULT_PEJABAT_CONFIG.kepalaSekolahNama,
+      kepalaSekolahNip: cfg.kepalaSekolahNip || DEFAULT_PEJABAT_CONFIG.kepalaSekolahNip,
+      kepalaSekolahJabatan: cfg.kepalaSekolahJabatan || DEFAULT_PEJABAT_CONFIG.kepalaSekolahJabatan,
+      kepalaSekolahTtd: cfg.kepalaSekolahTtd || DEFAULT_PEJABAT_CONFIG.kepalaSekolahTtd,
+      selectedGuruBK: cfg.selectedGuruBK || DEFAULT_PEJABAT_CONFIG.selectedGuruBK,
+      guruBKNip: cfg.guruBKNip || DEFAULT_PEJABAT_CONFIG.guruBKNip,
+      guruBKJabatan: cfg.guruBKJabatan || DEFAULT_PEJABAT_CONFIG.guruBKJabatan,
+      guruBKTtd: cfg.guruBKTtd || DEFAULT_PEJABAT_CONFIG.guruBKTtd,
+    });
   };
 
   useEffect(() => {

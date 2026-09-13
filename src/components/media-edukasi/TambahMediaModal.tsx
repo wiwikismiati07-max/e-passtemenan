@@ -44,6 +44,7 @@ export const TambahMediaModal: React.FC<TambahMediaModalProps> = ({
   const [tagsInput, setTagsInput] = useState('');
   const [poinPentingInput, setPoinPentingInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   if (!isOpen) return null;
@@ -87,8 +88,6 @@ export const TambahMediaModal: React.FC<TambahMediaModalProps> = ({
       setIsUploading(false);
     }
   };
-
-  const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

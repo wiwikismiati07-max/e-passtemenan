@@ -365,6 +365,8 @@ try {
             noHp: String(row['No. HP'] || row.noHp || row.NoHP || row.telepon || '').trim(),
             email: String(row.Email || row.email || '').trim(),
             keterangan: String(row.Keterangan || row.keterangan || 'Import Excel').trim(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           }))
           .filter((row) => row.namaLengkap.length > 0);
 

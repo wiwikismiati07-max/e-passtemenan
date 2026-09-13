@@ -106,7 +106,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
           loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
         } catch {
           // Fallback to direct URL loading in pdfjs
-          loadingTask = pdfjsLib.getDocument(source);
+          loadingTask = pdfjsLib.getDocument({ url: source });
         }
       }
 

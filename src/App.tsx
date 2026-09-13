@@ -573,22 +573,40 @@ export default function App() {
               )}
 
               {activeView === 'piket-harian' && (
-                <PiketHarianForm initialTab={activeTab} userRole={currentUser.role} />
+                <PiketHarianForm
+                  initialTab={activeTab as 'form' | 'rekap' | 'statistik'}
+                  userRole={currentUser.role}
+                />
               )}
               {activeView === 'sabtu-teh-ceri' && (
-                <SabtuBeliTehCeriForm initialTab={activeTab} userRole={currentUser.role} />
+                <SabtuBeliTehCeriForm
+                  initialTab={activeTab as 'form' | 'rekap' | 'statistik'}
+                  userRole={currentUser.role}
+                />
               )}
               {activeView === 'kebun-berseri' && (
-                <KebunLuasBerseriForm initialTab={activeTab} userRole={currentUser.role} />
+                <KebunLuasBerseriForm
+                  initialTab={activeTab as 'form' | 'rekap' | 'statistik'}
+                  userRole={currentUser.role}
+                />
               )}
               {activeView === 'senandung-serasi' && (
-                <SenandungSerasiForm initialTab={activeTab} userRole={currentUser.role} />
+                <SenandungSerasiForm
+                  initialTab={activeTab as 'form' | 'rekap'}
+                  userRole={currentUser.role}
+                />
               )}
               {activeView === 'e-lapor' && (
-                <ELaporPerundunganForm initialTab={activeTab} userRole={currentUser.role} />
+                <ELaporPerundunganForm
+                  initialTab={activeTab as 'form' | 'rekap'}
+                  userRole={currentUser.role}
+                />
               )}
               {activeView === 'buku-tamu' && (
-                <BukuTamuForm initialTab={activeTab} userRole={currentUser.role} />
+                <BukuTamuForm
+                  initialTab={activeTab as 'form' | 'rekap'}
+                  userRole={currentUser.role}
+                />
               )}
               {activeView === 'master-siswa' && (
                 <MasterSiswaView db={db} onRefresh={refreshDb} />
@@ -609,7 +627,12 @@ export default function App() {
               )}
 
               {/* Custom Web Embed View */}
-              {activeCustomLink && <WebEmbedViewer link={activeCustomLink} />}
+              {activeCustomLink && (
+                <WebEmbedViewer
+                  link={activeCustomLink}
+                  onBackToOverview={() => handleNavigate('dashboard-overview')}
+                />
+              )}
             </div>
           </main>
         </div>
@@ -627,14 +650,14 @@ export default function App() {
       <LinkManagerModal
         isOpen={isLinkModalOpen}
         onClose={() => setIsLinkModalOpen(false)}
-        onSave={handleSaveLink}
+        onSaved={refreshDb}
         editingLink={editingLink}
       />
 
       <SupabaseSettingsModal
         isOpen={isSupabaseModalOpen}
         onClose={() => setIsSupabaseModalOpen(false)}
-        onSaved={refreshDb}
+        onSynced={refreshDb}
       />
 
       <BackupRestoreModal
