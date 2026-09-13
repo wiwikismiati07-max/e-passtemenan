@@ -1,6 +1,7 @@
 {
-  "name": "PASS TEMENAN SPANJU Dashboard",
-  "description": "Dashboard Aplikasi PASS TEMENAN SMPN 7 Pasuruan dengan navigasi link dinamis, backup & upload, formulir administrasi piket, evaluasi Sabtu Beli Teh Ceri, Kebun Luas Berseri, Senandung Serasi, E-Lapor Perundungan, dan Buku Tamu dengan sinkronisasi database Supabase.",
+  "name": "PASS TEMENAN SPANJU - SMPN 7 Pasuruan",
+  "description": "Aplikasi E-PASS TEMENAN: Bersama Melawan Perundungan - UPT SMP Negeri 7 Pasuruan",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
+
