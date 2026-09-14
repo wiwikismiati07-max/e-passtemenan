@@ -305,6 +305,8 @@ export default function App() {
       } else {
         setActiveTab('materi');
       }
+    } else if (viewKey === 'e-lapor' && currentUser?.role === 'siswa') {
+      setActiveTab('form');
     } else {
       setActiveTab(tab || 'form');
     }
@@ -602,7 +604,7 @@ export default function App() {
               )}
               {activeView === 'e-lapor' && (
                 <ELaporPerundunganForm
-                  initialTab={activeTab as 'form' | 'rekap'}
+                  initialTab={currentUser.role === 'siswa' ? 'form' : (activeTab as 'form' | 'rekap')}
                   userRole={currentUser.role}
                 />
               )}

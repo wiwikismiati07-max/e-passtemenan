@@ -13,6 +13,7 @@ import {
   Edit2,
   User,
   Layers,
+  Lock,
 } from 'lucide-react';
 import { ELaporPerundungan, StatusLaporan } from '../types';
 import { StorageService } from '../services/storage';
@@ -65,12 +66,18 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
   const [keterangan, setKeterangan] = useState('');
 
   useEffect(() => {
-    if (initialTab) {
+    if (userRole === 'siswa') {
+      setActiveTab('form');
+    } else if (initialTab) {
       setActiveTab(initialTab);
     }
-  }, [initialTab]);
+  }, [initialTab, userRole]);
 
   const loadData = () => {
+    if (userRole === 'siswa') {
+      setDataList([]);
+      return;
+    }
     const list = StorageService.getDb().eLaporPerundungan || [];
     setDataList([...list]);
   };
@@ -185,7 +192,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
   };
 
   const handleExportCSV = () => {
-    if (dataList.length === 0) return;
+    if (userRole !== 'admin' || dataList.length === 0) return;
     const headers = [
       'Hari/Tanggal',
       'Waktu Kejadian',
@@ -225,7 +232,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
   };
 
   const handleExportExcel = () => {
-    if (dataList.length === 0) return;
+    if (userRole !== 'admin' || dataList.length === 0) return;
     const headers = [
       'No',
       'Hari/Tanggal',
@@ -260,7 +267,7 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
   };
 
   const handleExportWord = () => {
-    if (dataList.length === 0) return;
+    if (userRole !== 'admin' || dataList.length === 0) return;
     const headers = [
       'No',
       'Hari/Tanggal',
@@ -334,70 +341,92 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleExportWord}
-              className="px-3 py-2 rounded-xl bg-blue-950/80 hover:bg-blue-900 text-blue-200 border border-blue-700/80 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-              title="Unduh Rekap Laporan Format Word (.doc)"
-            >
-              <FileText className="w-4 h-4 text-blue-400" />
-              <span>Word</span>
-            </button>
-            <button
-              onClick={handleExportExcel}
-              className="px-3 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/80 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-              title="Unduh Rekap Laporan Format Excel (.xlsx)"
-            >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-              <span>Excel</span>
-            </button>
-            <button
-              onClick={handleExportCSV}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-              title="Unduh CSV"
-            >
-              <Download className="w-4 h-4 text-rose-400" />
-              <span>CSV</span>
-            </button>
-          </div>
+          {userRole === 'admin' && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleExportWord}
+                className="px-3 py-2 rounded-xl bg-blue-950/80 hover:bg-blue-900 text-blue-200 border border-blue-700/80 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Unduh Rekap Laporan Format Word (.doc)"
+              >
+                <FileText className="w-4 h-4 text-blue-400" />
+                <span>Word</span>
+              </button>
+              <button
+                onClick={handleExportExcel}
+                className="px-3 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/80 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Unduh Rekap Laporan Format Excel (.xlsx)"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                <span>Excel</span>
+              </button>
+              <button
+                onClick={handleExportCSV}
+                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Unduh CSV"
+              >
+                <Download className="w-4 h-4 text-rose-400" />
+                <span>CSV</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Tabs Selector: Form vs Rekap */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl shadow-xs">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setActiveTab('form');
-              if (!editingItem) resetForm();
-            }}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
-              activeTab === 'form'
-                ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            <ShieldAlert className="w-4 h-4" />
-            <span>{editingItem ? 'Edit Laporan Kasus' : 'Formulir Pengaduan / Input Kasus'}</span>
-          </button>
+      {userRole === 'admin' ? (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl shadow-xs">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setActiveTab('form');
+                if (!editingItem) resetForm();
+              }}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'form'
+                  ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <ShieldAlert className="w-4 h-4" />
+              <span>{editingItem ? 'Edit Laporan Kasus' : 'Formulir Pengaduan / Input Kasus'}</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('rekap')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
-              activeTab === 'rekap'
-                ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>Rekapitulasi Kasus ({dataList.length})</span>
-          </button>
-        </div>
+            <button
+              onClick={() => setActiveTab('rekap')}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'rekap'
+                  ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>Rekapitulasi Kasus ({dataList.length})</span>
+            </button>
+          </div>
 
-        <div className="text-[11px] text-slate-500 dark:text-slate-400 px-2">
-          {userRole === 'siswa' ? 'Akun Siswa (Passtemenan): Dapat mengisi laporan & melihat rekap kasus.' : 'Administrator: Akses penuh kelola laporan & rekap.'}
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 px-2 font-medium">
+            Administrator: Akses penuh kelola & rekap kasus
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 p-3.5 rounded-2xl">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <ShieldAlert className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-rose-950 dark:text-rose-200">Formulir Pengaduan Siswa (Akun Passtemenan)</span>
+              <p className="text-[11px] text-rose-700 dark:text-rose-400">
+                Silakan isi data pengaduan dengan jujur dan jelas. Laporan Anda bersifat aman, rahasia, dan langsung diterima Guru BK / Tim TPPK.
+              </p>
+            </div>
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold shrink-0">
+            <Lock className="w-3.5 h-3.5 text-amber-500" />
+            <span>Rekapitulasi Khusus Guru BK & Admin</span>
+          </div>
+        </div>
+      )}
 
       {savedSuccess && (
         <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-sm flex items-center gap-3 animate-fadeIn">
@@ -659,8 +688,8 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
         </div>
       )}
 
-      {/* TAB 2: REKAPITULASI KASUS */}
-      {activeTab === 'rekap' && (
+      {/* TAB 2: REKAPITULASI KASUS (Khusus Admin) */}
+      {activeTab === 'rekap' && userRole === 'admin' && (
         <div className="space-y-4">
           {/* Filter & Search */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
@@ -823,6 +852,35 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Akses Dibatasi untuk Akun Siswa jika Membuka Tab Rekap */}
+      {activeTab === 'rekap' && userRole === 'siswa' && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 text-center space-y-4 shadow-sm animate-fadeIn">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+          <div className="max-w-md mx-auto space-y-2">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white font-display">
+              Akses Rekapitulasi Kasus Terbatas
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Daftar rekapitulasi penanganan kasus perundungan bersifat rahasia untuk melindungi identitas dan privasi peserta didik, serta hanya dapat diakses oleh Guru BK, Tim TPPK, atau Administrator.
+            </p>
+            <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-[11px] text-rose-700 dark:text-rose-300 font-semibold">
+              Akun siswa hanya memiliki hak akses untuk menginput formulir pengaduan.
+            </div>
+          </div>
+          <div className="pt-2">
+            <button
+              onClick={() => setActiveTab('form')}
+              className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-sm hover:shadow-rose-600/20 cursor-pointer inline-flex items-center gap-2"
+            >
+              <ShieldAlert className="w-4 h-4" />
+              <span>Buka Formulir Pengaduan / Input Kasus</span>
+            </button>
+          </div>
         </div>
       )}
 
