@@ -23,6 +23,7 @@ import {
   Undo2,
   Download,
   FileCheck,
+  Trash2,
 } from 'lucide-react';
 import { ClassZoneInfo } from '../data/classZoneData';
 import { AppDatabase, GuruItem, SiswaItem, PERIODE_TAHUN_AJARAN, PeriodeTahunAjaran } from '../types';
@@ -162,6 +163,15 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
 
   const teachers = db?.masterGuru || [];
   const students = db?.masterSiswa || [];
+  const userRole = StorageService.getCurrentUserRole();
+
+  const relatedELapor = (db?.eLaporPerundungan || []).filter((r) => {
+    if (!classInfo?.namaKelas) return false;
+    const target = classInfo.namaKelas.toUpperCase().trim();
+    const kelasStr = (r.kelas || '').toUpperCase();
+    const kronologiStr = (r.kronologi || '').toUpperCase();
+    return kelasStr.includes(target) || kronologiStr.includes(target);
+  });
 
   const isCurrentClassStudent = (s: SiswaItem) => {
     if (!classInfo?.namaKelas) return false;
@@ -761,6 +771,61 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   : `🟢 ${classInfo.kasusSelesai} Kasus Terselesaikan Damai`}
               </span>
             </p>
+
+            {relatedELapor.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                    Rekam Laporan Terkait ({relatedELapor.length}):
+                  </span>
+                  {userRole === 'admin' && (
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">
+                      Admin dapat menghapus jika data tidak sesuai
+                    </span>
+                  )}
+                </div>
+                {relatedELapor.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs flex items-start justify-between gap-2"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200 text-[11px]">
+                        <span className="text-emerald-600 dark:text-emerald-400">{item.hariTanggal || 'Tanggal -'}</span>
+                        <span className="text-slate-400">•</span>
+                        <span className="truncate">{item.namaSiswa || 'Siswa'}</span>
+                        <span className="text-slate-400">•</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                          {item.status || 'Selesai'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 mt-1">
+                        {item.kronologi || '-'}
+                      </p>
+                    </div>
+                    {userRole === 'admin' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Hapus rekam laporan siswa "${item.namaSiswa}" di kelas ${classInfo.namaKelas}? Laporan ini akan dihapus permanen dari sistem.`
+                            )
+                          ) {
+                            StorageService.deleteELaporPerundungan(item.id);
+                            if (onRefresh) onRefresh();
+                          }
+                        }}
+                        className="p-1.5 text-rose-600 hover:text-white hover:bg-rose-600 rounded-lg transition-colors shrink-0 cursor-pointer"
+                        title="Hapus Rekam Laporan Ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

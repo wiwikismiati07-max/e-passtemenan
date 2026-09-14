@@ -147,6 +147,7 @@ export const LEGACY_MOCK_IDS = new Set([
   'senandung-1',
   'senandung-2',
   'lapor-1',
+  'lapor-1789219053473-u0i5v',
   'tamu-1',
   'sis-1',
   'sis-2',

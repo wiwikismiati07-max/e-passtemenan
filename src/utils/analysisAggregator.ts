@@ -68,7 +68,7 @@ function categorizeIncident(text: string): 'verbal' | 'fisik' | 'relasional' | '
   if (lower.includes('fisik') || lower.includes('dorong') || lower.includes('pukul') || lower.includes('tendang') || lower.includes('kontak')) {
     return 'fisik';
   }
-  if (lower.includes('siber') || lower.includes('cyber') || lower.includes('whatsapp') || lower.includes('wa') || lower.includes('online') || lower.includes('medsos')) {
+  if (lower.includes('siber') || lower.includes('cyber') || lower.includes('whatsapp') || /\bwa\b/.test(lower) || lower.includes('online') || lower.includes('medsos')) {
     return 'siber';
   }
   if (lower.includes('relasional') || lower.includes('isolasi') || lower.includes('kucil') || lower.includes('abaikan') || lower.includes('geng')) {
