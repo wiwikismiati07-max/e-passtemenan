@@ -23,6 +23,7 @@ import {
   LogOut,
   Download,
   Video,
+  PhoneCall,
 } from 'lucide-react';
 import { AppDatabase, CustomLink } from '../types';
 
@@ -36,6 +37,8 @@ interface SidebarProps {
   onOpenBackupModal: () => void;
   onOpenExitModal: () => void;
   onOpenInstallModal?: () => void;
+  onOpenManualBook?: () => void;
+  onOpenHotline?: () => void;
   isOpen: boolean;
   onClose: () => void;
   onToggle: () => void;
@@ -49,6 +52,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenBackupModal,
   onOpenExitModal,
   onOpenInstallModal,
+  onOpenManualBook,
+  onOpenHotline,
   isOpen,
   onClose,
   onToggle,
@@ -118,6 +123,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           count: (db.mediaEdukasi?.video && db.mediaEdukasi.video.length > 0) ? db.mediaEdukasi.video.length : 7,
           targetView: 'media-edukasi',
           targetTab: 'video',
+        },
+        {
+          id: 'manual-book-menu',
+          title: 'Tutorial / Manual Book',
+          tag: 'Panduan',
+          category: 'Edukasi',
+          subtitle: 'Flipbook Interaktif Heyzine',
+          icon: BookOpen,
+          color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800',
+          activeBg: 'bg-indigo-600 text-white shadow-indigo-600/20',
+          action: 'open-manual-book',
+        },
+        {
+          id: 'hotline-menu',
+          title: 'Hotline & Bantuan SMPN 7',
+          tag: 'Kontak',
+          category: 'Edukasi',
+          subtitle: 'Telp, WA Satgas & Pos-el',
+          icon: PhoneCall,
+          color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800',
+          activeBg: 'bg-emerald-600 text-white shadow-emerald-600/20',
+          action: 'open-hotline',
         },
       ],
     },
@@ -224,6 +251,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const handleSelect = (item: any) => {
+    if (item.action === 'open-manual-book') {
+      if (onOpenManualBook) onOpenManualBook();
+      if (window.innerWidth < 1024) onClose();
+      return;
+    }
+    if (item.action === 'open-hotline') {
+      if (onOpenHotline) onOpenHotline();
+      if (window.innerWidth < 1024) onClose();
+      return;
+    }
+
     if (item.targetView) {
       onSelectView(item.targetView, item.targetTab);
     } else {
@@ -419,6 +457,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Bottom Quick Tools */}
         <div className="p-3 border-t border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 space-y-2 shrink-0">
+          {/* Quick Manual Book & Hotline */}
+          <div className="grid grid-cols-2 gap-2">
+            {onOpenManualBook && (
+              <button
+                onClick={() => {
+                  onOpenManualBook();
+                  if (window.innerWidth < 1024) onClose();
+                }}
+                className="py-2 px-2 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                title="Buka Buku Panduan / Manual Book (Flipbook)"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span className="truncate">Manual Book</span>
+              </button>
+            )}
+            {onOpenHotline && (
+              <button
+                onClick={() => {
+                  onOpenHotline();
+                  if (window.innerWidth < 1024) onClose();
+                }}
+                className="py-2 px-2 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                title="Buka Hotline & Kontak Resmi SMPN 7 Pasuruan"
+              >
+                <PhoneCall className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">Hotline SMPN 7</span>
+              </button>
+            )}
+          </div>
+
           {onOpenInstallModal && (
             <button
               onClick={() => {

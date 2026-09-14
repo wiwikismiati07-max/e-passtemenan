@@ -9,7 +9,13 @@ import {
   AlertCircle,
   Key,
   GraduationCap,
+  BookOpen,
+  PhoneCall,
+  ExternalLink,
+  Sparkles,
 } from 'lucide-react';
+import { ManualBookModal, MANUAL_BOOK_URL } from './ManualBookModal';
+import { HotlineModal, HOTLINE_INFO } from './HotlineModal';
 
 export interface UserSession {
   username: string;
@@ -27,6 +33,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isManualBookOpen, setIsManualBookOpen] = useState(false);
+  const [isHotlineOpen, setIsHotlineOpen] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,12 +213,66 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
+          {/* Akses Cepat: Tutorial / Manual Book & Hotline SMPN 7 */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            {/* Tombol Kiri: Tutorial / Manual Book */}
+            <button
+              type="button"
+              onClick={() => setIsManualBookOpen(true)}
+              className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2.5 p-3 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/90 dark:border-indigo-800 text-indigo-950 dark:text-indigo-200 transition-all group shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
+              title="Buka Tutorial / Manual Book Aplikasi (Flipbook)"
+            >
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight">
+                  Manual Book
+                </div>
+                <div className="text-[10px] text-indigo-700 dark:text-indigo-300 font-bold mt-0.5 truncate flex items-center gap-1">
+                  <span>Buku Panduan</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+            </button>
+
+            {/* Tombol Kanan: Hotline SMPN 7 */}
+            <button
+              type="button"
+              onClick={() => setIsHotlineOpen(true)}
+              className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2.5 p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/90 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200 transition-all group shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
+              title="Buka Hotline & Kontak Resmi UPT SMPN 7 Pasuruan"
+            >
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <PhoneCall className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
+                  Hotline SMPN 7
+                </div>
+                <div className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold mt-0.5 truncate flex items-center gap-1">
+                  <span>Kontak & Bantuan</span>
+                </div>
+              </div>
+            </button>
+          </div>
+
           {/* Footer note */}
           <div className="text-center text-[11px] text-slate-400 dark:text-slate-500 font-medium pt-1">
             &copy; {new Date().getFullYear()} Satgas Anti Perundungan UPT SMPN 7 Pasuruan
           </div>
         </div>
       </div>
+
+      {/* Interactive Modal Popups */}
+      <ManualBookModal
+        isOpen={isManualBookOpen}
+        onClose={() => setIsManualBookOpen(false)}
+      />
+      <HotlineModal
+        isOpen={isHotlineOpen}
+        onClose={() => setIsHotlineOpen(false)}
+      />
     </div>
   );
 };

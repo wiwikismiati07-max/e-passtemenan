@@ -22,6 +22,8 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
+  BookOpen,
+  PhoneCall,
 } from 'lucide-react';
 import { AppDatabase, CustomLink, PERIODE_TAHUN_AJARAN } from './types';
 import { StorageService } from './services/storage';
@@ -50,6 +52,8 @@ import { LoginScreen, UserSession } from './components/LoginScreen';
 import { ExitAppModal } from './components/ExitAppModal';
 import { InstallModal } from './components/InstallModal';
 import { MediaEdukasiView } from './components/MediaEdukasiView';
+import { ManualBookModal } from './components/ManualBookModal';
+import { HotlineModal } from './components/HotlineModal';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
@@ -78,6 +82,8 @@ export default function App() {
   const [isPejabatModalOpen, setIsPejabatModalOpen] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isManualBookOpen, setIsManualBookOpen] = useState(false);
+  const [isHotlineOpen, setIsHotlineOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -440,6 +446,26 @@ export default function App() {
             </button>
           )}
 
+          {/* Manual Book (Flipbook) Quick Access */}
+          <button
+            onClick={() => setIsManualBookOpen(true)}
+            className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+            title="Buku Panduan & Tutorial Flipbook Heyzine"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span className="hidden md:inline">Manual Book</span>
+          </button>
+
+          {/* Hotline SMPN 7 Quick Access */}
+          <button
+            onClick={() => setIsHotlineOpen(true)}
+            className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+            title="Hotline & Kontak Resmi SMPN 7 Pasuruan"
+          >
+            <PhoneCall className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="hidden md:inline">Hotline</span>
+          </button>
+
           {/* Install PWA Button */}
           <button
             onClick={handleInstallApp}
@@ -508,6 +534,8 @@ export default function App() {
           onOpenBackupModal={() => setIsBackupModalOpen(true)}
           onOpenExitModal={() => setIsExitModalOpen(true)}
           onOpenInstallModal={() => setIsInstallModalOpen(true)}
+          onOpenManualBook={() => setIsManualBookOpen(true)}
+          onOpenHotline={() => setIsHotlineOpen(true)}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -726,6 +754,17 @@ export default function App() {
             });
           }
         }}
+      />
+
+      {/* Manual Book & Hotline Global Modals */}
+      <ManualBookModal
+        isOpen={isManualBookOpen}
+        onClose={() => setIsManualBookOpen(false)}
+      />
+
+      <HotlineModal
+        isOpen={isHotlineOpen}
+        onClose={() => setIsHotlineOpen(false)}
       />
     </div>
   );
