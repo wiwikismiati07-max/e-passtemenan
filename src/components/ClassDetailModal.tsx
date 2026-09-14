@@ -25,7 +25,7 @@ import {
   FileCheck,
 } from 'lucide-react';
 import { ClassZoneInfo } from '../data/classZoneData';
-import { AppDatabase, GuruItem, SiswaItem } from '../types';
+import { AppDatabase, GuruItem, SiswaItem, PERIODE_TAHUN_AJARAN, PeriodeTahunAjaran } from '../types';
 import { StorageService } from '../services/storage';
 import { triggerPrintElement, exportElementToPDF } from '../utils/exportUtils';
 import { KopSurat } from './KopSurat';
@@ -57,6 +57,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   const [ikrarSiswa, setIkrarSiswa] = useState('');
   const [catatanKegiatan, setCatatanKegiatan] = useState('');
   const [deklarasiDamai, setDeklarasiDamai] = useState(true);
+  const [tahunAjaran, setTahunAjaran] = useState<string>('(2025-2026)');
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -93,6 +94,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
         setDutaAntiBullying(assigned?.dutaAntiBullying || classInfo.dutaAntiBullying || '');
         setIkrarSiswa(assigned?.ikrarSiswa || classInfo.ikrarSiswa || '');
         setCatatanKegiatan(assigned?.catatanKegiatan || classInfo.catatanKegiatan || '');
+        setTahunAjaran(assigned?.tahunAjaran || db?.tahunAjaranAktif || StorageService.getTahunAjaranAktif() || '(2025-2026)');
         setDeklarasiDamai(
           assigned?.deklarasiDamai !== undefined
             ? assigned.deklarasiDamai
@@ -249,6 +251,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
       ikrarSiswa: ikrarSiswa || classInfo.ikrarSiswa,
       catatanKegiatan: catatanKegiatan || classInfo.catatanKegiatan,
       deklarasiDamai,
+      tahunAjaran,
     });
     window.dispatchEvent(new Event('pass-temenan-db-updated'));
     if (onRefresh) onRefresh();
@@ -285,6 +288,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
       ikrarSiswa: ikrarSiswa || classInfo.ikrarSiswa,
       catatanKegiatan: catatanKegiatan || classInfo.catatanKegiatan,
       deklarasiDamai,
+      tahunAjaran,
     });
     window.dispatchEvent(new Event('pass-temenan-db-updated'));
     if (onRefresh) onRefresh();
@@ -331,6 +335,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
         ikrarSiswa: finalIkrar,
         catatanKegiatan: finalCatatan,
         deklarasiDamai,
+        tahunAjaran,
       });
 
       // Notify entire app of the database update
@@ -529,7 +534,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
           </div>
 
           {/* Key Info Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Wali Kelas Card */}
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-col justify-between">
               <div>
@@ -577,7 +582,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Duta Anti-Bullying / Sahabat Sebaya
+                    Duta Anti-Bullying
                   </span>
                   <button
                     onClick={handleOpenDutaModal}
@@ -608,7 +613,46 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                       <Users className="w-4 h-4 shrink-0" />
                       <span>{dutaAntiBullying || classInfo.dutaAntiBullying}</span>
                     </p>
-                    <span className="text-[10px] text-slate-400 mt-1 block">Sahabat Sebaya Terpilih Rombel {classInfo.namaKelas}</span>
+                    <span className="text-[10px] text-slate-400 mt-1 block">Sahabat Sebaya Rombel {classInfo.namaKelas}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Periode Tahun Ajaran Card */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Tahun Ajaran
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
+                    Akademik
+                  </span>
+                </div>
+
+                {isEditing ? (
+                  <div className="mt-1">
+                    <select
+                      value={tahunAjaran}
+                      onChange={(e) => setTahunAjaran(e.target.value)}
+                      className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {PERIODE_TAHUN_AJARAN.map((ta) => (
+                        <option key={ta} value={ta}>{ta}</option>
+                      ))}
+                    </select>
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      Pilih periode tahun ajaran aktif rombel
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 mt-1 flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 shrink-0 text-indigo-600" />
+                      <span>{tahunAjaran}</span>
+                    </p>
+                    <span className="text-[10px] text-slate-400 mt-1 block">Periode Resmi Terintegrasi</span>
                   </div>
                 )}
               </div>
@@ -781,7 +825,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                 PROFIL ZONA RAMAH ANAK & LAPORAN PREVENTIF PERUNDUNGAN
               </h2>
               <h3 className="text-xs sm:text-sm font-extrabold text-emerald-800 print:text-black uppercase mt-0.5">
-                UPT SMP NEGERI 7 PASURUAN • TAHUN AJARAN 2025/2026
+                UPT SMP NEGERI 7 PASURUAN • TAHUN AJARAN {tahunAjaran.replace(/[()]/g, '')}
               </h3>
               <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 print:border-black print:bg-transparent text-xs font-bold uppercase">
                 <span>Status Kepatuhan: 🟢 Zona Hijau Zero Bullying ({classInfo.skorKepatuhan}%)</span>
@@ -797,14 +841,18 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     <td className="py-2 px-3 font-extrabold text-slate-900 print:text-black">Kelas {classInfo.namaKelas}</td>
                   </tr>
                   <tr className="border-b border-slate-200 print:border-black">
+                    <td className="py-2 px-3 font-bold text-slate-700 print:text-black">Periode Tahun Ajaran</td>
+                    <td className="py-2 px-3 font-bold text-indigo-900 print:text-black">{tahunAjaran}</td>
+                  </tr>
+                  <tr className="border-b border-slate-200 print:border-black bg-slate-50 print:bg-transparent">
                     <td className="py-2 px-3 font-bold text-slate-700 print:text-black">Wali Kelas</td>
                     <td className="py-2 px-3 font-bold text-slate-900 print:text-black">{waliKelas || classInfo.waliKelas || 'CAHYO KURNIANTO, S.Pd'}</td>
                   </tr>
-                  <tr className="border-b border-slate-200 print:border-black bg-slate-50 print:bg-transparent">
+                  <tr className="border-b border-slate-200 print:border-black">
                     <td className="py-2 px-3 font-bold text-slate-700 print:text-black">Duta Anti-Bullying / Sahabat Sebaya</td>
                     <td className="py-2 px-3 font-bold text-slate-900 print:text-black">{dutaAntiBullying || classInfo.dutaAntiBullying || 'Perwakilan Rombel'}</td>
                   </tr>
-                  <tr className="border-b border-slate-200 print:border-black">
+                  <tr className="border-b border-slate-200 print:border-black bg-slate-50 print:bg-transparent">
                     <td className="py-2 px-3 font-bold text-slate-700 print:text-black">Jumlah Siswa Terdaftar</td>
                     <td className="py-2 px-3 text-slate-900 print:text-black">{studentsInCurrentClass.length > 0 ? `${studentsInCurrentClass.length} Siswa` : '32 Siswa'}</td>
                   </tr>

@@ -23,7 +23,7 @@ import {
   PanelLeftClose,
   PanelLeft,
 } from 'lucide-react';
-import { AppDatabase, CustomLink } from './types';
+import { AppDatabase, CustomLink, PERIODE_TAHUN_AJARAN } from './types';
 import { StorageService } from './services/storage';
 import {
   getRealtimeFullFormattedDate,
@@ -385,6 +385,28 @@ export default function App() {
 
         {/* Right Action Tools */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Periode Tahun Ajaran Global Selector */}
+          <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-200 text-xs font-bold shadow-2xs">
+            <Calendar className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <select
+              value={db.tahunAjaranAktif || '(2025-2026)'}
+              onChange={(e) => {
+                const val = e.target.value;
+                StorageService.setTahunAjaranAktif(val);
+                setDb(StorageService.getDb());
+                window.dispatchEvent(new Event('pass-temenan-db-updated'));
+              }}
+              className="bg-transparent text-indigo-900 dark:text-indigo-200 text-[11px] sm:text-xs font-extrabold focus:outline-none cursor-pointer pr-1"
+              title="Pilih Periode Tahun Ajaran Aktif"
+            >
+              {PERIODE_TAHUN_AJARAN.map((ta) => (
+                <option key={ta} value={ta} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                  TA {ta}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Multi-Device Cloud Sync Button */}
           <button
             onClick={handleManualSync}

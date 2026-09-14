@@ -91,6 +91,9 @@ export const ClassGreenZoneMatrix: React.FC<ClassGreenZoneMatrixProps> = ({ db, 
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
                   {greenClasses}/{totalClasses} Kelas Terakreditasi Hijau
                 </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700">
+                  TA {db?.tahunAjaranAktif || '(2025-2026)'}
+                </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
                 <span>Monitoring status keamanan, deklarasi damai, dan duta anti-perundungan setiap rombel di SMPN 7 Pasuruan</span>

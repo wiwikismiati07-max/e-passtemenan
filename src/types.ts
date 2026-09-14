@@ -113,6 +113,9 @@ export interface BukuTamu {
   updatedAt: string;
 }
 
+export const PERIODE_TAHUN_AJARAN = ['(2025-2026)', '(2026-2027)'] as const;
+export type PeriodeTahunAjaran = (typeof PERIODE_TAHUN_AJARAN)[number];
+
 export interface SiswaItem {
   id: string;
   nisn: string;
@@ -120,6 +123,7 @@ export interface SiswaItem {
   namaLengkap: string;
   kelas: string; // e.g. "7A", "7B", "8A", "9C"
   jenisKelamin: 'L' | 'P';
+  tahunAjaran?: string; // e.g. "(2025-2026)" | "(2026-2027)"
   alamat?: string;
   noHp?: string;
   keterangan?: string;
@@ -165,6 +169,7 @@ export interface ClassAssignmentItem {
   ikrarSiswa?: string;
   catatanKegiatan?: string;
   deklarasiDamai?: boolean;
+  tahunAjaran?: string; // e.g. "(2025-2026)" | "(2026-2027)"
   updatedAt?: string;
 }
 
@@ -257,5 +262,7 @@ export interface AppDatabase {
   mediaEdukasi?: MediaEdukasiDatabase;
   supabaseConfig: SupabaseConfig;
   pejabatConfig?: PejabatConfig;
+  tahunAjaranAktif?: string;
+  daftarTahunAjaran?: string[];
   version: number;
 }

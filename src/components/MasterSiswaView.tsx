@@ -21,8 +21,9 @@ import {
   Layers,
   Sparkles,
   CheckCircle2,
+  Calendar,
 } from 'lucide-react';
-import { SiswaItem } from '../types';
+import { SiswaItem, PERIODE_TAHUN_AJARAN, PeriodeTahunAjaran } from '../types';
 import { StorageService } from '../services/storage';
 import * as XLSX from 'xlsx';
 import confetti from 'canvas-confetti';
@@ -40,6 +41,7 @@ export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh,
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState('7A');
   const [selectedGender, setSelectedGender] = useState('Semua');
+  const [selectedTahunAjaran, setSelectedTahunAjaran] = useState<string>('Semua');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isFetchingSupabase, setIsFetchingSupabase] = useState(false);
   const [supabaseNotice, setSupabaseNotice] = useState('');
@@ -69,6 +71,7 @@ export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh,
   const [namaLengkap, setNamaLengkap] = useState('');
   const [kelas, setKelas] = useState('7A');
   const [jenisKelamin, setJenisKelamin] = useState<'L' | 'P'>('L');
+  const [tahunAjaran, setTahunAjaran] = useState<string>('(2025-2026)');
   const [alamat, setAlamat] = useState('');
   const [noHp, setNoHp] = useState('');
   const [keterangan, setKeterangan] = useState('Aktif');
@@ -93,8 +96,11 @@ export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh,
 
     const matchesClass = selectedClass === 'Semua' || s.kelas === selectedClass;
     const matchesGender = selectedGender === 'Semua' || s.jenisKelamin === selectedGender;
+    const matchesTahunAjaran =
+      selectedTahunAjaran === 'Semua' ||
+      (s.tahunAjaran || '(2025-2026)') === selectedTahunAjaran;
 
-    return matchesSearch && matchesClass && matchesGender;
+    return matchesSearch && matchesClass && matchesGender && matchesTahunAjaran;
   });
 
   const handleOpenAddModal = () => {
@@ -102,8 +108,9 @@ export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh,
     setNisn('');
     setNis('');
     setNamaLengkap('');
-    setKelas('7A');
+    setKelas(selectedClass !== 'Semua' ? selectedClass : '7A');
     setJenisKelamin('L');
+    setTahunAjaran(selectedTahunAjaran !== 'Semua' ? selectedTahunAjaran : '(2025-2026)');
     setAlamat('');
     setNoHp('');
     setKeterangan('Aktif');
@@ -117,6 +124,7 @@ export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh,
     setNamaLengkap(siswa.namaLengkap);
     setKelas(siswa.kelas || '7A');
     setJenisKelamin(siswa.jenisKelamin || 'L');
+    setTahunAjaran(siswa.tahunAjaran || '(2025-2026)');
     setAlamat(siswa.alamat || '');
     setNoHp(siswa.noHp || '');
     setKeterangan(siswa.keterangan || 'Aktif');
@@ -138,6 +146,7 @@ try {
       namaLengkap: namaLengkap.trim(),
       kelas,
       jenisKelamin,
+      tahunAjaran,
       alamat: alamat.trim(),
       noHp: noHp.trim(),
       keterangan: keterangan.trim(),
@@ -288,6 +297,7 @@ try {
             jenisKelamin: String(getVal(['jk', 'jenis kelamin', 'kelamin', 'gender']) || 'L'),
             alamat: String(getVal(['alamat', 'add']) || ''),
             noHp: String(getVal(['hp', 'telepon', 'telp', 'whatsapp', 'wa']) || ''),
+            tahunAjaran: String(getVal(['tahunajaran', 'tahun ajaran', 'periode', 'ta']) || (selectedTahunAjaran !== 'Semua' ? selectedTahunAjaran : '(2025-2026)')),
             keterangan: String(getVal(['ket', 'keterangan', 'status']) || 'Import Excel'),
           };
         }).filter((r) => r.namaLengkap.trim() !== '');
@@ -326,6 +336,24 @@ try {
     );
   };
 
+  // Bulk set tahun ajaran
+  const handleBulkSetTahunAjaran = (tahun: string) => {
+    if (selectedIds.length === 0) return;
+    const dbData = StorageService.getDb();
+    let count = 0;
+    dbData.masterSiswa.forEach((s) => {
+      if (selectedIds.includes(s.id)) {
+        s.tahunAjaran = tahun;
+        s.updatedAt = new Date().toISOString();
+        count++;
+      }
+    });
+    StorageService.saveDb();
+    setSaveNotice(`✓ Berhasil memperbarui periode tahun ajaran menjadi ${tahun} untuk ${count} siswa terpilih.`);
+    onRefresh();
+    setTimeout(() => setSaveNotice(''), 4500);
+  };
+
   // Export to Excel
   const handleExportExcel = () => {
     const dataToExport = filteredStudents.length > 0 ? filteredStudents : db.masterSiswa;
@@ -336,6 +364,7 @@ try {
       'Nama Lengkap': s.namaLengkap,
       Kelas: s.kelas,
       'Jenis Kelamin (L/P)': s.jenisKelamin,
+      'Tahun Ajaran': s.tahunAjaran || '(2025-2026)',
       Alamat: s.alamat || '',
       'No HP': s.noHp || '',
       Keterangan: s.keterangan || '',
@@ -344,7 +373,7 @@ try {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Master Siswa SMPN 7');
-    XLSX.writeFile(workbook, `Data_Siswa_SMPN7_${selectedClass}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(workbook, `Data_Siswa_SMPN7_${selectedClass}_${selectedTahunAjaran !== 'Semua' ? selectedTahunAjaran : 'SemuaPeriode'}_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   // Download Template
@@ -356,6 +385,7 @@ try {
         'Nama Lengkap': 'AJENG FIKA RAMADHANI',
         Kelas: '7A',
         'Jenis Kelamin (L/P)': 'P',
+        'Tahun Ajaran': '(2025-2026)',
         Alamat: 'Jl. Panglima Sudirman, Pasuruan',
         'No HP': '081234567890',
         Keterangan: 'Aktif',
@@ -366,6 +396,7 @@ try {
         'Nama Lengkap': 'ALIF NURROHMAN',
         Kelas: '7A',
         'Jenis Kelamin (L/P)': 'L',
+        'Tahun Ajaran': '(2026-2027)',
         Alamat: 'Jl. Kebonagung, Pasuruan',
         'No HP': '081234567891',
         Keterangan: 'Aktif',
@@ -509,6 +540,23 @@ try {
               <option value="P">Perempuan (P)</option>
             </select>
           </div>
+
+          {/* Filter Periode Tahun Ajaran */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-bold text-slate-500 flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Tahun Ajaran:</span>
+            </label>
+            <select
+              value={selectedTahunAjaran}
+              onChange={(e) => setSelectedTahunAjaran(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="Semua">Semua Periode</option>
+              <option value="(2025-2026)">Periode (2025-2026)</option>
+              <option value="(2026-2027)">Periode (2026-2027)</option>
+            </select>
+          </div>
         </div>
 
         {/* Bulk Action Controls */}
@@ -524,6 +572,27 @@ try {
                 <Save className="w-4 h-4" />
                 <span>Simpan ({selectedIds.length}) Terpilih</span>
               </button>
+
+              {/* Quick Set Tahun Ajaran for Selected Students */}
+              <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 p-1 rounded-xl border border-indigo-200 dark:border-indigo-800 text-xs">
+                <span className="text-[11px] font-bold text-indigo-800 dark:text-indigo-300 px-1.5">Set Periode:</span>
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetTahunAjaran('(2025-2026)')}
+                  className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 font-extrabold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors shadow-2xs text-[11px]"
+                  title="Ubah siswa terpilih ke periode (2025-2026)"
+                >
+                  (2025-2026)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetTahunAjaran('(2026-2027)')}
+                  className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 font-extrabold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors shadow-2xs text-[11px]"
+                  title="Ubah siswa terpilih ke periode (2026-2027)"
+                >
+                  (2026-2027)
+                </button>
+              </div>
 
               {userRole === 'admin' && (
                 <button
@@ -562,7 +631,7 @@ try {
                 {selectedClass === 'Semua' ? 'Daftar Seluruh Siswa SMPN 7 Pasuruan (7A-7H, 8A-8H, 9A-9H)' : `Daftar Siswa Kelas ${selectedClass}`}
               </h3>
               <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
-                Periode 2026 ({filteredStudents.length} Siswa)
+                {selectedTahunAjaran === 'Semua' ? 'Periode (2025-2026) & (2026-2027)' : `Periode ${selectedTahunAjaran}`} ({filteredStudents.length} Siswa)
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -612,6 +681,7 @@ try {
                   <th className="p-4">Nama Lengkap</th>
                   <th className="p-4">Kelas</th>
                   <th className="p-4">JK</th>
+                  <th className="p-4">Tahun Ajaran</th>
                   <th className="p-4">Alamat</th>
                   <th className="p-4">No. HP</th>
                   <th className="p-4">Keterangan</th>
@@ -638,11 +708,9 @@ try {
                         <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">{s.nisn}</div>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           {s.nis && <span className="text-[11px] text-slate-500 font-mono font-medium">NIS: {s.nis}</span>}
-                          {s.kelas === '7A' && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                              Periode 2026
-                            </span>
-                          )}
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                            {s.tahunAjaran || '(2025-2026)'}
+                          </span>
                         </div>
                       </td>
                       <td className="p-4 font-bold text-slate-900 dark:text-slate-100">
@@ -670,6 +738,11 @@ try {
                           }`}
                         >
                           {s.jenisKelamin}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap">
+                          {s.tahunAjaran || '(2025-2026)'}
                         </span>
                       </td>
                       <td className="p-4 text-xs text-slate-600 dark:text-slate-400 max-w-[200px] truncate" title={s.alamat}>
@@ -773,7 +846,7 @@ try {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Kelas *
@@ -800,6 +873,21 @@ try {
                   >
                     <option value="L">Laki-laki (L)</option>
                     <option value="P">Perempuan (P)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Tahun Ajaran *
+                  </label>
+                  <select
+                    value={tahunAjaran}
+                    onChange={(e) => setTahunAjaran(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-700 dark:text-indigo-300"
+                  >
+                    {PERIODE_TAHUN_AJARAN.map((ta) => (
+                      <option key={ta} value={ta}>{ta}</option>
+                    ))}
                   </select>
                 </div>
               </div>

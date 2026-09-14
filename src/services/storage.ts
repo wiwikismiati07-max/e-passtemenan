@@ -250,6 +250,8 @@ export const DEFAULT_DATABASE: AppDatabase = {
     autoSync: true,
   },
   pejabatConfig: DEFAULT_PEJABAT_CONFIG,
+  tahunAjaranAktif: '(2025-2026)',
+  daftarTahunAjaran: ['(2025-2026)', '(2026-2027)'],
   version: 1,
 };
 
@@ -441,10 +443,11 @@ export class StorageService {
             const raw = (Array.isArray(parsed.masterSiswa) ? parsed.masterSiswa : DEFAULT_DATABASE.masterSiswa).filter(isValidItem);
             const existingNis = new Set(raw.map((s: any) => s.nis || s.nisn));
             const missingFromInitial = INITIAL_MASTER_SISWA.filter((s) => !existingNis.has(s.nis));
-            if (missingFromInitial.length > 0) {
-              return [...raw, ...missingFromInitial];
-            }
-            return raw;
+            const combined = missingFromInitial.length > 0 ? [...raw, ...missingFromInitial] : raw;
+            return combined.map((s: any) => ({
+              ...s,
+              tahunAjaran: s.tahunAjaran || '(2025-2026)',
+            }));
           })(),
           masterGuru: (Array.isArray(parsed.masterGuru) ? parsed.masterGuru : DEFAULT_DATABASE.masterGuru).filter(isValidItem),
           classAssignments: parsed.classAssignments || DEFAULT_DATABASE.classAssignments || {},
@@ -501,6 +504,11 @@ export class StorageService {
             lastSyncedAt: parsedCfg.lastSyncedAt || undefined,
           },
           pejabatConfig: { ...DEFAULT_PEJABAT_CONFIG, ...(parsed.pejabatConfig || {}) },
+          tahunAjaranAktif: parsed.tahunAjaranAktif || '(2025-2026)',
+          daftarTahunAjaran:
+            Array.isArray(parsed.daftarTahunAjaran) && parsed.daftarTahunAjaran.length > 0
+              ? parsed.daftarTahunAjaran
+              : ['(2025-2026)', '(2026-2027)'],
         };
       } else {
         this.db = {
@@ -512,8 +520,13 @@ export class StorageService {
           senandungSerasi: [],
           eLaporPerundungan: [],
           bukuTamu: [],
-          masterSiswa: DEFAULT_DATABASE.masterSiswa.filter(isValidItem),
+          masterSiswa: DEFAULT_DATABASE.masterSiswa.filter(isValidItem).map((s) => ({
+            ...s,
+            tahunAjaran: s.tahunAjaran || '(2025-2026)',
+          })),
           masterGuru: DEFAULT_DATABASE.masterGuru.filter(isValidItem),
+          tahunAjaranAktif: '(2025-2026)',
+          daftarTahunAjaran: ['(2025-2026)', '(2026-2027)'],
         };
         this.saveDb();
       }
@@ -2977,11 +2990,12 @@ export class StorageService {
   }
 
   public static importSiswaBatch(
-    rows: Array<{ nisn?: string; nis?: string; namaLengkap?: string; kelas?: string; jenisKelamin?: string; alamat?: string; noHp?: string; keterangan?: string }>,
+    rows: Array<{ nisn?: string; nis?: string; namaLengkap?: string; kelas?: string; jenisKelamin?: string; alamat?: string; noHp?: string; keterangan?: string; tahunAjaran?: string }>,
     mode: 'overwrite' | 'merge' = 'overwrite'
   ): { added: number; updated: number; total: number } {
     const db = this.getDb();
     const now = new Date().toISOString();
+    const defaultTahun = this.getTahunAjaranAktif() || '(2025-2026)';
     let added = 0;
     let updated = 0;
 
@@ -2999,6 +3013,7 @@ export class StorageService {
         const alamat = r.alamat ? String(r.alamat).trim() : '';
         const noHp = r.noHp ? String(r.noHp).trim() : '';
         const keterangan = r.keterangan ? String(r.keterangan).trim() : 'Import Excel';
+        const tahunAjaran = r.tahunAjaran ? String(r.tahunAjaran).trim() : defaultTahun;
 
         newItems.push({
           id: 'sis-' + Date.now() + '-' + idx + '-' + Math.random().toString(36).substring(2, 6),
@@ -3007,6 +3022,7 @@ export class StorageService {
           namaLengkap: nama,
           kelas,
           jenisKelamin,
+          tahunAjaran,
           alamat,
           noHp,
           keterangan,
@@ -3061,6 +3077,7 @@ export class StorageService {
       const alamat = r.alamat ? String(r.alamat).trim() : '';
       const noHp = r.noHp ? String(r.noHp).trim() : '';
       const keterangan = r.keterangan ? String(r.keterangan).trim() : 'Import Excel';
+      const tahunAjaran = r.tahunAjaran ? String(r.tahunAjaran).trim() : defaultTahun;
 
       const existingIdx = db.masterSiswa.findIndex(
         (s) => (nisn && s.nisn === nisn) || (nis && s.nis === nis) || (s.namaLengkap.toLowerCase() === nama.toLowerCase() && s.kelas === kelas)
@@ -3074,6 +3091,7 @@ export class StorageService {
           namaLengkap: nama,
           kelas,
           jenisKelamin,
+          tahunAjaran: tahunAjaran || db.masterSiswa[existingIdx].tahunAjaran || defaultTahun,
           alamat: alamat || db.masterSiswa[existingIdx].alamat,
           noHp: noHp || db.masterSiswa[existingIdx].noHp,
           keterangan: keterangan || db.masterSiswa[existingIdx].keterangan,
@@ -3088,6 +3106,7 @@ export class StorageService {
           namaLengkap: nama,
           kelas,
           jenisKelamin,
+          tahunAjaran,
           alamat,
           noHp,
           keterangan,
@@ -3308,6 +3327,30 @@ export class StorageService {
   }
 
   // --- PEJABAT & SIGNATURE CONFIG ---
+  // --- PERIODE TAHUN AJARAN ---
+  public static getTahunAjaranAktif(): string {
+    const db = this.getDb();
+    return db.tahunAjaranAktif || '(2025-2026)';
+  }
+
+  public static setTahunAjaranAktif(tahun: string): void {
+    const db = this.getDb();
+    db.tahunAjaranAktif = tahun;
+    this.saveDb();
+    this.safeUpsert('app_settings', {
+      key: 'tahun_ajaran_aktif',
+      value: tahun,
+      updated_at: new Date().toISOString(),
+    }).then(() => {
+      this.broadcastChange('app_settings', 'update');
+    });
+  }
+
+  public static getDaftarTahunAjaran(): string[] {
+    const db = this.getDb();
+    return db.daftarTahunAjaran || ['(2025-2026)', '(2026-2027)'];
+  }
+
   public static getPejabatConfig() {
     const db = this.getDb();
     return db.pejabatConfig || DEFAULT_PEJABAT_CONFIG;
