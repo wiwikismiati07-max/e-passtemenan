@@ -364,33 +364,39 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
       </div>
 
       {/* Tabs Selector: Form vs Rekap */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-        <button
-          onClick={() => {
-            setActiveTab('form');
-            if (!editingItem) resetForm();
-          }}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
-            activeTab === 'form'
-              ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
-              : 'bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
-          }`}
-        >
-          <ShieldAlert className="w-4 h-4" />
-          <span>{editingItem ? 'Edit Laporan Kasus' : 'Formulir Pengaduan / Input Kasus'}</span>
-        </button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl shadow-xs">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setActiveTab('form');
+              if (!editingItem) resetForm();
+            }}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'form'
+                ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>{editingItem ? 'Edit Laporan Kasus' : 'Formulir Pengaduan / Input Kasus'}</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('rekap')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
-            activeTab === 'rekap'
-              ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
-              : 'bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          <span>Rekapitulasi Kasus ({dataList.length})</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('rekap')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'rekap'
+                ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Rekapitulasi Kasus ({dataList.length})</span>
+          </button>
+        </div>
+
+        <div className="text-[11px] text-slate-500 dark:text-slate-400 px-2">
+          {userRole === 'siswa' ? 'Akun Siswa (Passtemenan): Dapat mengisi laporan & melihat rekap kasus.' : 'Administrator: Akses penuh kelola laporan & rekap.'}
+        </div>
       </div>
 
       {savedSuccess && (
