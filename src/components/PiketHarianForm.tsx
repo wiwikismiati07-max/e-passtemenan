@@ -152,13 +152,18 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
 
   const handleDelete = (item: PiketHarian) => {
     if (userRole !== 'admin') {
-      alert('Akses Ditolak: Hanya akun Admin yang dapat menghapus laporan.');
+      alert('Akses Terbatas: Akun siswa (passtemenan) tidak memiliki izin untuk menghapus data. Hanya Administrator yang dapat menghapus laporan.');
       return;
     }
     setDeleteTargetItem(item);
   };
 
   const handleConfirmDelete = () => {
+    if (userRole !== 'admin') {
+      alert('Akses Terbatas: Hanya Administrator yang diizinkan menghapus data laporan.');
+      setDeleteTargetItem(null);
+      return;
+    }
     if (deleteTargetItem) {
       StorageService.deletePiketHarian(deleteTargetItem.id);
       setDeleteTargetItem(null);
@@ -725,20 +730,11 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
                           <Edit2 className="w-4 h-4" />
                         </button>
 
-                        {userRole === 'admin' ? (
+                        {userRole === 'admin' && (
                           <button
                             onClick={() => handleDelete(item)}
                             className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                             title="Hapus Data (Khusus Admin)"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => alert('Akses Siswa: Anda dapat menambah dan mengedit data, namun tidak diizinkan untuk menghapus data.')}
-                            className="p-2 text-slate-300 dark:text-slate-700 hover:text-rose-500 rounded-xl transition-colors cursor-not-allowed opacity-50"
-                            title="Akses Siswa: Tidak bisa menghapus data"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

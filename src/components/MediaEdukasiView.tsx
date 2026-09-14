@@ -67,12 +67,14 @@ interface MediaEdukasiViewProps {
   db: AppDatabase;
   onRefresh: () => void;
   initialTab?: MediaEdukasiSubTab;
+  userRole?: 'admin' | 'siswa';
 }
 
 export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   db,
   onRefresh,
   initialTab = 'materi',
+  userRole = 'siswa',
 }) => {
   const validTabs: MediaEdukasiSubTab[] = ['materi', 'poster', 'infografis', 'video', 'pesan'];
   const resolvedTab: MediaEdukasiSubTab =
@@ -393,6 +395,10 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   };
 
   const handleDeleteItem = (tab: MediaEdukasiSubTab, id: string, title: string) => {
+    if (userRole !== 'admin') {
+      showToast('Akses Terbatas: Akun siswa (passtemenan) tidak diizinkan menghapus media edukasi. Hanya Administrator yang berhak menghapus.');
+      return;
+    }
     setDeleteConfirmDialog({
       isOpen: true,
       tab,
@@ -414,6 +420,11 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   };
 
   const executeConfirmedDelete = () => {
+    if (userRole !== 'admin') {
+      showToast('Akses Terbatas: Hanya Administrator yang diizinkan menghapus media.');
+      setDeleteConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+      return;
+    }
     if (deleteConfirmDialog.isBatchClear) {
       if (deleteConfirmDialog.tab === 'poster') {
         StorageService.clearAllPosters();
@@ -714,6 +725,10 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   };
 
   const handleClearAllPosters = () => {
+    if (userRole !== 'admin') {
+      showToast('Akses Terbatas: Hanya Administrator yang diizinkan mengosongkan galeri poster.');
+      return;
+    }
     setDeleteConfirmDialog({
       isOpen: true,
       tab: 'poster',
@@ -1127,13 +1142,15 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                           )}
                         </button>
 
-                        <button
-                          onClick={() => handleDeleteItem('materi', item.id, item.judul)}
-                          className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-600 transition-colors"
-                          title="Hapus Materi"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {userRole === 'admin' && (
+                          <button
+                            onClick={() => handleDeleteItem('materi', item.id, item.judul)}
+                            className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-600 transition-colors"
+                            title="Hapus Materi"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -1245,7 +1262,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                 <span>+ Tambah Poster (Popup Modal)</span>
               </button>
 
-              {posterList.length > 0 && (
+              {userRole === 'admin' && posterList.length > 0 && (
                 <button
                   type="button"
                   onClick={handleClearAllPosters}
@@ -1606,13 +1623,15 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                           )}
                         </button>
 
-                        <button
-                          onClick={() => handleDeleteItem('poster', poster.id, poster.judul)}
-                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Hapus Poster"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {userRole === 'admin' && (
+                          <button
+                            onClick={() => handleDeleteItem('poster', poster.id, poster.judul)}
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Hapus Poster"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1738,13 +1757,15 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                           <Download className="w-3.5 h-3.5" />
                         </button>
 
-                        <button
-                          onClick={() => handleDeleteItem('infografis', info.id, info.judul)}
-                          className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Hapus Infografis Ini"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {userRole === 'admin' && (
+                          <button
+                            onClick={() => handleDeleteItem('infografis', info.id, info.judul)}
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Hapus Infografis Ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2103,13 +2124,15 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                             <span className="hidden sm:inline">YouTube</span>
                           </a>
 
-                          <button
-                            onClick={() => handleDeleteItem('video', video.id, video.judul)}
-                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                            title="Hapus Video Ini"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {userRole === 'admin' && (
+                            <button
+                              onClick={() => handleDeleteItem('video', video.id, video.judul)}
+                              className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                              title="Hapus Video Ini"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

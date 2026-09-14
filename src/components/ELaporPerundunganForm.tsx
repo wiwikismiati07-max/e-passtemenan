@@ -165,13 +165,18 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
 
   const handleDelete = (item: ELaporPerundungan) => {
     if (userRole !== 'admin') {
-      alert('Akses Ditolak: Hanya akun Admin yang dapat menghapus data.');
+      alert('Akses Terbatas: Akun siswa (passtemenan) tidak memiliki izin untuk menghapus data. Hanya Administrator yang dapat menghapus laporan.');
       return;
     }
     setDeleteTargetItem(item);
   };
 
   const handleConfirmDelete = () => {
+    if (userRole !== 'admin') {
+      alert('Akses Terbatas: Hanya Administrator yang diizinkan menghapus data laporan.');
+      setDeleteTargetItem(null);
+      return;
+    }
     if (deleteTargetItem) {
       StorageService.deleteELaporPerundungan(deleteTargetItem.id);
       loadData();
@@ -788,20 +793,11 @@ export const ELaporPerundunganForm: React.FC<Props> = ({
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
 
-                    {userRole === 'admin' ? (
+                    {userRole === 'admin' && (
                       <button
                         onClick={() => handleDelete(item)}
                         className="p-1.5 text-rose-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                         title="Hapus Data (Khusus Admin)"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => alert('Akses Siswa: Anda tidak diizinkan untuk menghapus data.')}
-                        className="p-1.5 text-slate-400 rounded-lg opacity-40 cursor-not-allowed"
-                        title="Hanya Admin"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

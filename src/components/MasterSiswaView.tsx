@@ -32,9 +32,10 @@ interface MasterSiswaViewProps {
     masterSiswa: SiswaItem[];
   };
   onRefresh: () => void;
+  userRole?: 'admin' | 'siswa';
 }
 
-export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh }) => {
+export const MasterSiswaView: React.FC<MasterSiswaViewProps> = ({ db, onRefresh, userRole = 'siswa' }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState('7A');
@@ -157,6 +158,10 @@ try {
   }>({ isOpen: false, type: 'single' });
 
   const handleOpenDeleteSingle = (id: string, name: string) => {
+    if (userRole !== 'admin') {
+      alert('Akses Terbatas: Akun siswa (passtemenan) tidak diizinkan menghapus data siswa. Hanya Administrator yang dapat menghapus data.');
+      return;
+    }
     setDeleteModal({
       isOpen: true,
       type: 'single',
@@ -166,6 +171,10 @@ try {
   };
 
   const handleOpenDeleteBulk = () => {
+    if (userRole !== 'admin') {
+      alert('Akses Terbatas: Akun siswa (passtemenan) tidak diizinkan menghapus data siswa. Hanya Administrator yang dapat menghapus data.');
+      return;
+    }
     if (selectedIds.length === 0) return;
     setDeleteModal({
       isOpen: true,
@@ -175,6 +184,11 @@ try {
   };
 
   const confirmDelete = () => {
+    if (userRole !== 'admin') {
+      alert('Akses Terbatas: Hanya Administrator yang berhak menghapus data.');
+      setDeleteModal({ isOpen: false, type: 'single' });
+      return;
+    }
     if (deleteModal.type === 'single' && deleteModal.id) {
       StorageService.deleteSiswa(deleteModal.id);
       setSelectedIds((prev) => prev.filter((i) => i !== deleteModal.id));
@@ -511,13 +525,15 @@ try {
                 <span>Simpan ({selectedIds.length}) Terpilih</span>
               </button>
 
-              <button
-                onClick={handleOpenDeleteBulk}
-                className="px-3.5 py-2 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold flex items-center gap-1.5 border border-rose-200 dark:border-rose-900 transition-all hover:bg-rose-100"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Hapus ({selectedIds.length}) Terpilih</span>
-              </button>
+              {userRole === 'admin' && (
+                <button
+                  onClick={handleOpenDeleteBulk}
+                  className="px-3.5 py-2 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 text-xs font-bold flex items-center gap-1.5 border border-rose-200 dark:border-rose-900 transition-all hover:bg-rose-100"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Hapus ({selectedIds.length}) Terpilih</span>
+                </button>
+              )}
             </>
           )}
 
@@ -674,13 +690,15 @@ try {
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => handleOpenDeleteSingle(s.id, s.namaLengkap)}
-                            className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition-colors"
-                            title="Hapus Data Siswa"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {userRole === 'admin' && (
+                            <button
+                              onClick={() => handleOpenDeleteSingle(s.id, s.namaLengkap)}
+                              className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition-colors"
+                              title="Hapus Data Siswa"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

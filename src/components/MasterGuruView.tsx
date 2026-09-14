@@ -37,9 +37,10 @@ interface MasterGuruViewProps {
     masterGuru: GuruItem[];
   };
   onRefresh: () => void;
+  userRole?: 'admin' | 'siswa';
 }
 
-export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh }) => {
+export const MasterGuruView: React.FC<MasterGuruViewProps> = ({ db, onRefresh, userRole = 'siswa' }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJabatan, setSelectedJabatan] = useState('Semua');
@@ -219,6 +220,10 @@ try {
   }>({ isOpen: false, type: 'single' });
 
   const handleOpenDeleteSingle = (id: string, name: string) => {
+    if (userRole !== 'admin') {
+      alert('Akses Terbatas: Akun siswa (passtemenan) tidak diizinkan menghapus data guru. Hanya Administrator yang dapat menghapus data.');
+      return;
+    }
     setDeleteModal({
       isOpen: true,
       type: 'single',
@@ -228,6 +233,10 @@ try {
   };
 
   const handleOpenDeleteBulk = () => {
+    if (userRole !== 'admin') {
+      alert('Akses Terbatas: Akun siswa (passtemenan) tidak diizinkan menghapus data guru. Hanya Administrator yang dapat menghapus data.');
+      return;
+    }
     if (selectedIds.length === 0) return;
     setDeleteModal({
       isOpen: true,
@@ -237,6 +246,11 @@ try {
   };
 
   const confirmDelete = () => {
+    if (userRole !== 'admin') {
+      alert('Akses Terbatas: Hanya Administrator yang berhak menghapus data.');
+      setDeleteModal({ isOpen: false, type: 'single' });
+      return;
+    }
     if (deleteModal.type === 'single' && deleteModal.id) {
       StorageService.deleteGuru(deleteModal.id);
       setSelectedIds((prev) => prev.filter((i) => i !== deleteModal.id));
@@ -575,13 +589,15 @@ try {
                 <span>Simpan ({selectedIds.length}) Terpilih</span>
               </button>
 
-              <button
-                onClick={handleOpenDeleteBulk}
-                className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 hover:bg-rose-100 transition-all"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Hapus Terpilih ({selectedIds.length})</span>
-              </button>
+              {userRole === 'admin' && (
+                <button
+                  onClick={handleOpenDeleteBulk}
+                  className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 hover:bg-rose-100 transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Terpilih ({selectedIds.length})</span>
+                </button>
+              )}
             </>
           )}
 
@@ -708,13 +724,15 @@ try {
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => handleOpenDeleteSingle(g.id, g.namaLengkap)}
-                            className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition-colors"
-                            title="Hapus Data Guru"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {userRole === 'admin' && (
+                            <button
+                              onClick={() => handleOpenDeleteSingle(g.id, g.namaLengkap)}
+                              className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition-colors"
+                              title="Hapus Data Guru"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

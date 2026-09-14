@@ -215,6 +215,10 @@ export default function App() {
   };
 
   const handleDeleteLink = (id: string) => {
+    if (currentUser?.role !== 'admin') {
+      alert('Akses Terbatas: Akun siswa (passtemenan) tidak diizinkan menghapus link aplikasi. Hanya Administrator yang dapat menghapus.');
+      return;
+    }
     StorageService.deleteLink(id);
     if (activeView === id) {
       setActiveView('dashboard-overview');
@@ -609,15 +613,16 @@ export default function App() {
                 />
               )}
               {activeView === 'master-siswa' && (
-                <MasterSiswaView db={db} onRefresh={refreshDb} />
+                <MasterSiswaView db={db} onRefresh={refreshDb} userRole={currentUser.role} />
               )}
               {activeView === 'master-guru' && (
-                <MasterGuruView db={db} onRefresh={refreshDb} />
+                <MasterGuruView db={db} onRefresh={refreshDb} userRole={currentUser.role} />
               )}
               {activeView === 'media-edukasi' && (
                 <MediaEdukasiView
                   db={db}
                   onRefresh={refreshDb}
+                  userRole={currentUser.role}
                   initialTab={
                     ['materi', 'poster', 'infografis', 'video', 'pesan'].includes(activeTab)
                       ? (activeTab as any)

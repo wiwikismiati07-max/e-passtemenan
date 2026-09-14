@@ -315,8 +315,37 @@ export class StorageService {
     }
   }
 
+  public static getCurrentUserRole(): 'admin' | 'siswa' | null {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const saved = window.sessionStorage.getItem('pass_temenan_user_session');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return parsed.role || null;
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return null;
+  }
+
+  public static isCurrentUserAdmin(): boolean {
+    const role = this.getCurrentUserRole();
+    return role === 'admin';
+  }
+
   public static async deleteFromSupabase(table: string, id: string): Promise<{ success: boolean; message?: string }> {
     if (!id) return { success: false };
+
+    // Role protection: user logged in as passtemenan (role: siswa) CANNOT delete any data
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) mencoba menghapus data di ${table}/${id}. Penghapusan dibatalkan.`);
+      return {
+        success: false,
+        message: 'Akses Ditolak: Hanya akun Administrator yang diizinkan untuk menghapus data laporan.',
+      };
+    }
     
     // 1. Mark as deleted locally and purge from memory & localStorage immediately
     this.markAsDeleted(id);
@@ -677,6 +706,10 @@ export class StorageService {
   }
 
   public static async deleteMediaEdukasiItem(tab: MediaEdukasiSubTab, id: string): Promise<void> {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus item media edukasi ${id}.`);
+      return;
+    }
     const db = this.getDb();
     if (!db.mediaEdukasi) return;
     const currentList = Array.isArray(db.mediaEdukasi[tab])
@@ -767,6 +800,10 @@ export class StorageService {
   }
 
   public static clearAllPosters(): void {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn("[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan mengosongkan galeri poster.");
+      return;
+    }
     const db = this.getDb();
     const existingPosters = Array.isArray(db.mediaEdukasi?.poster) ? db.mediaEdukasi.poster : [];
     existingPosters.forEach((p: any) => {
@@ -2424,6 +2461,10 @@ export class StorageService {
   }
 
   public static deleteCustomLink(id: string): void {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus link.`);
+      return;
+    }
     this.markAsDeleted(id);
     const db = this.getDb();
     db.customLinks = db.customLinks.filter((l) => l.id !== id);
@@ -2491,6 +2532,10 @@ export class StorageService {
   }
 
   public static deletePiketHarian(id: string): void {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus data piket harian.`);
+      return;
+    }
     this.markAsDeleted(id);
     const db = this.getDb();
     db.piketHarian = db.piketHarian.filter((p) => p.id !== id);
@@ -2551,6 +2596,10 @@ export class StorageService {
   }
 
   public static deleteSabtuBeliTehCeri(id: string): void {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus data Sabtu Beli Teh Ceri.`);
+      return;
+    }
     this.markAsDeleted(id);
     const db = this.getDb();
     db.sabtuBeliTehCeri = db.sabtuBeliTehCeri.filter((p) => p.id !== id);
@@ -2613,6 +2662,10 @@ export class StorageService {
   }
 
   public static deleteKebunLuasBerseri(id: string): void {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus data Kebun Luas Berseri.`);
+      return;
+    }
     this.markAsDeleted(id);
     const db = this.getDb();
     db.kebunLuasBerseri = db.kebunLuasBerseri.filter((p) => p.id !== id);
@@ -2677,6 +2730,10 @@ export class StorageService {
   }
 
   public static deleteSenandungSerasi(id: string): void {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus data Senandung Serasi.`);
+      return;
+    }
     this.markAsDeleted(id);
     const db = this.getDb();
     db.senandungSerasi = db.senandungSerasi.filter((p) => p.id !== id);
@@ -2749,6 +2806,10 @@ export class StorageService {
   }
 
   public static deleteELapor(id: string): void {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus data E-Lapor.`);
+      return;
+    }
     this.markAsDeleted(id);
     const db = this.getDb();
     db.eLaporPerundungan = db.eLaporPerundungan.filter((p) => p.id !== id);
@@ -2826,6 +2887,10 @@ export class StorageService {
   }
 
   public static deleteBukuTamu(id: string): void {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus data Buku Tamu.`);
+      return;
+    }
     this.markAsDeleted(id);
     const db = this.getDb();
     db.bukuTamu = db.bukuTamu.filter((p) => p.id !== id);
@@ -2883,6 +2948,10 @@ export class StorageService {
   }
 
   public static deleteSiswa(id: string): void {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus data Siswa.`);
+      return;
+    }
     this.markAsDeleted(id);
     const db = this.getDb();
     db.masterSiswa = db.masterSiswa.filter((s) => s.id !== id);
@@ -2892,6 +2961,10 @@ export class StorageService {
 
   public static deleteMultipleSiswa(ids: string[]): void {
     if (!ids || ids.length === 0) return;
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus data Siswa.`);
+      return;
+    }
     ids.forEach((id) => {
       this.markAsDeleted(id);
       this.removeRecordFromMemory(id);
@@ -3079,6 +3152,10 @@ export class StorageService {
   }
 
   public static deleteGuru(id: string): void {
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus data Guru.`);
+      return;
+    }
     this.markAsDeleted(id);
     const db = this.getDb();
     db.masterGuru = db.masterGuru.filter((g) => g.id !== id);
@@ -3088,6 +3165,10 @@ export class StorageService {
 
   public static deleteMultipleGuru(ids: string[]): void {
     if (!ids || ids.length === 0) return;
+    if (this.getCurrentUserRole() === 'siswa') {
+      console.warn(`[Security] Akses ditolak: User 'passtemenan' (Siswa) tidak diizinkan menghapus data Guru.`);
+      return;
+    }
     ids.forEach((id) => {
       this.markAsDeleted(id);
       this.removeRecordFromMemory(id);
