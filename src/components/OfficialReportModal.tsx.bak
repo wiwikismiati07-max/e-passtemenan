@@ -497,7 +497,6 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
           {customBody ? (
             customBody
           ) : (
-            <>
           {/* 2. TABEL DATA LAPORAN RESMI */}
           <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden print:border-black print:rounded-none print:break-inside-avoid shadow-xs">
             <table className="w-full text-xs print:text-[9pt] border-collapse border-none">
@@ -557,7 +556,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
               </tbody>
             </table>
           </div>
-          </>)}
+          )}
 
           {/* 3. CATATAN / URAIAN UTAMA */}
           {catatanUtama && (

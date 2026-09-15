@@ -329,7 +329,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased font-sans transition-colors duration-200">
       {/* 1. TOP NAVBAR */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-2xs transition-colors">
+      <header className="print:hidden sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-2xs transition-colors">
         {/* Left: Menu Toggle & Brand */}
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           {/* Universal Menu Collapse/Expand Toggle Button */}
@@ -548,7 +548,7 @@ export default function App() {
         {!isSidebarOpen && (
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="hidden lg:flex fixed left-4 bottom-8 z-40 px-3.5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-600/30 items-center gap-2 text-xs font-bold transition-all transform hover:scale-105 cursor-pointer animate-fadeIn border border-indigo-400/40"
+            className="print:hidden hidden lg:flex fixed left-4 bottom-8 z-40 px-3.5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-600/30 items-center gap-2 text-xs font-bold transition-all transform hover:scale-105 cursor-pointer animate-fadeIn border border-indigo-400/40"
             title="Buka Menu Aplikasi"
           >
             <PanelLeft className="w-4 h-4" />

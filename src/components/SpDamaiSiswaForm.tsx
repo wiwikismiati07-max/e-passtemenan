@@ -13,12 +13,15 @@ import {
   RotateCcw,
   Printer,
   FileSpreadsheet,
+  Eye,
 } from 'lucide-react';
 import { exportToExcel, exportToWord } from '../utils/exportUtils';
 import { SpDamaiSiswa } from '../types';
 import { StorageService } from '../services/storage';
 import { StudentPickerWidget } from './StudentPickerWidget';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { OfficialReportModal } from './OfficialReportModal';
+import { SignatureCanvas } from './SignatureCanvas';
 import { getRealtimeDateISO, getRealtimeFullFormattedDate, getRealtimeTimeString } from '../utils/dateUtils';
 import confetti from 'canvas-confetti';
 
@@ -51,6 +54,7 @@ export const SpDamaiSiswaForm: React.FC<Props> = ({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [viewReportId, setViewReportId] = useState<string | null>(null);
   
   useEffect(() => {
     loadData();
@@ -311,6 +315,9 @@ export const SpDamaiSiswaForm: React.FC<Props> = ({
                   </div>
                   {userRole === 'admin' && (
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setViewReportId(record.id)} className="p-1.5 bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors" title="Lihat/Cetak">
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <button onClick={() => handleEdit(record)} className="p-1.5 bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors" title="Edit">
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -341,8 +348,9 @@ export const SpDamaiSiswaForm: React.FC<Props> = ({
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-24">
-      {/* Header Section */}
-      <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+      <div className="print:hidden space-y-6">
+        {/* Header Section */}
+        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none transform translate-x-4 -translate-y-4">
           <Handshake className="w-48 h-48" />
         </div>
@@ -411,6 +419,7 @@ export const SpDamaiSiswaForm: React.FC<Props> = ({
           </div>
         </div>
       )}
+      </div>
 
       {deleteTargetId && (
         <DeleteConfirmModal
@@ -421,6 +430,113 @@ export const SpDamaiSiswaForm: React.FC<Props> = ({
           onCancel={() => setDeleteTargetId(null)}
         />
       )}
+
+      {viewReportId && (() => {
+        const record = records.find(r => r.id === viewReportId);
+        if (!record) return null;
+        return (
+          <OfficialReportModal
+            isOpen={true}
+            onClose={() => setViewReportId(null)}
+            judulLaporan="SURAT PERNYATAAN DAMAI SISWA"
+            fields={[]}
+            customBody={
+              <div className="w-full text-xs print:text-[10pt] text-slate-800 print:text-black leading-relaxed space-y-4 font-serif print:font-serif">
+                <div className="text-center font-bold pb-2 space-y-0.5">
+                  <p className="m-0 text-sm print:text-[11pt]">UPT SMP NEGERI 7 PASURUAN</p>
+                  <p className="m-0 text-sm print:text-[11pt]">Tahun Ajaran {record.tahunAjaran}</p>
+                </div>
+                
+                <p className="m-0 mt-4">
+                  Pada hari ini, <strong>{record.hariTanggalKejadian}</strong>, kami yang bertanda tangan di bawah ini:
+                </p>
+                
+                <div className="pl-4 sm:pl-8">
+                  <table className="text-xs print:text-[10pt] mt-4 mb-4">
+                    <tbody>
+                      <tr>
+                        <td className="py-1 w-48 align-top">Nama Siswa Pertama</td>
+                        <td className="py-1 px-2 w-4 align-top">:</td>
+                        <td className="py-1 font-bold align-top">{record.namaSiswaPertama}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 align-top">Kelas</td>
+                        <td className="py-1 px-2 align-top">:</td>
+                        <td className="py-1 font-bold align-top">{record.kelasSiswaPertama}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 pt-4 align-top">Nama Siswa Kedua</td>
+                        <td className="py-1 px-2 pt-4 align-top">:</td>
+                        <td className="py-1 pt-4 font-bold align-top">{record.namaSiswaKedua}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 align-top">Kelas</td>
+                        <td className="py-1 px-2 align-top">:</td>
+                        <td className="py-1 font-bold align-top">{record.kelasSiswaKedua}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 pt-4 align-top">Hari, Tanggal Kejadian</td>
+                        <td className="py-1 px-2 pt-4 align-top">:</td>
+                        <td className="py-1 pt-4 font-bold align-top">{record.hariTanggalKejadian}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="m-0 mt-4">
+                  Menyatakan bahwa kami telah bersepakat untuk damai dan menyelesaikan perselisihan yang pernah terjadi secara kekeluargaan.
+                </p>
+
+                <p className="m-0 mt-4 font-bold">
+                  Dengan ini kami berjanji:
+                </p>
+
+                <div className="whitespace-pre-wrap ml-6 mt-1 mb-4 print:text-[10pt] text-slate-800 print:text-black">
+                  {record.poinIkrar}
+                </div>
+
+                <p className="m-0 mt-4">
+                  Demikian surat pernyataan damai ini kami buat dengan penuh kesadaran dan tanpa paksaan dari pihak mana pun.
+                </p>
+              </div>
+            }
+            customSignatureBlock={
+              <div className="w-full text-xs print:text-[10pt] text-center select-none pt-8 pb-16 print:pb-0 font-serif print:font-serif">
+                <div className="text-right mb-6">
+                  <p className="m-0 text-slate-800 print:text-black">Pasuruan, {record.hariTanggalKejadian}</p>
+                </div>
+                
+                <div className="flex justify-between w-full mb-8 gap-4">
+                  <div className="w-1/2 flex flex-col items-center">
+                    <p className="font-bold mb-2 m-0 print:text-black">Siswa Pertama</p>
+                    <div className="h-20 w-full max-w-[180px] border border-slate-300 border-dashed rounded-lg flex items-center justify-center print:border-none print:h-20 relative">
+                      <span className="text-slate-300 print:hidden text-[10px]">Klik untuk TTD</span>
+                    </div>
+                    <p className="font-bold underline mt-2 m-0 print:text-black">( {record.namaSiswaPertama.toUpperCase()} )</p>
+                  </div>
+                  <div className="w-1/2 flex flex-col items-center">
+                    <p className="font-bold mb-2 m-0 print:text-black">Siswa Kedua</p>
+                    <div className="h-20 w-full max-w-[180px] border border-slate-300 border-dashed rounded-lg flex items-center justify-center print:border-none print:h-20 relative">
+                      <span className="text-slate-300 print:hidden text-[10px]">Klik untuk TTD</span>
+                    </div>
+                    <p className="font-bold underline mt-2 m-0 print:text-black">( {record.namaSiswaKedua.toUpperCase()} )</p>
+                  </div>
+                </div>
+
+                <div className="w-full flex flex-col items-center mt-4">
+                  <p className="m-0 print:text-black">Mengetahui,</p>
+                  <p className="font-bold mb-2 m-0 print:text-black">Guru BK / Wali Kelas</p>
+                  <div className="h-20 w-full max-w-[180px] border border-slate-300 border-dashed rounded-lg flex items-center justify-center print:border-none print:h-20 relative">
+                    <span className="text-slate-300 print:hidden text-[10px]">Klik untuk TTD</span>
+                  </div>
+                  <p className="font-bold underline mt-2 m-0 print:text-black">WIWIK ISMIATI, S.Pd</p>
+                  <p className="m-0 print:text-black">NIP. 19831116 200904 2 003</p>
+                </div>
+              </div>
+            }
+          />
+        );
+      })()}
     </div>
   );
 };
