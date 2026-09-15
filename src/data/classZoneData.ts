@@ -445,15 +445,15 @@ export interface MonthlyTrendData {
 }
 
 export const MONTHLY_TREND_DATA: MonthlyTrendData[] = [
-  { bulan: 'Jan', bulanFull: 'Januari 2026', sebelumPassTemenan: 14, sesudahPassTemenan: 3, kasusSelesai: 3, verbal: 2, fisik: 1, relasional: 0, siber: 0 },
-  { bulan: 'Feb', bulanFull: 'Februari 2026', sebelumPassTemenan: 16, sesudahPassTemenan: 2, kasusSelesai: 2, verbal: 1, fisik: 0, relasional: 1, siber: 0 },
-  { bulan: 'Mar', bulanFull: 'Maret 2026', sebelumPassTemenan: 12, sesudahPassTemenan: 1, kasusSelesai: 1, verbal: 1, fisik: 0, relasional: 0, siber: 0 },
-  { bulan: 'Apr', bulanFull: 'April 2026', sebelumPassTemenan: 15, sesudahPassTemenan: 1, kasusSelesai: 1, verbal: 0, fisik: 0, relasional: 1, siber: 0 },
+  { bulan: 'Jan', bulanFull: 'Januari 2026', sebelumPassTemenan: 14, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },
+  { bulan: 'Feb', bulanFull: 'Februari 2026', sebelumPassTemenan: 16, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },
+  { bulan: 'Mar', bulanFull: 'Maret 2026', sebelumPassTemenan: 12, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },
+  { bulan: 'Apr', bulanFull: 'April 2026', sebelumPassTemenan: 15, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },
   { bulan: 'Mei', bulanFull: 'Mei 2026', sebelumPassTemenan: 11, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },
   { bulan: 'Jun', bulanFull: 'Juni 2026', sebelumPassTemenan: 10, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },
-  { bulan: 'Jul', bulanFull: 'Juli 2026', sebelumPassTemenan: 13, sesudahPassTemenan: 1, kasusSelesai: 1, verbal: 1, fisik: 0, relasional: 0, siber: 0 },
+  { bulan: 'Jul', bulanFull: 'Juli 2026', sebelumPassTemenan: 13, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },
   { bulan: 'Ags', bulanFull: 'Agustus 2026', sebelumPassTemenan: 15, sesudahPassTemenan: 1, kasusSelesai: 1, verbal: 1, fisik: 0, relasional: 0, siber: 0 },
-  { bulan: 'Sep', bulanFull: 'September 2026', sebelumPassTemenan: 12, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },
+  { bulan: 'Sep', bulanFull: 'September 2026', sebelumPassTemenan: 12, sesudahPassTemenan: 1, kasusSelesai: 1, verbal: 1, fisik: 0, relasional: 0, siber: 0 },
   { bulan: 'Okt', bulanFull: 'Oktober 2026', sebelumPassTemenan: 14, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },
   { bulan: 'Nov', bulanFull: 'November 2026', sebelumPassTemenan: 11, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },
   { bulan: 'Des', bulanFull: 'Desember 2026', sebelumPassTemenan: 13, sesudahPassTemenan: 0, kasusSelesai: 0, verbal: 0, fisik: 0, relasional: 0, siber: 0 },

@@ -86,6 +86,63 @@ interface ProcessedIncidentKey {
 }
 
 /**
+ * Checks whether a text contains a genuine incident, filtering out peaceful statements,
+ * negations (e.g. "tidak terdapat perundungan", "sekolah aman"), and educational/prevention logs.
+ */
+export function hasActualIncident(text: string): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+
+  // Negation and peaceful confirmation keywords: if present, this is NOT an incident
+  const peacefulPatterns = [
+    'tidak terdapat',
+    'tidak ada',
+    'tanpa adanya',
+    'tanpa ada',
+    'tanpa kejadian',
+    'tanpa kerusuhan',
+    'nihil',
+    'bebas dari',
+    'bebas perundungan',
+    'bebas bullying',
+    'aman',
+    'kondusif',
+    'tertib',
+    'lancar',
+    'sosialisasi',
+    'kurangnya pemahaman',
+    'pencegahan',
+    'anti perundungan',
+    'anti-perundungan',
+    'anti bullying',
+    'anti-bullying',
+    'deklarasi damai',
+  ];
+
+  if (peacefulPatterns.some((p) => lower.includes(p))) {
+    return false;
+  }
+
+  // Explicit positive incident keywords
+  const incidentKeywords = [
+    'perundungan',
+    'bullying',
+    'ejekan',
+    'konflik',
+    'perselisihan',
+    'kekerasan',
+    'pemukulan',
+    'perkelahian',
+    'menjambak',
+    'mendorong',
+    'memukul',
+    'mengancam',
+  ];
+
+  return incidentKeywords.some((k) => lower.includes(k));
+}
+
+/**
  * Extracts and de-duplicates student/incident records from Piket Harian and E-Lapor Perundungan
  */
 function collectDeduplicatedIncidents(db: AppDatabase): ProcessedIncidentKey[] {
@@ -115,7 +172,7 @@ function collectDeduplicatedIncidents(db: AppDatabase): ProcessedIncidentKey[] {
   // 2. Process Piket Harian
   (db.piketHarian || []).forEach((item) => {
     const text = `${item.hasilTemuan} ${item.keterangan} ${item.namaAnggota || ''}`.toLowerCase();
-    const hasIncident = text.includes('perundungan') || text.includes('bullying') || text.includes('ejekan') || text.includes('konflik') || text.includes('perselisihan') || text.includes('kekerasan');
+    const hasIncident = hasActualIncident(text);
     
     if (hasIncident) {
       const studentRaw = (item.namaAnggota || 'Siswa Piket').trim().toLowerCase();
@@ -183,7 +240,7 @@ export function calculateClassZoneData(db: AppDatabase): ClassZoneInfo[] {
   // Also check Sabtu Beli Teh Ceri & Kebun Luas Berseri text mentions
   (db.sabtuBeliTehCeri || []).forEach((item) => {
     const text = `${item.hasilTemuan1Minggu} ${item.evaluasiKegiatan} ${item.keterangan}`.toLowerCase();
-    const hasIncident = text.includes('perundungan') || text.includes('bullying') || text.includes('konflik') || text.includes('ejekan') || text.includes('kekerasan');
+    const hasIncident = hasActualIncident(text);
     if (hasIncident) {
       INITIAL_CLASS_ZONE_DATA.forEach((c) => {
         if (text.includes(c.namaKelas.toLowerCase())) {
@@ -201,7 +258,7 @@ export function calculateClassZoneData(db: AppDatabase): ClassZoneInfo[] {
 
   (db.kebunLuasBerseri || []).forEach((item) => {
     const text = `${item.evaluasiBerhasil} ${item.kendalaSolusi} ${item.keterangan}`.toLowerCase();
-    const hasIncident = text.includes('perundungan') || text.includes('bullying') || text.includes('konflik') || text.includes('ejekan') || text.includes('kekerasan');
+    const hasIncident = hasActualIncident(text);
     if (hasIncident) {
       INITIAL_CLASS_ZONE_DATA.forEach((c) => {
         if (text.includes(c.namaKelas.toLowerCase())) {
