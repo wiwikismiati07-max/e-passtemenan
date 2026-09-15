@@ -90,11 +90,11 @@ export const SpDamaiSiswaForm: React.FC<Props> = ({
   const handleEdit = (rec: SpDamaiSiswa) => {
     setEditingId(rec.id);
     setNamaSiswaPertama(rec.namaSiswaPertama || '');
-    setKelasSiswaPertama('');
+    setKelasSiswaPertama(rec.kelasSiswaPertama || '');
     setNamaSiswaKedua(rec.namaSiswaKedua || '');
-    setKelasSiswaKedua('');
+    setKelasSiswaKedua(rec.kelasSiswaKedua || '');
     setHariTanggalKejadian(rec.hariTanggalKejadian || '');
-    setTahunAjaran(rec.tahunAjaran || '');
+    setTahunAjaran(rec.tahunAjaran || '2026-2027');
     setPoinIkrar(rec.poinIkrar || DEFAULT_IKRAR);
     setActiveTab('form');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -121,9 +121,11 @@ export const SpDamaiSiswaForm: React.FC<Props> = ({
     const newRecord: SpDamaiSiswa = {
       id: editingId || Date.now().toString(),
       namaSiswaPertama,
+      kelasSiswaPertama,
       namaSiswaKedua,
+      kelasSiswaKedua,
       hariTanggalKejadian,
-      tahunAjaran,
+      tahunAjaran: tahunAjaran || '2026-2027',
       poinIkrar,
       createdAt: new Date().toISOString(),
     };

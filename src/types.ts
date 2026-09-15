@@ -2,7 +2,9 @@
 export interface SpDamaiSiswa {
   id: string;
   namaSiswaPertama: string;
+  kelasSiswaPertama?: string;
   namaSiswaKedua: string;
+  kelasSiswaKedua?: string;
   hariTanggalKejadian: string;
   tahunAjaran: string;
   poinIkrar: string;

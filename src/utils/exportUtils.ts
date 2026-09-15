@@ -282,10 +282,9 @@ export async function exportElementToPDF(elementId: string, filename: string): P
     return false;
   }
 
-  // Fallback to triggerPrintElement / window.print() if html2canvas encounters oklch or canvas errors in sandboxed iframe
   try {
     const opt = {
-      margin: [8, 8, 8, 8],
+      margin: 10,
       filename: `${filename}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
@@ -293,8 +292,8 @@ export async function exportElementToPDF(elementId: string, filename: string): P
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
+        windowWidth: 794,
         onclone: (doc: Document) => {
-          // Remove stylesheets containing oklch color definitions to prevent html2canvas color parsing crashes
           doc.querySelectorAll('style, link[rel="stylesheet"]').forEach((el) => {
             if (el.textContent && el.textContent.includes('oklch')) {
               el.remove();
@@ -379,131 +378,71 @@ export async function triggerPrintElement(
 ) {
   const element = document.getElementById(elementId);
   if (!element) {
-    console.warn(`Element #${elementId} not found, falling back to window.print()`);
-    try {
-      window.print();
-    } catch (e) {
-      console.warn('window.print failed:', e);
-    }
-    return;
-  }
-
-  const isInsideIframe = window.self !== window.top;
-
-  // If inside an iframe (like AI Studio preview), browser sandbox commonly blocks window.print()
-  // Trigger PDF download alongside print attempt so user never experiences "Cetak tidak jalan"
-  if (isInsideIframe) {
+    window.print();
     onFallbackPdf?.();
-    const cleanDocName = `${docTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
-    exportElementToPDF(elementId, cleanDocName);
-  }
-
-  // Remove existing print iframe if any
-  const existingIframe = document.getElementById('print-engine-iframe');
-  if (existingIframe && document.body.contains(existingIframe)) {
-    document.body.removeChild(existingIframe);
-  }
-
-  const iframe = document.createElement('iframe');
-  iframe.id = 'print-engine-iframe';
-  iframe.style.position = 'fixed';
-  iframe.style.left = '-9999px';
-  iframe.style.top = '-9999px';
-  iframe.style.width = '1024px';
-  iframe.style.height = '768px';
-  iframe.style.border = 'none';
-  iframe.style.opacity = '0.01';
-  iframe.style.pointerEvents = 'none';
-  document.body.appendChild(iframe);
-
-  const iframeDoc = iframe.contentWindow?.document;
-  if (!iframeDoc) {
-    try {
-      window.print();
-    } catch (e) {
-      console.warn('Direct window.print error:', e);
-    }
     return;
   }
 
-  const stylesHtml = Array.from(
-    document.querySelectorAll('style, link[rel="stylesheet"]')
-  )
-    .map((el) => el.outerHTML)
-    .join('\n');
+  const cleanDocName = `${docTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
 
-  const contentHtml = element.innerHTML;
+  // Trigger direct A4 PDF download
+  await exportElementToPDF(elementId, cleanDocName);
 
-  iframeDoc.open();
-  iframeDoc.write(`
-    <!DOCTYPE html>
-    <html lang="id">
-      <head>
-        <meta charset="utf-8" />
-        <title>${docTitle}</title>
-        ${stylesHtml}
-        <style>
-          @page {
-            size: A4 portrait;
-            margin: 10mm 10mm 12mm 10mm;
-          }
-          *, *::before, *::after {
-            box-sizing: border-box !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          html, body {
-            background-color: #ffffff !important;
-            color: #0f172a !important;
-            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .printable-root {
-            padding: 10px 16px !important;
-            width: 100% !important;
-            max-width: 210mm !important;
-            margin: 0 auto !important;
-            background: #ffffff !important;
-          }
-          .print\\:hidden, button, .no-print {
-            display: none !important;
-          }
-          .dark {
-            color-scheme: light !important;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="printable-root">
-          ${contentHtml}
-        </div>
-      </body>
-    </html>
-  `);
-  iframeDoc.close();
+  // Open dedicated A4 print preview window for easy viewing and printing
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    const stylesHtml = Array.from(
+      document.querySelectorAll('style, link[rel="stylesheet"]')
+    )
+      .map((el) => el.outerHTML)
+      .join('\n');
 
-  setTimeout(() => {
-    try {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-    } catch (e) {
-      console.warn('Iframe print error, falling back to window.print() or export:', e);
-      try {
-        window.print();
-      } catch (winErr) {
-        console.warn('window.print also blocked:', winErr);
-        if (!isInsideIframe) {
-          const cleanDocName = `${docTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
-          exportElementToPDF(elementId, cleanDocName);
-        }
-      }
-    } finally {
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 3000);
-    }
-  }, 450);
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="id">
+        <head>
+          <meta charset="utf-8" />
+          <title>${docTitle} - Pratinjau Cetak A4</title>
+          ${stylesHtml}
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm;
+            }
+            body {
+              background: #ffffff !important;
+              color: #0f172a !important;
+              font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+              margin: 0;
+              padding: 20px;
+            }
+            .printable-root {
+              max-width: 210mm;
+              margin: 0 auto;
+              background: #fff;
+            }
+            .print\\:hidden, button, .no-print {
+              display: none !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="printable-root">
+            ${element.innerHTML}
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 400);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+  }
+
+  onFallbackPdf?.();
 }

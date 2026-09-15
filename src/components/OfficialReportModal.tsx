@@ -126,9 +126,9 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    // Instead of using an iframe or exporting, rely on native printing 
-    // with print:* Tailwind classes to produce high-fidelity output.
-    window.print();
+    triggerPrintElement('official-report-printable-area', judulLaporan, () => {
+      exportElementToPDF('official-report-printable-area', `${judulLaporan.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`);
+    });
   };
 
   const handleDownloadPDF = () => {
@@ -632,7 +632,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                 </div>
               </div>
             </div>
-          ) : (
+          ) : !judulLaporan.includes("DAMAI") ? (
             <div className="p-4 rounded-2xl border-2 border-dashed border-teal-500/30 dark:border-teal-500/20 bg-teal-50/40 dark:bg-teal-950/20 text-center space-y-3 print:hidden">
               {/* Hidden file inputs for direct capture */}
               <input
@@ -702,10 +702,10 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
           {/* 5. TANDA TANGAN DIGITAL RESMI PADA DUA SISI */}
-          <div className="pt-3 sm:pt-4 border-t border-slate-200 dark:border-slate-800 print:border-black print:break-inside-avoid">
+          <div className="pt-3 sm:pt-4 print:break-inside-avoid">
             {customSignatureBlock ? (
               customSignatureBlock
             ) : (
