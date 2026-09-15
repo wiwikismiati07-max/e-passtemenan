@@ -613,7 +613,7 @@ export default function App() {
             <div className="w-full">
               {activeView === 'flowchart-intro' && (
                 <FlowchartIntroLanding
-                  onEnterApp={() => handleNavigate('sabtu-teh-ceri', 'form')}
+                  onEnterApp={() => handleNavigate('dashboard-overview')}
                 />
               )}
 
