@@ -38,6 +38,7 @@ import { PiketHarianForm } from './components/PiketHarianForm';
 import { SabtuBeliTehCeriForm } from './components/SabtuBeliTehCeriForm';
 import { KebunLuasBerseriForm } from './components/KebunLuasBerseriForm';
 import { SenandungSerasiForm } from './components/SenandungSerasiForm';
+import { SpDamaiSiswaForm } from './components/SpDamaiSiswaForm';
 import { ELaporPerundunganForm } from './components/ELaporPerundunganForm';
 import { BukuTamuForm } from './components/BukuTamuForm';
 import { WebEmbedViewer } from './components/WebEmbedViewer';
@@ -287,6 +288,8 @@ export default function App() {
         return 'Kebun Luas Berseri';
       case 'senandung-serasi':
         return 'Senandung Serasi';
+      case 'sp-damai':
+        return 'SP Damai Siswa';
       case 'e-lapor':
         return 'E-Lapor Perundungan';
       case 'buku-tamu':
@@ -648,6 +651,12 @@ export default function App() {
               )}
               {activeView === 'senandung-serasi' && (
                 <SenandungSerasiForm
+                  initialTab={activeTab as 'form' | 'rekap'}
+                  userRole={currentUser.role}
+                />
+              )}
+              {activeView === 'sp-damai' && (
+                <SpDamaiSiswaForm
                   initialTab={activeTab as 'form' | 'rekap'}
                   userRole={currentUser.role}
                 />

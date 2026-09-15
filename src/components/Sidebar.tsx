@@ -24,6 +24,8 @@ import {
   Download,
   Video,
   PhoneCall,
+  Handshake,
+  ExternalLink,
 } from 'lucide-react';
 import { AppDatabase, CustomLink } from '../types';
 
@@ -186,6 +188,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           count: db.piketHarian?.length || 0,
         },
         {
+          id: 'sp-damai',
+          title: 'SP Damai Siswa',
+          tag: 'Formulir',
+          category: 'Program',
+          subtitle: 'Penyelesaian Perselisihan',
+          icon: Handshake,
+          color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800',
+          activeBg: 'bg-emerald-600 text-white shadow-emerald-600/20',
+          count: db.spDamaiSiswa?.length || 0,
+        },
+        {
+          id: 'arsip-kegiatan',
+          title: 'Arsip Kegiatan',
+          tag: 'Tautan Luar',
+          category: 'Program',
+          subtitle: 'Galeri & Dokumentasi Google Site',
+          icon: ExternalLink,
+          color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800',
+          activeBg: 'bg-blue-600 text-white shadow-blue-600/20',
+          action: 'open-arsip',
+        },
+        {
           id: 'sabtu-teh-ceri',
           title: 'Sabtu Beli Teh Ceri',
           tag: 'Formulir',
@@ -258,6 +282,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
     if (item.action === 'open-hotline') {
       if (onOpenHotline) onOpenHotline();
+      if (window.innerWidth < 1024) onClose();
+      return;
+    }
+    if (item.action === 'open-arsip') {
+      window.open('https://sites.google.com/view/berandapasstemenanspanju/home', '_blank');
       if (window.innerWidth < 1024) onClose();
       return;
     }

@@ -1,3 +1,13 @@
+
+export interface SpDamaiSiswa {
+  id: string;
+  namaSiswaPertama: string;
+  namaSiswaKedua: string;
+  hariTanggalKejadian: string;
+  tahunAjaran: string;
+  poinIkrar: string;
+  createdAt: string;
+}
 export interface CustomLink {
   id: string;
   title: string;
@@ -255,6 +265,7 @@ export interface AppDatabase {
   kebunLuasBerseri: KebunLuasBerseri[];
   senandungSerasi: SenandungSerasi[];
   eLaporPerundungan: ELaporPerundungan[];
+  spDamaiSiswa?: SpDamaiSiswa[];
   bukuTamu: BukuTamu[];
   masterSiswa: SiswaItem[];
   masterGuru: GuruItem[];
