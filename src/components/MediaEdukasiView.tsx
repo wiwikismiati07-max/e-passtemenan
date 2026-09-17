@@ -76,7 +76,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   initialTab = 'materi',
   userRole = 'siswa',
 }) => {
-  const validTabs: MediaEdukasiSubTab[] = ['materi', 'poster', 'infografis', 'video', 'pesan'];
+  const validTabs: MediaEdukasiSubTab[] = ['materi', 'pesan'];
   const resolvedTab: MediaEdukasiSubTab =
     initialTab && validTabs.includes(initialTab as MediaEdukasiSubTab)
       ? (initialTab as MediaEdukasiSubTab)
@@ -290,17 +290,11 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
     let cats: string[] = [];
     if (activeTab === 'materi') {
       cats = Array.from(new Set(materiList.map((m) => m.kategori).filter(Boolean)));
-    } else if (activeTab === 'poster') {
-      cats = Array.from(new Set(posterList.map((p) => p.tema).filter(Boolean)));
-    } else if (activeTab === 'infografis') {
-      cats = Array.from(new Set(infografisList.map((i) => i.fokus).filter(Boolean)));
-    } else if (activeTab === 'video') {
-      cats = Array.from(new Set(videoList.map((v) => v.kategori).filter(Boolean)));
     } else if (activeTab === 'pesan') {
       cats = Array.from(new Set(pesanList.map((p) => p.topik).filter(Boolean)));
     }
     return ['Semua', ...cats];
-  }, [activeTab, materiList, posterList, infografisList, videoList, pesanList]);
+  }, [activeTab, materiList, pesanList]);
 
   // Filtered Items
   const filteredMateri = useMemo(() => {
@@ -787,30 +781,18 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
             </h1>
 
             <p className="text-sm text-teal-100/90 leading-relaxed font-sans">
-              Koleksi dokumentasi materi, poster kampanye, infografis alur penanganan, tautan video edukatif, dan pesan-pesan inspiratif anti-perundungan untuk warga UPT SMP Negeri 7 Pasuruan.
+              Koleksi dokumen materi edukasi, modul pencegahan PPKSP, regulasi kebijakan sekolah, dan pesan inspiratif anti-perundungan UPT SMP Negeri 7 Pasuruan. (Dokumentasi poster, foto, infografis & video terpusat di menu <strong>Arsip Kegiatan</strong>).
             </p>
 
             {/* Quick Stats Pill Row */}
             <div className="flex flex-wrap items-center gap-2 pt-2">
               <span className="px-2.5 py-1 rounded-lg bg-black/20 border border-white/10 text-xs text-white flex items-center gap-1.5 font-medium">
                 <BookOpen className="w-3.5 h-3.5 text-teal-300" />
-                {materiList.length} Materi
-              </span>
-              <span className="px-2.5 py-1 rounded-lg bg-black/20 border border-white/10 text-xs text-white flex items-center gap-1.5 font-medium">
-                <ImageIcon className="w-3.5 h-3.5 text-amber-300" />
-                {posterList.length} Poster
-              </span>
-              <span className="px-2.5 py-1 rounded-lg bg-black/20 border border-white/10 text-xs text-white flex items-center gap-1.5 font-medium">
-                <BarChart2 className="w-3.5 h-3.5 text-indigo-300" />
-                {infografisList.length} Infografis
-              </span>
-              <span className="px-2.5 py-1 rounded-lg bg-black/20 border border-white/10 text-xs text-white flex items-center gap-1.5 font-medium">
-                <Video className="w-3.5 h-3.5 text-rose-300" />
-                {videoList.length} Video
+                {materiList.length} Materi & Regulasi
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-black/20 border border-white/10 text-xs text-white flex items-center gap-1.5 font-medium">
                 <Quote className="w-3.5 h-3.5 text-emerald-300" />
-                {pesanList.length} Pesan
+                {pesanList.length} Pesan Edukatif
               </span>
             </div>
           </div>
@@ -821,10 +803,6 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
               onClick={() => {
                 if (activeTab === 'materi') {
                   setIsTambahMateriModalOpen(true);
-                } else if (activeTab === 'poster') {
-                  setIsTambahPosterModalOpen(true);
-                } else if (activeTab === 'video') {
-                  setIsTambahVideoModalOpen(true);
                 } else {
                   setIsTambahModalOpen(true);
                 }
@@ -835,20 +813,16 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
               <span>
                 {activeTab === 'materi'
                   ? '+ Upload / Tambah Materi PDF'
-                  : activeTab === 'poster'
-                  ? '+ Tambah Poster'
-                  : activeTab === 'video'
-                  ? '+ Tambah Video'
-                  : '+ Tambah Media Edukasi'}
+                  : '+ Tambah Pesan Edukatif'}
               </span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. NAVIGATION TABS (5 ITEMS REQUESTED BY USER) */}
+      {/* 2. NAVIGATION TABS (DOKUMENTASI MATERI & PESAN EDUKATIF) */}
       <div className="bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-2 gap-2 max-w-2xl">
           {[
             {
               id: 'materi' as MediaEdukasiSubTab,
@@ -856,27 +830,6 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
               count: materiList.length,
               icon: BookOpen,
               activeColor: 'bg-teal-600 text-white shadow-teal-600/20 shadow-md',
-            },
-            {
-              id: 'poster' as MediaEdukasiSubTab,
-              label: 'Dokumentasi Poster',
-              count: posterList.length,
-              icon: ImageIcon,
-              activeColor: 'bg-amber-600 text-white shadow-amber-600/20 shadow-md',
-            },
-            {
-              id: 'infografis' as MediaEdukasiSubTab,
-              label: 'Dokumentasi Infografis',
-              count: infografisList.length,
-              icon: BarChart2,
-              activeColor: 'bg-indigo-600 text-white shadow-indigo-600/20 shadow-md',
-            },
-            {
-              id: 'video' as MediaEdukasiSubTab,
-              label: 'Link Video',
-              count: videoList.length,
-              icon: Video,
-              activeColor: 'bg-rose-600 text-white shadow-rose-600/20 shadow-md',
             },
             {
               id: 'pesan' as MediaEdukasiSubTab,
@@ -895,7 +848,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                   setActiveTab(tab.id);
                   setSelectedCategoryFilter('Semua');
                 }}
-                className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2.5 cursor-pointer ${
                   isActive
                     ? tab.activeColor
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -904,7 +857,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                 <Icon className="w-4 h-4 shrink-0" />
                 <span className="truncate">{tab.label}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                  className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-bold ${
                     isActive
                       ? 'bg-white/25 text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
@@ -930,12 +883,6 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
             placeholder={`Cari dalam ${
               activeTab === 'materi'
                 ? 'materi modul & regulasi'
-                : activeTab === 'poster'
-                ? 'poster kampanye'
-                : activeTab === 'infografis'
-                ? 'infografis alur'
-                : activeTab === 'video'
-                ? 'video edukasi'
                 : 'kutipan pesan edukatif'
             }...`}
             className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"

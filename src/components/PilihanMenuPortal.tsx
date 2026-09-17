@@ -149,7 +149,7 @@ export const PilihanMenuPortal: React.FC<PilihanMenuPortalProps> = ({
       id: 'media-edukasi',
       title: 'MEDIA EDUKASI',
       fullTitle: 'MEDIA EDUKASI DIGITAL',
-      subtitle: 'POSTER, VIDEO & MATERI LITERASI',
+      subtitle: 'MATERI REGULASI & PESAN EDUKATIF',
       category: 'prioritas',
       icon: BookOpen,
       iconGradient: 'from-[#0e7490] via-[#0891b2] to-[#06b6d4] shadow-cyan-500/30',

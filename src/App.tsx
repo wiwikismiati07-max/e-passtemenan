@@ -313,7 +313,7 @@ export default function App() {
   const handleNavigate = (viewKey: string, tab?: string) => {
     setActiveView(viewKey);
     if (viewKey === 'media-edukasi') {
-      const validMediaTabs = ['materi', 'poster', 'infografis', 'video', 'pesan'];
+      const validMediaTabs = ['materi', 'pesan'];
       if (tab && validMediaTabs.includes(tab)) {
         setActiveTab(tab);
       } else {

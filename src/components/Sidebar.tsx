@@ -113,15 +113,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title: 'Media Edukasi Digital',
           tag: 'Edukasi',
           category: 'Edukasi',
-          subtitle: 'Materi, Poster, Infografis, Video & Pesan',
+          subtitle: 'Materi Regulasi & Pesan Edukatif',
           icon: BookOpen,
           color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 border-teal-200 dark:border-teal-800',
           activeBg: 'bg-teal-600 text-white shadow-teal-600/20',
           count:
             (db.mediaEdukasi?.materi?.length || 0) +
-            (db.mediaEdukasi?.poster?.length || 0) +
-            (db.mediaEdukasi?.infografis?.length || 0) +
-            (db.mediaEdukasi?.video?.length || 0) +
             (db.mediaEdukasi?.pesan?.length || 0),
         },
         {
