@@ -71,7 +71,7 @@ export default function App() {
   });
 
   const [db, setDb] = useState<AppDatabase>(StorageService.getDb());
-  const [activeView, setActiveView] = useState<string>('flowchart-intro');
+  const [activeView, setActiveView] = useState<string>('pilihan-menu');
   const [activeTab, setActiveTab] = useState<string>('form');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -205,6 +205,7 @@ export default function App() {
   const handleLoginSuccess = (session: UserSession) => {
     setCurrentUser(session);
     sessionStorage.setItem('pass_temenan_user_session', JSON.stringify(session));
+    setActiveView('pilihan-menu');
   };
 
   const handleLogout = () => {
@@ -277,6 +278,8 @@ export default function App() {
 
   const getActiveViewDisplayTitle = () => {
     switch (activeView) {
+      case 'pilihan-menu':
+        return 'Pilihan Menu Aplikasi';
       case 'flowchart-intro':
         return 'Bagan dan Tolak Ukur Kekerasan dan Perundungan di SMP Negeri 7 Pasuruan';
       case 'dashboard-overview':
@@ -395,28 +398,6 @@ export default function App() {
 
         {/* Right Action Tools */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Periode Tahun Ajaran Global Selector */}
-          <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-200 text-xs font-bold shadow-2xs">
-            <Calendar className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <select
-              value={db.tahunAjaranAktif || '(2025-2026)'}
-              onChange={(e) => {
-                const val = e.target.value;
-                StorageService.setTahunAjaranAktif(val);
-                setDb(StorageService.getDb());
-                window.dispatchEvent(new Event('pass-temenan-db-updated'));
-              }}
-              className="bg-transparent text-indigo-900 dark:text-indigo-200 text-[11px] sm:text-xs font-extrabold focus:outline-none cursor-pointer pr-1"
-              title="Pilih Periode Tahun Ajaran Aktif"
-            >
-              {PERIODE_TAHUN_AJARAN.map((ta) => (
-                <option key={ta} value={ta} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
-                  TA {ta}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Multi-Device Cloud Sync Button */}
           <button
             onClick={handleManualSync}
@@ -449,26 +430,6 @@ export default function App() {
               <span className="hidden lg:inline">Pejabat & BK</span>
             </button>
           )}
-
-          {/* Manual Book (Flipbook) Quick Access */}
-          <button
-            onClick={() => setIsManualBookOpen(true)}
-            className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
-            title="Buku Panduan & Tutorial Flipbook Heyzine"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <span className="hidden md:inline">Manual Book</span>
-          </button>
-
-          {/* Hotline SMPN 7 Quick Access */}
-          <button
-            onClick={() => setIsHotlineOpen(true)}
-            className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
-            title="Hotline & Kontak Resmi SMPN 7 Pasuruan"
-          >
-            <PhoneCall className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="hidden md:inline">Hotline</span>
-          </button>
 
           {/* Install PWA Button */}
           <button
@@ -565,7 +526,7 @@ export default function App() {
         >
           <main className="flex-1 p-3 sm:p-5 md:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
             {/* View Header Breadcrumb & Actions */}
-            {activeView !== 'flowchart-intro' && activeView !== 'dashboard-overview' && (
+            {activeView !== 'flowchart-intro' && activeView !== 'dashboard-overview' && activeView !== 'pilihan-menu' && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold shrink-0">
@@ -619,7 +580,7 @@ export default function App() {
             <div className="w-full">
               {activeView === 'flowchart-intro' && (
                 <FlowchartIntroLanding
-                  onEnterApp={() => handleNavigate('dashboard-overview')}
+                  onEnterApp={() => handleNavigate('pilihan-menu')}
                   onNavigate={(viewKey, tab) => handleNavigate(viewKey, tab || 'form')}
                   onOpenManualBook={() => setIsManualBookOpen(true)}
                   onOpenHotline={() => setIsHotlineOpen(true)}

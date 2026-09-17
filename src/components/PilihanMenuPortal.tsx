@@ -2,11 +2,6 @@ import React, { useState } from 'react';
 import {
   Youtube,
   Phone,
-  ShieldCheck,
-  Users,
-  Settings,
-  Clock,
-  UserCheck,
   BookOpen,
   ShieldAlert,
   LayoutDashboard,
@@ -14,19 +9,13 @@ import {
   Calendar,
   Coffee,
   Trees,
-  Sparkles,
-  Sparkle,
-  Utensils,
   GraduationCap,
-  HeartHandshake,
   Music,
   ExternalLink,
   Workflow,
   Search,
   X,
   ArrowRight,
-  Database,
-  FileJson,
 } from 'lucide-react';
 
 interface PilihanMenuPortalProps {
@@ -74,73 +63,9 @@ export const PilihanMenuPortal: React.FC<PilihanMenuPortalProps> = ({
       iconGradient: 'from-[#ea580c] via-[#f97316] to-[#fb923c] shadow-orange-500/30',
       action: () => onOpenHotline(),
     },
-    {
-      id: 'management-user',
-      title: 'MANAGEMENT...',
-      fullTitle: 'MANAGEMENT USER',
-      subtitle: 'KELOLA AKSES USER',
-      category: 'master',
-      icon: ShieldCheck,
-      iconGradient: 'from-[#059669] via-[#10b981] to-[#34d399] shadow-emerald-500/30',
-      action: () => onNavigate('master-guru'),
-    },
-    {
-      id: 'management-siswa',
-      title: 'MANAGEMENT...',
-      fullTitle: 'MANAGEMENT SISWA',
-      subtitle: 'DATABASE SISWA & PERIODE',
-      category: 'master',
-      icon: Users,
-      iconGradient: 'from-[#2563eb] via-[#3b82f6] to-[#6366f1] shadow-blue-500/30',
-      action: () => onNavigate('master-siswa'),
-    },
 
-    // --- Baris 2: Sesuai Screenshot ---
-    {
-      id: 'setup',
-      title: 'SETUP...',
-      fullTitle: 'SETUP DATABASE & RESTORE',
-      subtitle: 'UPLOAD/CLEAR DATA',
-      category: 'master',
-      icon: Settings,
-      iconGradient: 'from-[#6366f1] via-[#7c3aed] to-[#8b5cf6] shadow-indigo-500/30',
-      action: () => {
-        if (onOpenBackupModal) onOpenBackupModal();
-        else onNavigate('dashboard-overview');
-      },
-    },
-    {
-      id: 'si-telat',
-      title: 'SI-TELAT',
-      fullTitle: 'SI-TELAT (KETERLAMBATAN)',
-      subtitle: 'SISTEM KETERLAMBATAN',
-      category: 'inovasi',
-      icon: Clock,
-      iconGradient: 'from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] shadow-sky-500/30',
-      action: () => onNavigate('piket-harian', 'form'),
-    },
-    {
-      id: 'izin-siswa',
-      title: 'IZIN SISWA',
-      fullTitle: 'SISTEM PERIZINAN SISWA',
-      subtitle: 'SISTEM PERIZINAN SISWA',
-      category: 'inovasi',
-      icon: UserCheck,
-      iconGradient: 'from-[#0d9488] via-[#14b8a6] to-[#2dd4bf] shadow-teal-500/30',
-      action: () => onNavigate('piket-harian', 'form'),
-    },
-    {
-      id: 'jurnal-guru',
-      title: 'JURNAL...',
-      fullTitle: 'JURNAL GURU & EVALUASI',
-      subtitle: 'AGENDA & EVALUASI GURU (BARU)',
-      category: 'master',
-      icon: BookOpen,
-      iconGradient: 'from-[#d97706] via-[#f59e0b] to-[#fbbf24] shadow-amber-500/30',
-      action: () => onNavigate('master-guru'),
-    },
 
-    // --- Baris 3: Modul Utama & Inovasi SAHABAT SPANJU ---
+    // --- Baris 2: Modul Utama & Inovasi SAHABAT SPANJU ---
     {
       id: 'e-lapor',
       title: 'E-LAPOR',
@@ -182,7 +107,7 @@ export const PilihanMenuPortal: React.FC<PilihanMenuPortalProps> = ({
       action: () => onNavigate('piket-harian', 'form'),
     },
 
-    // --- Baris 4: Inovasi Karakter & Lingkungan SMPN 7 ---
+    // --- Baris 3: Inovasi Karakter & Lingkungan SMPN 7 ---
     {
       id: 'sabtu-teh-ceri',
       title: 'SABTU TEH CERI',
@@ -203,58 +128,8 @@ export const PilihanMenuPortal: React.FC<PilihanMenuPortalProps> = ({
       iconGradient: 'from-[#047857] via-[#059669] to-[#10b981] shadow-emerald-500/30',
       action: () => onNavigate('kebun-berseri', 'form'),
     },
-    {
-      id: 'kipas-mas-bagas',
-      title: 'KIPAS MAS BAGAS',
-      fullTitle: 'KIPAS MAS BAGAS',
-      subtitle: 'DISIPLIN & KARAKTER SANTUN',
-      category: 'inovasi',
-      icon: Sparkles,
-      iconGradient: 'from-[#6d28d9] via-[#7c3aed] to-[#a855f7] shadow-purple-500/30',
-      action: () => onNavigate('kipas-mas-bagas', 'form'),
-    },
-    {
-      id: 'kamar-mandi-bersih',
-      title: 'KAMAR MANDI',
-      fullTitle: 'KAMAR MANDI BERSIH',
-      subtitle: 'INSPEKSI SANITASI & HIGIENE',
-      category: 'inovasi',
-      icon: Sparkle,
-      iconGradient: 'from-[#0891b2] via-[#06b6d4] to-[#22d3ee] shadow-cyan-500/30',
-      action: () => onNavigate('kamar-mandi-bersih', 'form'),
-    },
 
-    // --- Baris 5: Layanan Siswa, Budaya & Pembinaan ---
-    {
-      id: 'kantin-berkah',
-      title: 'KANTIN BERKAH',
-      fullTitle: 'KANTIN BERKAH SEHAT',
-      subtitle: 'PANGAN SEHAT, BERGIZI & HALAL',
-      category: 'inovasi',
-      icon: Utensils,
-      iconGradient: 'from-[#c2410c] via-[#ea580c] to-[#f97316] shadow-orange-500/30',
-      action: () => onNavigate('kantin-berkah', 'form'),
-    },
-    {
-      id: 'kelas-berkah',
-      title: 'KELAS BERKAH',
-      fullTitle: 'KELAS BERKAH HARMONIS',
-      subtitle: 'IKRAR DAMAI & SUASANA NYAMAN',
-      category: 'inovasi',
-      icon: GraduationCap,
-      iconGradient: 'from-[#4338ca] via-[#4f46e5] to-[#6366f1] shadow-indigo-500/30',
-      action: () => onNavigate('kelas-berkah', 'form'),
-    },
-    {
-      id: 'kotak-saran',
-      title: 'KOTAK SARAN',
-      fullTitle: 'KOTAK SARAN & CURHAT',
-      subtitle: 'CURHAT & ASPIRASI TERBUKA',
-      category: 'inovasi',
-      icon: HeartHandshake,
-      iconGradient: 'from-[#be185d] via-[#db2777] to-[#f472b6] shadow-pink-500/30',
-      action: () => onNavigate('kotak-saran', 'form'),
-    },
+    // --- Baris 4: Layanan Siswa, Budaya & Pembinaan ---
     {
       id: 'senandung-serasi',
       title: 'SENANDUNG...',
@@ -299,19 +174,6 @@ export const PilihanMenuPortal: React.FC<PilihanMenuPortalProps> = ({
       icon: GraduationCap,
       iconGradient: 'from-[#1e40af] via-[#1d4ed8] to-[#2563eb] shadow-blue-500/30',
       action: () => onNavigate('master-guru'),
-    },
-    {
-      id: 'supabase-config',
-      title: 'CLOUD SYNC',
-      fullTitle: 'KONFIGURASI CLOUD SUPABASE',
-      subtitle: 'SINKRONISASI DATABASE REALTIME',
-      category: 'master',
-      icon: Database,
-      iconGradient: 'from-[#047857] via-[#059669] to-[#10b981] shadow-emerald-500/30',
-      action: () => {
-        if (onOpenSupabaseModal) onOpenSupabaseModal();
-        else onNavigate('dashboard-overview');
-      },
     },
   ];
 
