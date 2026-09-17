@@ -103,7 +103,7 @@ export function exportToWord(
       </table>
 
       <div className="footer-note">
-        Dokumen rekapitulasi ini diunduh dari Sistem E-PASS TEMENAN SPANJU UPT SMPN 7 Pasuruan pada ${new Date().toLocaleDateString(
+        Dokumen rekapitulasi ini diunduh dari Sistem Aplikasi SAHABAT Spanju UPT SMPN 7 Pasuruan pada ${new Date().toLocaleDateString(
           'id-ID',
           { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
         )}.

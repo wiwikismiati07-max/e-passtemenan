@@ -328,18 +328,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="w-9 h-9 rounded-full p-0.5 border-2 border-emerald-400 bg-white shadow-xs flex items-center justify-center shrink-0">
                 <img
                   src="https://i.ibb.co.com/pBbfS44d/LOGO-PASS-TEMENAN.jpg"
-                  alt="Logo Pass Temenan"
+                  alt="Logo Aplikasi SAHABAT Spanju"
                   className="w-full h-full object-cover rounded-full"
                   referrerPolicy="no-referrer"
                 />
               </div>
 
-              <div className="truncate">
+              <div className="min-w-0 flex-1">
                 <h2 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white font-display tracking-tight uppercase truncate">
                   Menu Aplikasi
                 </h2>
-                <p className="text-[10px] sm:text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 truncate">
-                  E-PASS TEMENAN SPANJU
+                <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 leading-tight">
+                  Aplikasi SAHABAT Spanju
+                </p>
+                <p className="text-[9px] sm:text-[9.5px] font-medium text-slate-500 dark:text-slate-400 leading-snug mt-0.5" title="Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan">
+                  (Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan)
                 </p>
               </div>
             </div>
@@ -548,7 +551,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 if (window.innerWidth < 1024) onClose();
               }}
               className="py-2 px-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/70 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
-              title="Keluar dari Aplikasi E-Pass Temenan"
+              title="Keluar dari Aplikasi SAHABAT Spanju"
             >
               <LogOut className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
               <span>Keluar</span>

@@ -304,7 +304,7 @@ export const PiketHarianForm: React.FC<Props> = ({ initialTab = 'form', userRole
                 PIKET HARIAN
               </h2>
               <p className="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                Administrasi Program Pass Temenan SMPN 7 Pasuruan
+                Administrasi Program Aplikasi SAHABAT Spanju SMPN 7 Pasuruan
               </p>
             </div>
           </div>

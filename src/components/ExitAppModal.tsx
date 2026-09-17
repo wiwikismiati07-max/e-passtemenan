@@ -30,8 +30,11 @@ export const ExitAppModal: React.FC<ExitAppModalProps> = ({
               <h3 className="text-base sm:text-lg font-black font-display tracking-tight text-slate-900 dark:text-white">
                 Keluar Aplikasi
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                E-PASS TEMENAN SPANJU
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                Aplikasi SAHABAT Spanju
+              </p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight mt-0.5">
+                (Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan)
               </p>
             </div>
           </div>

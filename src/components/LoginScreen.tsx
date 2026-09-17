@@ -45,9 +45,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     const cleanPassword = password.trim();
 
     setTimeout(() => {
-      if (cleanUsername === 'passtemenan' && cleanPassword === 'smpn7') {
+      if ((cleanUsername === 'sahabat' || cleanUsername === 'passtemenan') && (cleanPassword === 'smpn7' || cleanPassword === 'sahabat')) {
         onLoginSuccess({
-          username: 'passtemenan',
+          username: cleanUsername,
           role: 'siswa',
           displayName: 'Siswa SPANJU',
         });
@@ -82,7 +82,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full p-1 border-2 border-emerald-400 bg-white shadow-xl mx-auto transform hover:scale-105 transition-transform">
               <img
                 src="https://i.ibb.co.com/pBbfS44d/LOGO-PASS-TEMENAN.jpg"
-                alt="Logo Pass Temenan"
+                alt="Logo Aplikasi SAHABAT Spanju"
                 className="w-full h-full object-cover rounded-full"
                 referrerPolicy="no-referrer"
               />
@@ -91,8 +91,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <div className="space-y-1">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 text-xs font-black uppercase tracking-wider">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                E-PASS TEMENAN SPANJU
+                Aplikasi SAHABAT Spanju
               </span>
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                (Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan)
+              </p>
               <h1 className="text-xl sm:text-2xl font-black font-display text-slate-900 dark:text-white uppercase tracking-tight pt-1">
                 Akses Masuk Aplikasi
               </h1>
@@ -203,7 +206,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               <div className="font-mono text-xs text-slate-600 dark:text-slate-300 space-y-1 pl-5">
                 <div className="flex items-center gap-2">
                   <span className="text-slate-400 dark:text-slate-500 w-10">User:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">passtemenan</span>
+                  <span className="font-bold text-slate-900 dark:text-white">sahabat / passtemenan</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-slate-400 dark:text-slate-500 w-10">Pass:</span>

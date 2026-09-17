@@ -135,7 +135,7 @@ export const TambahMateriModal: React.FC<TambahMateriModalProps> = ({
       judul: titleToUse,
       kategori: 'Regulasi & Dokumen Resmi',
       ringkasan: `Dokumen berkas ${formatDokumen}: ${titleToUse}. Siap diunduh dan dibaca untuk pedoman pencegahan kekerasan sekolah.`,
-      penulis: 'Satgas PASS TEMENAN SPANJU',
+      penulis: 'Satgas Aplikasi SAHABAT Spanju',
       tanggal: new Date().toISOString().split('T')[0],
       linkDokumen: linkDokumen.trim(),
       fileFormat: formatDokumen,

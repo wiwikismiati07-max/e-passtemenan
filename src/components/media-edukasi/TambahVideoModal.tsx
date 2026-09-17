@@ -37,7 +37,7 @@ export const TambahVideoModal: React.FC<TambahVideoModalProps> = ({
   const [kategori, setKategori] = useState('Dokumentasi Inovasi');
   const [deskripsi, setDeskripsi] = useState('');
   const [durasi, setDurasi] = useState('04:00');
-  const [narasumber, setNarasumber] = useState('Satgas PASS TEMENAN UPT SMPN 7 Pasuruan');
+  const [narasumber, setNarasumber] = useState('Satgas Aplikasi SAHABAT Spanju UPT SMPN 7 Pasuruan');
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [detectedYtId, setDetectedYtId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -89,7 +89,7 @@ export const TambahVideoModal: React.FC<TambahVideoModalProps> = ({
       videoUrl: normalizedUrl,
       youtubeId: ytId,
       durasi: durasi.trim() || '04:00',
-      narasumber: narasumber.trim() || 'Satgas PASS TEMENAN SPANJU',
+      narasumber: narasumber.trim() || 'Satgas Aplikasi SAHABAT Spanju',
       tanggal: tanggal || new Date().toISOString().split('T')[0],
       thumbnailUrl: thumbnail,
     };
@@ -264,7 +264,7 @@ export const TambahVideoModal: React.FC<TambahVideoModalProps> = ({
                 type="text"
                 value={narasumber}
                 onChange={(e) => setNarasumber(e.target.value)}
-                placeholder="Contoh: Satgas PASS TEMENAN / Guru BK"
+                placeholder="Contoh: Satgas Aplikasi SAHABAT Spanju / Guru BK"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
               />
             </div>

@@ -27,7 +27,7 @@ export const HOTLINE_INFO = {
   whatsapp: '085168700953',
   whatsappUrl: 'https://wa.me/6285168700953?text=Halo%20Satgas%20Anti%20Perundungan%20UPT%20SMPN%207%20Pasuruan%2C%20saya%20ingin%20berkonsultasi%20mengenai...',
   email: 'smp7pas@yahoo.co.id',
-  emailUrl: 'mailto:smp7pas@yahoo.co.id?subject=Layanan%20Pengaduan%20E-Pass%20Temenan%20SMPN%207%20Pasuruan',
+  emailUrl: 'mailto:smp7pas@yahoo.co.id?subject=Layanan%20Pengaduan%20Aplikasi%20SAHABAT%20Spanju%20SMPN%207%20Pasuruan',
   website: 'www.smpn7pasuruan.sch.id',
   websiteUrl: 'https://www.smpn7pasuruan.sch.id',
   alamat: 'Jl. Ki Hajar Dewantara No. 27, Kota Pasuruan, Jawa Timur',
@@ -72,7 +72,7 @@ export const HotlineModal: React.FC<HotlineModalProps> = ({ isOpen, onClose }) =
             </h3>
             <p className="text-xs text-indigo-100 mt-1 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" />
-              <span>Satgas Penanganan & Pencegahan Perundungan (Pass Temenan)</span>
+              <span>Satgas Penanganan & Pencegahan Perundungan (Aplikasi SAHABAT Spanju)</span>
             </p>
           </div>
         </div>

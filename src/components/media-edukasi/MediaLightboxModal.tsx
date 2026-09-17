@@ -57,7 +57,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
       try {
         await navigator.share({
           title,
-          text: `${title} - Media Edukasi Digital E-PASS TEMENAN SPANJU (SMPN 7 Pasuruan)`,
+          text: `${title} - Media Edukasi Digital Aplikasi SAHABAT Spanju (SMPN 7 Pasuruan)`,
           url: window.location.href,
         });
       } catch {

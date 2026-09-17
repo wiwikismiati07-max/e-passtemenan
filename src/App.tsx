@@ -360,7 +360,7 @@ export default function App() {
             <div className="w-9 h-9 rounded-full p-0.5 border-2 border-emerald-400 bg-white shadow-xs flex items-center justify-center shrink-0">
               <img
                 src="https://i.ibb.co.com/pBbfS44d/LOGO-PASS-TEMENAN.jpg"
-                alt="Logo Pass Temenan"
+                alt="Logo Aplikasi SAHABAT Spanju"
                 className="w-full h-full object-cover rounded-full"
                 referrerPolicy="no-referrer"
               />
@@ -376,8 +376,8 @@ export default function App() {
                   SMPN 7 Pasuruan
                 </span>
               </div>
-              <span className="hidden md:inline text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                E-Pass Temenan: Bersama Melawan Perundungan
+              <span className="hidden md:inline text-[10px] text-slate-500 dark:text-slate-400 truncate" title="Aplikasi SAHABAT Spanju (Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan)">
+                Aplikasi SAHABAT Spanju (Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan)
               </span>
             </div>
           </div>
@@ -508,7 +508,7 @@ export default function App() {
             <button
               onClick={() => setIsExitModalOpen(true)}
               className="p-1.5 sm:p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 transition-all shadow-2xs flex items-center cursor-pointer"
-              title="Keluar dari Aplikasi E-Pass Temenan"
+              title="Keluar dari Aplikasi SAHABAT Spanju"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
@@ -579,8 +579,10 @@ export default function App() {
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-                      <span>E-PASS TEMENAN</span>
-                      <ChevronRight className="w-3 h-3" />
+                      <span title="Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan">
+                        Aplikasi SAHABAT Spanju (Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan)
+                      </span>
+                      <ChevronRight className="w-3 h-3 shrink-0" />
                       <span className="text-indigo-600 dark:text-indigo-400 font-bold uppercase">
                         {getActiveViewDisplayTitle()}
                       </span>

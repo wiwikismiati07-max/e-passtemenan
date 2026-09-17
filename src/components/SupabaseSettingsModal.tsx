@@ -147,7 +147,7 @@ export const SupabaseSettingsModal: React.FC<SupabaseSettingsModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Simpan & amankan seluruh data program PASS TEMENAN ke cloud database Supabase
+                Simpan & amankan seluruh data program Aplikasi SAHABAT Spanju ke cloud database Supabase
               </p>
             </div>
           </div>

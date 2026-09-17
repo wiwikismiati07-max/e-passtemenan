@@ -70,7 +70,7 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
   if (!isOpen || !materi) return null;
 
   const handleCopySummary = () => {
-    const textToCopy = `${materi.judul}\n\n${materi.ringkasan}\n\n${materi.kontenLengkap || ''}\n\nSumber: Media Edukasi Digital E-PASS TEMENAN SPANJU (SMPN 7 Pasuruan)`;
+    const textToCopy = `${materi.judul}\n\n${materi.ringkasan}\n\n${materi.kontenLengkap || ''}\n\nSumber: Media Edukasi Digital Aplikasi SAHABAT Spanju (SMPN 7 Pasuruan)`;
     navigator.clipboard.writeText(textToCopy);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2500);
@@ -230,7 +230,7 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
         ) : (
           <div className="p-5 print:p-2 rounded-2xl print:rounded-none bg-slate-50 print:bg-transparent border border-slate-200 print:border-black text-xs sm:text-sm print:text-[9.5pt] text-slate-700 print:text-black leading-relaxed space-y-2">
             <p>
-              Materi edukasi ini disajikan dalam format berkas digital lengkap (PDF/Dokumen Resmi) dan dapat diakses langsung oleh seluruh siswa, guru, dan wali murid melalui portal E-PASS TEMENAN SPANJU.
+              Materi edukasi ini disajikan dalam format berkas digital lengkap (PDF/Dokumen Resmi) dan dapat diakses langsung oleh seluruh siswa, guru, dan wali murid melalui portal Aplikasi SAHABAT Spanju.
             </p>
             {hasDocumentLink && (
               <p className="font-mono text-[11px] print:text-[8pt] text-teal-800 print:text-black break-all">
@@ -342,7 +342,7 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
       <div className="pt-3 border-t border-slate-200 print:border-black flex flex-wrap items-center justify-between text-[9.5px] print:text-[7.5pt] text-slate-500 print:text-black print:break-inside-avoid">
         <div className="flex items-center gap-1">
           <ShieldCheck className="w-3 h-3 text-teal-600 print:hidden" />
-          <span>Dokumen Resmi E-PASS TEMENAN SPANJU • UPT SMP Negeri 7 Pasuruan</span>
+          <span>Dokumen Resmi Aplikasi SAHABAT Spanju • UPT SMP Negeri 7 Pasuruan</span>
         </div>
         <div>
           Waktu Cetak: {new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
@@ -523,7 +523,7 @@ export const MateriDetailModal: React.FC<MateriDetailModalProps> = ({
         {/* Footer */}
         <div className="px-5 sm:px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 flex items-center justify-between gap-3 shrink-0">
           <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-            SMPN 7 Pasuruan • Satgas PPKSP & PASS TEMENAN
+            SMPN 7 Pasuruan • Satgas PPKSP & Aplikasi SAHABAT Spanju
           </div>
 
           <div className="flex items-center gap-2">

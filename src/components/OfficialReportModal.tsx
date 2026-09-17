@@ -857,7 +857,7 @@ export const OfficialReportModal: React.FC<OfficialReportModalProps> = ({
 
           {/* Footer Validation Note */}
           <div className="text-[10px] print:text-[7.5pt] text-slate-400 dark:text-slate-500 text-center pt-2 border-t border-slate-100 dark:border-slate-800 print:text-black print:break-inside-avoid">
-            Dokumen ini diterbitkan dan ditandatangani secara sah melalui Sistem Inovasi Layanan E-PASS TEMENAN SPANJU UPT SMPN 7 Pasuruan.
+            Dokumen ini diterbitkan dan ditandatangani secara sah melalui Sistem Inovasi Layanan Aplikasi SAHABAT Spanju UPT SMPN 7 Pasuruan.
           </div>
         </div>
       </div>

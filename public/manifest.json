@@ -1,7 +1,7 @@
 {
-  "name": "E-PASS TEMENAN SPANJU - SMPN 7 Pasuruan",
-  "short_name": "Pass Temenan",
-  "description": "Aplikasi E-PASS TEMENAN: Bersama Melawan Perundungan - UPT SMP Negeri 7 Pasuruan",
+  "name": "Aplikasi SAHABAT Spanju - SMPN 7 Pasuruan",
+  "short_name": "SAHABAT Spanju",
+  "description": "Aplikasi SAHABAT Spanju (Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan)",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

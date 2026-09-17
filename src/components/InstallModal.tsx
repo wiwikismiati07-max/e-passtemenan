@@ -39,7 +39,7 @@ export const InstallModal: React.FC<InstallModalProps> = ({
             <div className="w-14 h-14 rounded-2xl p-1 bg-gradient-to-tr from-emerald-400 via-teal-300 to-indigo-400 shadow-md flex items-center justify-center shrink-0">
               <img
                 src="/logo-pass-temenan.jpg"
-                alt="Logo Pass Temenan"
+                alt="Logo Aplikasi SAHABAT Spanju"
                 className="w-full h-full object-cover rounded-xl bg-white"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = 'https://i.ibb.co.com/pBbfS44d/LOGO-PASS-TEMENAN.jpg';
@@ -49,14 +49,14 @@ export const InstallModal: React.FC<InstallModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-black font-display tracking-tight text-slate-900 dark:text-white">
-                  Instal E-PASS TEMENAN
+                  Instal Aplikasi SAHABAT Spanju
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[10px] font-black uppercase">
                   PWA
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Ikon Resmi: Logo Pass Temenan SMPN 7 Pasuruan
+                (Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan)
               </p>
             </div>
           </div>
@@ -77,7 +77,7 @@ export const InstallModal: React.FC<InstallModalProps> = ({
               Aplikasi Mandiri di Layar HP & Laptop
             </p>
             <p className="text-emerald-700 dark:text-emerald-300/90 text-[11px] leading-relaxed">
-              Setelah dipasang, aplikasi akan muncul di layar utama dengan <strong>Logo Pass Temenan</strong> dan dapat dibuka tanpa bilah browser.
+              Setelah dipasang, aplikasi akan muncul di layar utama dengan <strong>Logo Aplikasi SAHABAT Spanju</strong> dan dapat dibuka tanpa bilah browser.
             </p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export const InstallModal: React.FC<InstallModalProps> = ({
                   Pilih menu <strong>"Tambahkan ke Layar Utama"</strong> atau <strong>"Install Aplikasi"</strong>.
                 </li>
                 <li className="leading-relaxed">
-                  Konfirmasi pemasangan. Ikon <strong>Logo Pass Temenan</strong> akan langsung terpasang di layar utama HP Anda.
+                  Konfirmasi pemasangan. Ikon <strong>Logo Aplikasi SAHABAT Spanju</strong> akan langsung terpasang di layar utama HP Anda.
                 </li>
               </ol>
             </div>
@@ -167,13 +167,13 @@ export const InstallModal: React.FC<InstallModalProps> = ({
                   Buka aplikasi di <strong>Google Chrome</strong> atau <strong>Microsoft Edge</strong>.
                 </li>
                 <li className="leading-relaxed">
-                  Perhatikan bilah alamat (URL) di bagian kanan atas, klik ikon <strong>"Install E-PASS TEMENAN SPANJU"</strong> (<Download className="w-3.5 h-3.5 inline text-indigo-600" />).
+                  Perhatikan bilah alamat (URL) di bagian kanan atas, klik ikon <strong>"Install Aplikasi SAHABAT Spanju"</strong> (<Download className="w-3.5 h-3.5 inline text-indigo-600" />).
                 </li>
                 <li className="leading-relaxed">
                   Atau klik menu titik tiga di browser &gt; <strong>"Cast, save, and share" / "Apps"</strong> &gt; <strong>"Install this site as an app"</strong>.
                 </li>
                 <li className="leading-relaxed">
-                  Shortcut dengan <strong>Logo Pass Temenan</strong> akan muncul di Desktop dan Taskbar.
+                  Shortcut dengan <strong>Logo Aplikasi SAHABAT Spanju</strong> akan muncul di Desktop dan Taskbar.
                 </li>
               </ol>
             </div>
@@ -196,7 +196,7 @@ export const InstallModal: React.FC<InstallModalProps> = ({
                   Gulir ke bawah dan ketuk opsi <strong>"Tambah ke Layar Utama" (Add to Home Screen <PlusSquare className="w-3.5 h-3.5 inline text-slate-700" />)</strong>.
                 </li>
                 <li className="leading-relaxed">
-                  Ketuk <strong>"Tambah" (Add)</strong> di pojok kanan atas. Ikon <strong>Logo Pass Temenan</strong> akan hadir di homescreen iOS Anda.
+                  Ketuk <strong>"Tambah" (Add)</strong> di pojok kanan atas. Ikon <strong>Logo Aplikasi SAHABAT Spanju</strong> akan hadir di homescreen iOS Anda.
                 </li>
               </ol>
             </div>

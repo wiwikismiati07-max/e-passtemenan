@@ -83,7 +83,7 @@ export const BullyingTrendChart: React.FC<BullyingTrendChartProps> = ({ db }) =>
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                <span>Data efektivitas program Pass Temenan dalam menekan kekerasan & perundungan di SMPN 7 Pasuruan</span>
+                <span>Data efektivitas program Aplikasi SAHABAT Spanju dalam menekan kekerasan & perundungan di SMPN 7 Pasuruan</span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
                   <Layers className="w-3 h-3" />
                   <span>Hasil Agregasi 4 Aplikasi</span>
@@ -197,7 +197,7 @@ export const BullyingTrendChart: React.FC<BullyingTrendChartProps> = ({ db }) =>
               <div className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm"></span>
                 <span className="font-extrabold text-emerald-700 dark:text-emerald-400">
-                  Sesudah Inovasi Pass Temenan 2026 (Tahun Ini: {totalSesudah} Kasus)
+                  Sesudah Inovasi Aplikasi SAHABAT Spanju 2026 (Tahun Ini: {totalSesudah} Kasus)
                 </span>
               </div>
 
@@ -205,7 +205,7 @@ export const BullyingTrendChart: React.FC<BullyingTrendChartProps> = ({ db }) =>
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-rose-400 inline-block"></span>
                   <span className="font-semibold text-slate-600 dark:text-slate-300">
-                    Sebelum Pass Temenan (Tahun Lalu: {totalSebelum} Kasus)
+                    Sebelum Aplikasi SAHABAT Spanju (Tahun Lalu: {totalSebelum} Kasus)
                   </span>
                 </div>
               )}
@@ -356,11 +356,11 @@ export const BullyingTrendChart: React.FC<BullyingTrendChartProps> = ({ db }) =>
                       {showBaseline ? (
                         <>
                           Tahun Lalu: <span className="font-bold text-rose-600">{hoveredMonth.sebelumPassTemenan} kasus</span>{' '}
-                          ➔ Tahun Ini (Pass Temenan): <span className="font-extrabold text-emerald-700 dark:text-emerald-400">{hoveredMonth.sesudahPassTemenan} kasus</span>
+                          ➔ Tahun Ini (Aplikasi SAHABAT Spanju): <span className="font-extrabold text-emerald-700 dark:text-emerald-400">{hoveredMonth.sesudahPassTemenan} kasus</span>
                         </>
                       ) : (
                         <>
-                          Tahun Ini (Pass Temenan 2026): <span className="font-extrabold text-emerald-700 dark:text-emerald-400">{hoveredMonth.sesudahPassTemenan} kasus</span>
+                          Tahun Ini (Aplikasi SAHABAT Spanju 2026): <span className="font-extrabold text-emerald-700 dark:text-emerald-400">{hoveredMonth.sesudahPassTemenan} kasus</span>
                         </>
                       )}
                     </p>

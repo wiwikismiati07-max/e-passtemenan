@@ -49,7 +49,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({ isOpen, onClos
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white truncate">
-                  Tutorial & Manual Book E-PASS TEMENAN
+                  Tutorial & Manual Book Aplikasi SAHABAT Spanju
                 </h3>
                 <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 shrink-0">
                   <Sparkles className="w-3 h-3 text-emerald-600" />
@@ -112,7 +112,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({ isOpen, onClos
           <iframe
             key={iframeKey}
             src={MANUAL_BOOK_URL}
-            title="Manual Book E-Pass Temenan SPANJU"
+            title="Manual Book Aplikasi SAHABAT Spanju"
             className="w-full h-full border-0"
             allowFullScreen
             allow="clipboard-write"
@@ -125,7 +125,7 @@ export const ManualBookModal: React.FC<ManualBookModalProps> = ({ isOpen, onClos
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
             <span className="truncate">
-              UPT SMP Negeri 7 Pasuruan &bull; Inovasi E-Pass Temenan
+              UPT SMP Negeri 7 Pasuruan &bull; Inovasi Aplikasi SAHABAT Spanju
             </span>
           </div>
           <div className="flex items-center gap-3">

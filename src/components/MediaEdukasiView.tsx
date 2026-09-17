@@ -146,7 +146,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
   const [quickVideoUrl, setQuickVideoUrl] = useState('');
   const [quickVideoJudul, setQuickVideoJudul] = useState('');
   const [quickVideoKategori, setQuickVideoKategori] = useState('Dokumentasi Inovasi');
-  const [quickVideoNarasumber, setQuickVideoNarasumber] = useState('Satgas PASS TEMENAN UPT SMPN 7 Pasuruan');
+  const [quickVideoNarasumber, setQuickVideoNarasumber] = useState('Satgas Aplikasi SAHABAT Spanju UPT SMPN 7 Pasuruan');
   const [quickVideoDurasi, setQuickVideoDurasi] = useState('04:00');
   const [quickVideoDeskripsi, setQuickVideoDeskripsi] = useState('');
   const [isQuickVideoExpanded, setIsQuickVideoExpanded] = useState(false);
@@ -377,14 +377,14 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
 
   // Handlers
   const handleCopyQuote = (pesan: PesanEdukatifItem) => {
-    const text = `"${pesan.kutipan}"\n\n— ${pesan.penulis}\n*Media Edukasi Digital E-PASS TEMENAN SPANJU (SMPN 7 Pasuruan)*`;
+    const text = `"${pesan.kutipan}"\n\n— ${pesan.penulis}\n*Media Edukasi Digital Aplikasi SAHABAT Spanju (SMPN 7 Pasuruan)*`;
     navigator.clipboard.writeText(text);
     setCopiedId(pesan.id);
     setTimeout(() => setCopiedId(null), 2500);
   };
 
   const handleShareWhatsApp = (pesan: PesanEdukatifItem) => {
-    const text = `*"${pesan.kutipan}"*\n\n— *${pesan.penulis}* (${pesan.topik})\n\n_Pesan Edukasi dari Gerakan E-PASS TEMENAN UPT SMPN 7 Pasuruan: Bersama Melawan Perundungan._`;
+    const text = `*"${pesan.kutipan}"*\n\n— *${pesan.penulis}* (${pesan.topik})\n\n_Pesan Edukasi dari Gerakan Aplikasi SAHABAT Spanju UPT SMPN 7 Pasuruan: Bersama Melawan Perundungan._`;
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -443,7 +443,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       isOpen: true,
       type: 'video',
       title: 'Muat Ulang Koleksi Video Resmi',
-      desc: 'Apakah Anda ingin memuat ulang dan menyinkronkan 7 video dokumentasi resmi PASS TEMENAN SPANJU?',
+      desc: 'Apakah Anda ingin memuat ulang dan menyinkronkan 7 video dokumentasi resmi Aplikasi SAHABAT Spanju?',
     });
   };
 
@@ -452,7 +452,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       isOpen: true,
       type: 'infografis',
       title: 'Sinkronkan Infografis Resmi',
-      desc: 'Apakah Anda ingin memuat ulang dan menyinkronkan bagan & alur penanganan resmi PASS TEMENAN SPANJU?',
+      desc: 'Apakah Anda ingin memuat ulang dan menyinkronkan bagan & alur penanganan resmi Aplikasi SAHABAT Spanju?',
     });
   };
 
@@ -551,7 +551,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       judul: resolvedTitle,
       kategori: quickMateriKategori || 'Regulasi & Dokumen Resmi',
       ringkasan: quickMateriDeskripsi || `Dokumen berkas PDF: ${resolvedTitle}. Siap diunduh dan dipelajari.`,
-      penulis: 'Satgas PASS TEMENAN SPANJU',
+      penulis: 'Satgas Aplikasi SAHABAT Spanju',
       tanggal: todayStr,
       linkDokumen: quickMateriUrl.trim(),
       fileFormat: quickMateriFormat || 'PDF',
@@ -601,7 +601,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
       videoUrl: finalUrl,
       youtubeId: ytId || undefined,
       durasi: quickVideoDurasi.trim() || '04:00',
-      narasumber: quickVideoNarasumber.trim() || 'Satgas PASS TEMENAN SPANJU',
+      narasumber: quickVideoNarasumber.trim() || 'Satgas Aplikasi SAHABAT Spanju',
       tanggal: todayStr,
       thumbnailUrl: ytId
         ? getYouTubeThumbnail(ytId)
@@ -1659,7 +1659,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
             <button
               onClick={handleResetInfografis}
               className="px-2.5 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/80 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
-              title="Kembalikan atau sinkronkan ke diagram alur & bagan resmi PASS TEMENAN"
+              title="Kembalikan atau sinkronkan ke diagram alur & bagan resmi Aplikasi SAHABAT Spanju"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Muat Bagan Resmi</span>
@@ -1803,7 +1803,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
               <button
                 onClick={handleResetVideos}
                 className="px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/80 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                title="Kembalikan atau sinkronkan ke 7 video resmi PASS TEMENAN"
+                title="Kembalikan atau sinkronkan ke 7 video resmi Aplikasi SAHABAT Spanju"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Muat 7 Video Resmi</span>
@@ -1955,7 +1955,7 @@ export const MediaEdukasiView: React.FC<MediaEdukasiViewProps> = ({
                       type="text"
                       value={quickVideoNarasumber}
                       onChange={(e) => setQuickVideoNarasumber(e.target.value)}
-                      placeholder="Contoh: Satgas PASS TEMENAN SPANJU"
+                      placeholder="Contoh: Satgas Aplikasi SAHABAT Spanju"
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
                     />
                   </div>

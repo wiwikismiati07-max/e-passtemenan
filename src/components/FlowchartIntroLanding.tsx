@@ -27,7 +27,7 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
     {
       id: 'bagan-alur-penanganan',
       number: '01',
-      title: 'Bagan Alur Penanganan Kasus Pass Temenan',
+      title: 'Bagan Alur Penanganan Kasus Aplikasi SAHABAT Spanju',
       subtitle: 'SOP Alur Penanganan Terpadu, Investigasi Rahasia, Mediasi & Pemulihan SPANJU',
       webLink: 'https://i.ibb.co.com/gMZWh2pN/ALUR-PENANGANAN-PASS-TEMENAN.png',
       primaryImg: 'https://images.weserv.nl/?url=i.ibb.co/gMZWh2pN/ALUR-PENANGANAN-PASS-TEMENAN.png&w=1200&output=jpg&q=85',
@@ -39,7 +39,7 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
     {
       id: 'bagan-1',
       number: '02',
-      title: 'Bagan Struktur Tolak Ukur E-Pass Temenan',
+      title: 'Bagan Struktur Tolak Ukur Aplikasi SAHABAT Spanju',
       subtitle: 'Kerangka Kerja & Indikator Satgas Anti Perundungan SPANJU',
       webLink: 'https://ibb.co.com/Tx9BwDfb',
       primaryImg: 'https://images.weserv.nl/?url=i.ibb.co/S4FX6Djd/Bagan-Struktur-Tolak-Ukur-E-Pass-Temenan-Spanju.png&w=1200&output=jpg&q=85',
@@ -107,7 +107,7 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
             </div>
 
             <h2 className="text-2xl md:text-4xl font-black font-display tracking-tight uppercase text-white leading-tight">
-              BAGAN & ALUR TOLAK UKUR E-PASS TEMENAN SPANJU
+              BAGAN & ALUR TOLAK UKUR APLIKASI SAHABAT SPANJU
             </h2>
 
             <p className="text-sm md:text-base text-slate-200 leading-relaxed font-medium">
@@ -126,7 +126,7 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
               onClick={onEnterApp}
               className="w-full lg:w-auto px-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm md:text-base shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] btn-3d"
             >
-              <span>MASUK KE APLIKASI E-PASS TEMENAN</span>
+              <span>MASUK KE APLIKASI SAHABAT SPANJU</span>
               <ArrowRight className="w-5 h-5 stroke-[3]" />
             </button>
           </div>

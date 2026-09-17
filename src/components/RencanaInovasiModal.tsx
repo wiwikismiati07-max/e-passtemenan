@@ -47,7 +47,7 @@ export const RencanaInovasiModal: React.FC<RencanaInovasiModalProps> = ({
     { id: 'all', label: 'Semua Inovasi', count: RENCANA_INOVASI_LIST.length },
     { id: 'digital', label: 'Kampanye Digital & Media', count: 2 },
     { id: 'literasa', label: 'LITERASA 7 & Olah Rasa', count: 2 },
-    { id: 'sebaya', label: 'PASS Temenan & Duta Sebaya', count: 2 },
+    { id: 'sebaya', label: 'SAHABAT Spanju & Duta Sebaya', count: 2 },
     { id: 'parenting', label: 'Kolaborasi Orang Tua', count: 2 },
     { id: 'pembiasaan', label: 'Gerakan 7 Menit Peduli', count: 1 },
   ];
@@ -64,7 +64,7 @@ export const RencanaInovasiModal: React.FC<RencanaInovasiModalProps> = ({
           item.id === 'modul-2' || item.id === 'inovasi-6' || item.category.toLowerCase().includes('literasa');
       } else if (selectedCategory === 'sebaya') {
         matchesCat =
-          item.id === 'modul-3' || item.id === 'inovasi-7' || item.category.toLowerCase().includes('temenan');
+          item.id === 'modul-3' || item.id === 'inovasi-7' || item.category.toLowerCase().includes('sahabat') || item.category.toLowerCase().includes('temenan');
       } else if (selectedCategory === 'parenting') {
         matchesCat =
           item.id === 'modul-4' || item.id === 'inovasi-9' || item.category.toLowerCase().includes('orang tua');
