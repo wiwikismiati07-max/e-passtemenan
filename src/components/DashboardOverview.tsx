@@ -15,6 +15,7 @@ import {
   ArrowRight,
   TrendingUp,
   BookOpen,
+  LayoutGrid,
 } from 'lucide-react';
 import { AppDatabase } from '../types';
 import { RencanaInovasiModal } from './RencanaInovasiModal';
@@ -134,9 +135,19 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <h2 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Ringkasan Data & Administrasi
           </h2>
-          <span className="text-[11px] text-slate-400">
-            Klik kartu untuk membuka menu
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigate('pilihan-menu')}
+              className="px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Buka Pilihan Menu Aplikasi"
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>Pilihan Menu Aplikasi</span>
+            </button>
+            <span className="text-[11px] text-slate-400 hidden sm:inline">
+              Klik kartu untuk membuka menu
+            </span>
+          </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
           {stats.map((st, idx) => {

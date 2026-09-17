@@ -14,6 +14,7 @@ import {
   Download,
   ShieldCheck,
   LayoutDashboard,
+  LayoutGrid,
   LogOut,
   UserCheck,
   UserCog,
@@ -358,7 +359,7 @@ export default function App() {
           </button>
 
           <div
-            onClick={() => handleNavigate('dashboard-overview')}
+            onClick={() => handleNavigate('pilihan-menu')}
             className="flex items-center gap-2.5 cursor-pointer select-none group"
           >
             <div className="w-9 h-9 rounded-full p-0.5 border-2 border-emerald-400 bg-white shadow-xs flex items-center justify-center shrink-0">
@@ -557,11 +558,12 @@ export default function App() {
 
                 <div className="flex items-center gap-2 shrink-0">
                   <button
-                    onClick={() => handleNavigate('dashboard-overview')}
+                    onClick={() => handleNavigate('pilihan-menu')}
                     className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Kembali ke Pilihan Menu Aplikasi"
                   >
-                    <LayoutDashboard className="w-3.5 h-3.5 text-indigo-500" />
-                    <span>Dashboard</span>
+                    <LayoutGrid className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Pilihan Menu Aplikasi</span>
                   </button>
                   <button
                     onClick={handleManualSync}
