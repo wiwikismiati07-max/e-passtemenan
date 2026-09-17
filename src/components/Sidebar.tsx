@@ -477,39 +477,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           }`}
                         />
                       </button>
-
-                      {/* Sub-menu Bagan & Alur Tolak Ukur (ditampilkan di samping kiri) */}
-                      {item.id === 'flowchart-intro' && (
-                        <div className="ml-5 pl-3 border-l-2 border-indigo-200 dark:border-indigo-800/60 my-1.5 space-y-1">
-                          {[
-                            { id: 'bagan-alur-penanganan', no: '01', title: 'Alur Penanganan Kasus' },
-                            { id: 'bagan-1', no: '02', title: 'Struktur Tolak Ukur' },
-                            { id: 'bagan-2', no: '03', title: 'Bagan Keputusan' },
-                            { id: 'bagan-3', no: '04', title: 'Diagram Tindak Lanjut' },
-                          ].map((sub) => (
-                            <button
-                              key={sub.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectView('flowchart-intro');
-                                if (window.innerWidth < 1024) onClose();
-                                setTimeout(() => {
-                                  const el = document.getElementById(sub.id);
-                                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                                }, 150);
-                              }}
-                              className="w-full text-left py-1.5 px-2 rounded-lg text-[11px] font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 flex items-center justify-between group/sub transition-colors cursor-pointer"
-                              title={`Buka ${sub.title}`}
-                            >
-                              <span className="truncate">
-                                <span className="font-extrabold text-indigo-500 mr-1.5">{sub.no}.</span>
-                                {sub.title}
-                              </span>
-                              <ChevronRight className="w-3 h-3 opacity-0 group-hover/sub:opacity-100 transition-opacity text-indigo-500 shrink-0" />
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </React.Fragment>
                   );
                 })}
