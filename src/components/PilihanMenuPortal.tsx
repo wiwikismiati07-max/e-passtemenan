@@ -10,6 +10,7 @@ import {
   Coffee,
   Trees,
   GraduationCap,
+  Users,
   Music,
   ExternalLink,
   Workflow,
@@ -44,12 +45,12 @@ export const PilihanMenuPortal: React.FC<PilihanMenuPortalProps> = ({
   const appCards = [
     // --- Baris 1: Sesuai Screenshot ---
     {
-      id: 'tutorial',
-      title: 'TUTORIAL...',
+      id: 'tutorial-manual-book',
+      title: 'TUTORIAL MANUAL BOOK',
       fullTitle: 'TUTORIAL MANUAL BOOK',
-      subtitle: 'PANDUAN VIDEO INTERAKTIF',
+      subtitle: 'BUKU PANDUAN FLIPBOOK HEYZINE',
       category: 'prioritas',
-      icon: Youtube,
+      icon: BookOpen,
       iconGradient: 'from-[#f43f5e] via-[#e11d48] to-[#be123c] shadow-rose-500/30',
       action: () => onOpenManualBook(),
     },
@@ -175,6 +176,16 @@ export const PilihanMenuPortal: React.FC<PilihanMenuPortalProps> = ({
       iconGradient: 'from-[#1e40af] via-[#1d4ed8] to-[#2563eb] shadow-blue-500/30',
       action: () => onNavigate('master-guru'),
     },
+    {
+      id: 'master-siswa-direktori',
+      title: 'MASTER DATA SISWA',
+      fullTitle: 'MASTER DATA SISWA',
+      subtitle: 'DATABASE SISWA & IMPORT EXCEL',
+      category: 'master',
+      icon: Users,
+      iconGradient: 'from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] shadow-sky-500/30',
+      action: () => onNavigate('master-siswa'),
+    },
   ];
 
   const filteredCards = appCards.filter((card) => {
@@ -297,7 +308,7 @@ export const PilihanMenuPortal: React.FC<PilihanMenuPortalProps> = ({
               {/* Title & Subtitle */}
               <div className="mt-4.5 w-full">
                 <h3
-                  className="font-black text-sm sm:text-base text-slate-900 dark:text-white uppercase tracking-wider truncate"
+                  className="font-black text-xs sm:text-sm text-slate-900 dark:text-white uppercase tracking-wider line-clamp-2 min-h-[2.5rem] flex items-center justify-center text-center px-1"
                   title={card.fullTitle}
                 >
                   {card.title}
