@@ -277,7 +277,7 @@ export default function App() {
   const getActiveViewDisplayTitle = () => {
     switch (activeView) {
       case 'flowchart-intro':
-        return 'Bagan & Alur Tolak Ukur';
+        return 'Bagan dan Tolak Ukur Kekerasan dan Perundungan di SMP Negeri 7 Pasuruan';
       case 'dashboard-overview':
         return 'Dashboard Utama';
       case 'piket-harian':

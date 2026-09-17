@@ -72,10 +72,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         {
           id: 'flowchart-intro',
-          title: 'Bagan & Alur Tolak Ukur',
+          title: 'Bagan & Tolak Ukur',
           tag: 'Panduan',
           category: 'Utama',
-          subtitle: 'Struktur, Alur Tolak Ukur & SOP',
+          subtitle: 'Kekerasan & Perundungan SMPN 7',
           icon: Workflow,
           color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800',
           activeBg: 'bg-indigo-600 text-white shadow-indigo-600/20',

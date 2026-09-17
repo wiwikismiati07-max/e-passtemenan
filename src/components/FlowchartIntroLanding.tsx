@@ -91,31 +91,42 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* Welcome Banner & Call To Action Header */}
-      <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-purple-950 text-white rounded-3xl p-6 md:p-10 shadow-xl border border-indigo-700/50 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+      {/* Welcome Banner & Call To Action Header - Soft, Bright & Elegant */}
+      <div className="bg-gradient-to-br from-emerald-50 via-teal-50/70 to-sky-100/60 dark:from-slate-900 dark:via-slate-800 dark:to-teal-950/40 rounded-3xl p-6 md:p-10 shadow-lg shadow-teal-900/5 border border-emerald-200/80 dark:border-emerald-800/40 relative overflow-hidden text-slate-800 dark:text-slate-100">
+        <div className="absolute -top-12 -right-12 w-96 h-96 bg-teal-200/30 dark:bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 w-96 h-96 bg-emerald-200/25 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-3xl">
+          <div className="space-y-3.5 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3.5 py-1 rounded-full bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+              <span className="px-3.5 py-1 rounded-full bg-emerald-600 text-white font-black text-xs uppercase tracking-wider shadow-xs flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4" />
                 PANDUAN OPERASIONAL RESMI
               </span>
-              <span className="px-3.5 py-1 rounded-full bg-white/10 text-slate-200 font-bold text-xs border border-white/20">
+              <span className="px-3.5 py-1 rounded-full bg-white/90 dark:bg-slate-800/90 text-emerald-800 dark:text-emerald-300 font-bold text-xs border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
                 UPT SMP Negeri 7 Pasuruan
               </span>
             </div>
 
-            <h2 className="text-2xl md:text-4xl font-black font-display tracking-tight uppercase text-white leading-tight">
-              BAGAN & ALUR TOLAK UKUR APLIKASI SAHABAT SPANJU
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black font-display tracking-tight uppercase text-slate-900 dark:text-white leading-tight">
+              BAGAN DAN TOLAK UKUR KEKERASAN DAN PERUNDUNGAN DI SMP NEGERI 7 PASURUAN
             </h2>
 
-            <p className="text-sm md:text-base text-slate-200 leading-relaxed font-medium">
+            {/* Kotak Pengenalan & Definisi Resmi Inovasi Digital - Soft & Elegant */}
+            <div id="definisi-inovasi-sahabat-spanju" className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-emerald-200/80 dark:border-emerald-800/50 text-slate-700 dark:text-slate-200 shadow-xs">
+              <p className="text-xs sm:text-sm md:text-base leading-relaxed font-medium">
+                <strong className="font-black text-emerald-700 dark:text-emerald-400">
+                  “Aplikasi SAHABAT SPANJU (Sekolah Aman, Harmonis, Anti Bullying dan Tindak Kekerasan SMP Negeri 7 Pasuruan)”
+                </strong>{' '}
+                adalah Inovasi Digital SMP Negeri 7 Pasuruan untuk mencegah dan menangani aksi perundungan serta kekerasan di lingkungan sekolah secara cepat, aman, dan terintegrasi, serta meningkatkan pelaksanan Program Komunitas Pass Temenan SMP Negeri 7 dalam kegiatan Bersama melawan kekerasan dan perundungan di sekolah”.
+              </p>
+            </div>
+
+            <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
               Silakan pelajari bagan struktur, alur penilaian tolak ukur, dan diagram alur respon tindak lanjut berikut sebelum mengakses menu utama aplikasi.
             </p>
 
-            <div className="pt-2 flex items-center gap-3 text-xs text-indigo-200">
-              <Workflow className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="pt-1 flex items-center gap-3 text-xs text-emerald-800 dark:text-emerald-300 font-semibold">
+              <Workflow className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Gambar ditampilkan penuh kebawah (bebas scroll vertikal)</span>
             </div>
           </div>
@@ -124,7 +135,7 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
           <div className="shrink-0 w-full lg:w-auto">
             <button
               onClick={onEnterApp}
-              className="w-full lg:w-auto px-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm md:text-base shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] btn-3d"
+              className="w-full lg:w-auto px-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm md:text-base shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] btn-3d"
             >
               <span>MASUK KE APLIKASI SAHABAT SPANJU</span>
               <ArrowRight className="w-5 h-5 stroke-[3]" />
@@ -134,9 +145,9 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
       </div>
 
       {/* Navigation Quick Anchors */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-          <Sparkles className="w-4 h-4 text-amber-500" />
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-emerald-50/40 dark:bg-slate-900/60 p-4 rounded-2xl border border-emerald-100 dark:border-slate-800 shadow-xs">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
+          <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span>Lompat Cepat Ke Bagan:</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -144,9 +155,9 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
             <a
               key={item.id}
               href={`#${item.id}`}
-              className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-200 dark:border-slate-700"
+              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-emerald-200/60 dark:border-slate-700 shadow-2xs"
             >
-              <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />
+              <ChevronDown className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>{item.number}. {item.badge}</span>
             </a>
           ))}
@@ -227,21 +238,21 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
         ))}
       </div>
 
-      {/* Bottom Sticky Enter Application Banner */}
-      <div className="sticky bottom-4 z-20 bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-md text-white p-4 md:p-5 rounded-2xl shadow-2xl border border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Bottom Sticky Enter Application Banner - Soft & Bright */}
+      <div className="sticky bottom-4 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-800 dark:text-white p-4 md:p-5 rounded-2xl shadow-xl border border-emerald-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3 text-center sm:text-left">
-          <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="text-sm font-extrabold font-display">Siap Menggunakan Aplikasi?</h4>
-            <p className="text-xs text-slate-300">Klik tombol di samping untuk langsung mengakses seluruh formulir & rekapitulasi.</p>
+            <h4 className="text-sm font-extrabold font-display text-slate-900 dark:text-white">Siap Menggunakan Aplikasi?</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Klik tombol di samping untuk langsung mengakses seluruh formulir & rekapitulasi.</p>
           </div>
         </div>
 
         <button
           onClick={onEnterApp}
-          className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all shrink-0"
+          className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all shrink-0"
         >
           <span>MASUK KE MENU APLIKASI</span>
           <ArrowRight className="w-4 h-4 stroke-[3]" />
