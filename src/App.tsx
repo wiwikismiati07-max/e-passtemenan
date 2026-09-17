@@ -47,6 +47,7 @@ import { SupabaseSettingsModal } from './components/SupabaseSettingsModal';
 import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { PejabatSettingsModal } from './components/PejabatSettingsModal';
 import { FlowchartIntroLanding } from './components/FlowchartIntroLanding';
+import { PilihanMenuPortal } from './components/PilihanMenuPortal';
 import { MasterSiswaView } from './components/MasterSiswaView';
 import { MasterGuruView } from './components/MasterGuruView';
 import { LoginScreen, UserSession } from './components/LoginScreen';
@@ -619,6 +620,22 @@ export default function App() {
               {activeView === 'flowchart-intro' && (
                 <FlowchartIntroLanding
                   onEnterApp={() => handleNavigate('dashboard-overview')}
+                  onNavigate={(viewKey, tab) => handleNavigate(viewKey, tab || 'form')}
+                  onOpenManualBook={() => setIsManualBookOpen(true)}
+                  onOpenHotline={() => setIsHotlineOpen(true)}
+                  onOpenPilihanMenu={() => handleNavigate('pilihan-menu')}
+                />
+              )}
+
+              {activeView === 'pilihan-menu' && (
+                <PilihanMenuPortal
+                  onNavigate={(viewKey, tab) => handleNavigate(viewKey, tab || 'form')}
+                  onOpenManualBook={() => setIsManualBookOpen(true)}
+                  onOpenHotline={() => setIsHotlineOpen(true)}
+                  onOpenBackupModal={() => setIsBackupModalOpen(true)}
+                  onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+                  onOpenExitModal={() => setIsExitModalOpen(true)}
+                  onBackToBagan={() => handleNavigate('flowchart-intro')}
                 />
               )}
 

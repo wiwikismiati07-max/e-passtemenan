@@ -10,6 +10,8 @@ import {
   ChevronDown,
   RefreshCw,
   Eye,
+  LayoutDashboard,
+  ChevronRight,
 } from 'lucide-react';
 
 import bagan1Img from '../assets/images/bagan-1.png';
@@ -18,9 +20,19 @@ import bagan3Img from '../assets/images/bagan-3.png';
 
 interface FlowchartIntroLandingProps {
   onEnterApp: () => void;
+  onNavigate?: (viewKey: string, tab?: string) => void;
+  onOpenManualBook?: () => void;
+  onOpenHotline?: () => void;
+  onOpenPilihanMenu?: () => void;
 }
 
-export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ onEnterApp }) => {
+export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({
+  onEnterApp,
+  onNavigate,
+  onOpenManualBook,
+  onOpenHotline,
+  onOpenPilihanMenu,
+}) => {
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const flowcharts = [
@@ -125,19 +137,31 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
               Silakan pelajari bagan struktur, alur penilaian tolak ukur, dan diagram alur respon tindak lanjut berikut sebelum mengakses menu utama aplikasi.
             </p>
 
+            {/* Tombol aksi langsung */}
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              <button
+                onClick={onEnterApp}
+                className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-600/25 flex items-center gap-2.5 transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                <LayoutDashboard className="w-4 h-4 stroke-[2.5]" />
+                <span>Masuk ke Dashboard Utama</span>
+                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            </div>
+
             <div className="pt-1 flex items-center gap-3 text-xs text-emerald-800 dark:text-emerald-300 font-semibold">
               <Workflow className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>Gambar ditampilkan penuh kebawah (bebas scroll vertikal)</span>
+              <span>Gambar bagan ditampilkan penuh kebawah (bebas scroll vertikal)</span>
             </div>
           </div>
 
-          {/* Action Button */}
+          {/* Action Button (Kanan) */}
           <div className="shrink-0 w-full lg:w-auto">
             <button
               onClick={onEnterApp}
-              className="w-full lg:w-auto px-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm md:text-base shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] btn-3d"
+              className="w-full lg:w-auto px-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm md:text-base shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] btn-3d cursor-pointer"
             >
-              <span>MASUK KE APLIKASI SAHABAT SPANJU</span>
+              <span>Masuk ke Aplikasi</span>
               <ArrowRight className="w-5 h-5 stroke-[3]" />
             </button>
           </div>
@@ -238,25 +262,27 @@ export const FlowchartIntroLanding: React.FC<FlowchartIntroLandingProps> = ({ on
         ))}
       </div>
 
-      {/* Bottom Sticky Enter Application Banner - Soft & Bright */}
-      <div className="sticky bottom-4 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-800 dark:text-white p-4 md:p-5 rounded-2xl shadow-xl border border-emerald-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 text-center sm:text-left">
-          <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+      {/* Bottom Enter Application Banner - Clean & Non-Overlapping */}
+      <div className="bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-white p-5 md:p-6 rounded-3xl shadow-md border border-emerald-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 mb-4">
+        <div className="flex items-center gap-3.5 text-center sm:text-left">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="text-sm font-extrabold font-display text-slate-900 dark:text-white">Siap Menggunakan Aplikasi?</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Klik tombol di samping untuk langsung mengakses seluruh formulir & rekapitulasi.</p>
+            <h4 className="text-sm font-extrabold font-display text-slate-900 dark:text-white">Siap Menggunakan Aplikasi SAHABAT SPANJU?</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Silakan langsung masuk ke Dashboard Utama untuk mulai menggunakan seluruh modul aplikasi.</p>
           </div>
         </div>
 
-        <button
-          onClick={onEnterApp}
-          className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all shrink-0"
-        >
-          <span>MASUK KE MENU APLIKASI</span>
-          <ArrowRight className="w-4 h-4 stroke-[3]" />
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          <button
+            onClick={onEnterApp}
+            className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+          >
+            <span>MASUK KE DASHBOARD UTAMA</span>
+            <ArrowRight className="w-4 h-4 stroke-[3]" />
+          </button>
+        </div>
       </div>
     </div>
   );
