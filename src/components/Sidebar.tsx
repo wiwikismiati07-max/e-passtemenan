@@ -22,7 +22,6 @@ import {
   PanelLeft,
   LogOut,
   Download,
-  Video,
   PhoneCall,
   Handshake,
   ExternalLink,
@@ -103,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title: 'Media Edukasi Digital',
           tag: 'Edukasi',
           category: 'Edukasi',
-          subtitle: 'Materi, Poster, Infografis & Pesan',
+          subtitle: 'Materi, Poster, Infografis, Video & Pesan',
           icon: BookOpen,
           color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 border-teal-200 dark:border-teal-800',
           activeBg: 'bg-teal-600 text-white shadow-teal-600/20',
@@ -111,20 +110,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             (db.mediaEdukasi?.materi?.length || 0) +
             (db.mediaEdukasi?.poster?.length || 0) +
             (db.mediaEdukasi?.infografis?.length || 0) +
+            (db.mediaEdukasi?.video?.length || 0) +
             (db.mediaEdukasi?.pesan?.length || 0),
-        },
-        {
-          id: 'media-video',
-          title: 'Video Edukasi & Sosialisasi',
-          tag: 'Video',
-          category: 'Edukasi',
-          subtitle: 'Dokumentasi Inovasi & Roadshow',
-          icon: Video,
-          color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800',
-          activeBg: 'bg-rose-600 text-white shadow-rose-600/20',
-          count: (db.mediaEdukasi?.video && db.mediaEdukasi.video.length > 0) ? db.mediaEdukasi.video.length : 7,
-          targetView: 'media-edukasi',
-          targetTab: 'video',
         },
         {
           id: 'manual-book-menu',
